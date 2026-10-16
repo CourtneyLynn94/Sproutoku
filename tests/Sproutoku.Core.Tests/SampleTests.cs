@@ -1,4 +1,4 @@
-﻿namespace Sproutoku.Core.Tests;
+namespace Sproutoku.Core.Tests;
 
 public class SampleTests
 {

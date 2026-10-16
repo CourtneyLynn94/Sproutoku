@@ -1,0 +1,36 @@
+name: CI
+
+# When to run: on PRs into develop or master, and on pushes to them
+on:
+  pull_request:
+    branches: [develop, master]
+  push:
+    branches: [develop, master]
+
+jobs:
+  core-checks:
+    name: Core checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore packages
+        run: dotnet restore tests/Sproutoku.Core.Tests/Sproutoku.Core.Tests.csproj
+
+      - name: Lint (formatting)
+        run: |
+          dotnet format src/Sproutoku.Core/Sproutoku.Core.csproj --verify-no-changes --no-restore
+          dotnet format tests/Sproutoku.Core.Tests/Sproutoku.Core.Tests.csproj --verify-no-changes --no-restore
+
+      - name: Build (warnings fail the build)
+        run: dotnet build tests/Sproutoku.Core.Tests/Sproutoku.Core.Tests.csproj --no-restore -warnaserror
+
+      - name: Run unit tests
+        run: dotnet test tests/Sproutoku.Core.Tests/Sproutoku.Core.Tests.csproj --no-build

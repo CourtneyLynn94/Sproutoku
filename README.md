@@ -1,64 +1,54 @@
-# \# Sproutoku
+# Sproutoku
 
-# 
+![CI](https://github.com/CourtneyLynn94/Sproutoku/actions/workflows/ci.yml/badge.svg?branch=develop)
 
-# A cozy logic puzzle for Android and iOS, built with .NET MAUI: grow one plant in every region of the garden.
+A cozy logic puzzle for Android and iOS, built with .NET MAUI: grow one plant in every region of the garden.
 
-# 
+## Projects
 
-# \## Projects
+- `src/Sproutoku.App`: MAUI app (UI only)
+- `src/Sproutoku.Core`: game rules, solver and generator (no UI)
+- `tests/Sproutoku.Core.Tests`: xUnit tests for Core
 
-# \- `src/Sproutoku.App`: MAUI app (UI only)
+## Requirements
 
-# \- `src/Sproutoku.Core`: game rules, solver and generator (no UI)
+- Windows with Visual Studio and the **.NET Multi-platform App UI development** workload
+- An Android phone with USB debugging (Developer options → USB debugging), or an Android emulator (Tools → Android → Android Device Manager)
 
-# \- `tests/Sproutoku.Core.Tests`: xUnit tests for Core
+## Run
 
-# 
+In Visual Studio, set `Sproutoku.App` as the startup project, pick a target (Windows Machine or an Android device), and press F5.
 
-# \## Requirements
+From the command line:
 
-# \- Windows with Visual Studio and the \*\*.NET Multi-platform App UI development\*\* workload
+```powershell
+dotnet build src/Sproutoku.App -t:Run -f net10.0-windows10.0.19041.0
+dotnet build src/Sproutoku.App -t:Run -f net10.0-android   # needs a connected phone or running emulator
+```
 
-# \- An Android emulator (Tools → Android → Android Device Manager) or an Android phone with USB debugging
+## Test
 
-# 
+```powershell
+dotnet test tests/Sproutoku.Core.Tests
+```
 
-# \## Run
+## Lint
 
-# In Visual Studio, set `Sproutoku.App` as the startup project, pick a target (Windows Machine or an Android device), and press F5.
+```powershell
+dotnet format src/Sproutoku.Core/Sproutoku.Core.csproj --verify-no-changes
+dotnet format tests/Sproutoku.Core.Tests/Sproutoku.Core.Tests.csproj --verify-no-changes
+```
 
-# 
+Run the same commands without `--verify-no-changes` to fix formatting automatically.
 
-# From the command line:
+## Build for release
 
-# ```powershell
+```powershell
+dotnet publish src/Sproutoku.App -f net10.0-android -c Release
+```
 
-# dotnet build src/Sproutoku.App -t:Run -f net10.0-windows10.0.19041.0
+Output: `src/Sproutoku.App/bin/Release/net10.0-android/publish/`
 
-# dotnet build src/Sproutoku.App -t:Run -f net10.0-android   # needs a running emulator or connected phone
+## Continuous integration
 
-# ```
-
-# 
-
-# \## Test
-
-# ```powershell
-
-# dotnet test tests/Sproutoku.Core.Tests
-
-# ```
-
-# 
-
-# \## Build for release
-
-# ```powershell
-
-# dotnet publish src/Sproutoku.App -f net10.0-android -c Release
-
-# ```
-
-# Output: `src/Sproutoku.App/bin/Release/net10.0-android/publish/`
-
+Every pull request and every push to `develop` or `master` runs the lint, build (warnings as errors) and test checks above on GitHub Actions. See `.github/workflows/ci.yml`.
