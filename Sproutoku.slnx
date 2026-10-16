@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Sproutoku.App/Sproutoku.App.csproj" />
+    <Project Path="src/Sproutoku.Core/Sproutoku.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Sproutoku.Core.Tests/Sproutoku.Core.Tests.csproj" />
+  </Folder>
+</Solution>
