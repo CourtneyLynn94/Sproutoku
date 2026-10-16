@@ -5,6 +5,6 @@ public class SampleTests
     [Fact]
     public void TestRunnerWorks()
     {
-        Assert.Equal(3, 1 + 1);
+        Assert.Equal(2, 1 + 1);
     }
 }
