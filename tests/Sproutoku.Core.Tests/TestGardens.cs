@@ -5,8 +5,7 @@ namespace Sproutoku.Core.Tests.Puzzles;
 /// <summary>
 /// Small gardens shared by the puzzle tests.
 /// </summary>
-internal static class TestGardens
-{
+internal static class TestGardens {
     /// <summary>
     /// Builds a region grid from strings: one string per row, one digit (region id) per cell.
     /// </summary>

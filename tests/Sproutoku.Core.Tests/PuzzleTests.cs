@@ -2,11 +2,9 @@ using Sproutoku.Core.Puzzles;
 
 namespace Sproutoku.Core.Tests.Puzzles;
 
-public class PuzzleTests
-{
+public class PuzzleTests {
     [Fact]
-    public void Create_ValidGarden_ExposesRegionsAndSolution()
-    {
+    public void Create_ValidGarden_ExposesRegionsAndSolution() {
         var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
 
         Assert.Equal(5, puzzle.Size);
@@ -17,8 +15,7 @@ public class PuzzleTests
     }
 
     [Fact]
-    public void Create_InvalidGarden_ThrowsWithErrors()
-    {
+    public void Create_InvalidGarden_ThrowsWithErrors() {
         var solution = TestGardens.ValidSolution()[..4];
 
         var exception = Assert.Throws<InvalidPuzzleException>(
@@ -29,8 +26,7 @@ public class PuzzleTests
     }
 
     [Fact]
-    public void Create_CopiesInput_SoLaterChangesDontAffectThePuzzle()
-    {
+    public void Create_CopiesInput_SoLaterChangesDontAffectThePuzzle() {
         var regions = TestGardens.ValidRegions();
         var solution = TestGardens.ValidSolution();
         var puzzle = Puzzle.Create(regions, solution);

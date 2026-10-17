@@ -3,8 +3,7 @@ namespace Sproutoku.Core.Puzzles;
 /// <summary>
 /// A position in the grid. Row 0 is the top row and column 0 the left column.
 /// </summary>
-public readonly record struct Cell(int Row, int Column)
-{
+public readonly record struct Cell(int Row, int Column) {
 
     /// <summary>
     /// True if the cell lies on an N×N grid of the given size.

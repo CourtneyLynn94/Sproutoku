@@ -3,8 +3,7 @@ namespace Sproutoku.Core.Puzzles;
 /// <summary>
 /// The kinds of problem the validator can find.
 /// </summary>
-public enum PuzzleErrorCode
-{
+public enum PuzzleErrorCode {
     NotSquare,
     SizeOutOfRange,
     InvalidRegionId,

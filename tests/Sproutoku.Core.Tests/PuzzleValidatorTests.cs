@@ -2,19 +2,16 @@ using Sproutoku.Core.Puzzles;
 
 namespace Sproutoku.Core.Tests.Puzzles;
 
-public class PuzzleValidatorTests
-{
+public class PuzzleValidatorTests {
     [Fact]
-    public void ValidGarden_HasNoErrors()
-    {
+    public void ValidGarden_HasNoErrors() {
         var errors = PuzzleValidator.Validate(TestGardens.ValidRegions(), TestGardens.ValidSolution());
 
         Assert.Empty(errors);
     }
 
     [Fact]
-    public void TutorialSize4_IsAllowed()
-    {
+    public void TutorialSize4_IsAllowed() {
         var regions = TestGardens.Regions(
             "0011",
             "0011",
@@ -27,8 +24,7 @@ public class PuzzleValidatorTests
     }
 
     [Fact]
-    public void RejectsMoreColumnsThanRows()
-    {
+    public void RejectsMoreColumnsThanRows() {
         var regions = TestGardens.Regions(
             "00111",
             "11111",
@@ -40,8 +36,7 @@ public class PuzzleValidatorTests
     }
 
     [Fact]
-    public void RejectsRaggedRows()
-    {
+    public void RejectsRaggedRows() {
         var regions = TestGardens.Regions(
             "0011",
             "11111",
@@ -56,8 +51,7 @@ public class PuzzleValidatorTests
     [Theory]
     [InlineData(3)]
     [InlineData(11)]
-    public void RejectsSizeOutsideAllowedRange(int size)
-    {
+    public void RejectsSizeOutsideAllowedRange(int size) {
         // Each row is its own region.
         // The validator stops at the size check, so the empty solution doesn't add other errors.
         int[][] regions = Enumerable.Range(0, size)
@@ -68,8 +62,7 @@ public class PuzzleValidatorTests
     }
 
     [Fact]
-    public void RejectsRegionIdOutsideRange()
-    {
+    public void RejectsRegionIdOutsideRange() {
         var regions = TestGardens.Regions(
             "00111",
             "11111",
@@ -82,8 +75,7 @@ public class PuzzleValidatorTests
     }
 
     [Fact]
-    public void RejectsTooFewRegions()
-    {
+    public void RejectsTooFewRegions() {
         // Region 2 merged into region 1, leaving four regions.
         var regions = TestGardens.Regions(
             "00111",
@@ -97,8 +89,7 @@ public class PuzzleValidatorTests
     }
 
     [Fact]
-    public void RejectsDisconnectedRegion()
-    {
+    public void RejectsDisconnectedRegion() {
         // The bottom-left cell belongs to region 0, cut off from the rest of it.
         var regions = TestGardens.Regions(
             "00111",
@@ -112,8 +103,7 @@ public class PuzzleValidatorTests
     }
 
     [Fact]
-    public void RejectsRegionJoinedOnlyAtACorner()
-    {
+    public void RejectsRegionJoinedOnlyAtACorner() {
         // Region 2's two cells, (2,4) and (3,3), touch only diagonally.
         var regions = TestGardens.Regions(
             "00111",
@@ -127,16 +117,14 @@ public class PuzzleValidatorTests
     }
 
     [Fact]
-    public void RejectsMissingPlant()
-    {
+    public void RejectsMissingPlant() {
         var solution = TestGardens.ValidSolution()[..4];
 
         AssertRejects(TestGardens.ValidRegions(), solution, PuzzleErrorCode.WrongSolutionCount);
     }
 
     [Fact]
-    public void RejectsPlantOutsideItsRegion()
-    {
+    public void RejectsPlantOutsideItsRegion() {
         var solution = TestGardens.ValidSolution();
         solution[0] = new Cell(2, 2); // a region 1 cell
 
@@ -144,8 +132,7 @@ public class PuzzleValidatorTests
     }
 
     [Fact]
-    public void RejectsPlantOffTheGrid()
-    {
+    public void RejectsPlantOffTheGrid() {
         var solution = TestGardens.ValidSolution();
         solution[0] = new Cell(-1, 0);
 
@@ -153,8 +140,7 @@ public class PuzzleValidatorTests
     }
 
     [Fact]
-    public void RejectsTwoPlantsInOneRow()
-    {
+    public void RejectsTwoPlantsInOneRow() {
         var solution = TestGardens.ValidSolution();
         solution[1] = new Cell(0, 2); // row 0, same as region 0's plant
 
@@ -162,8 +148,7 @@ public class PuzzleValidatorTests
     }
 
     [Fact]
-    public void RejectsTwoPlantsInOneColumn()
-    {
+    public void RejectsTwoPlantsInOneColumn() {
         var solution = TestGardens.ValidSolution();
         solution[3] = new Cell(3, 0); // column 0, same as region 0's plant
 
@@ -171,8 +156,7 @@ public class PuzzleValidatorTests
     }
 
     [Fact]
-    public void RejectsTouchingPlants()
-    {
+    public void RejectsTouchingPlants() {
         var solution = TestGardens.ValidSolution();
         solution[2] = new Cell(2, 3); // touches region 1's plant at (1,2) diagonally
         solution[4] = new Cell(4, 4); // keeps every row and column different
@@ -181,8 +165,7 @@ public class PuzzleValidatorTests
     }
 
     // Checks the puzzle fails, and that it fails only for the expected reason.
-    private static void AssertRejects(int[][] regions, IReadOnlyList<Cell> solution, PuzzleErrorCode expected)
-    {
+    private static void AssertRejects(int[][] regions, IReadOnlyList<Cell> solution, PuzzleErrorCode expected) {
         var errors = PuzzleValidator.Validate(regions, solution);
 
         Assert.NotEmpty(errors);

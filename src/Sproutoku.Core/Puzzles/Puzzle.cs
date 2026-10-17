@@ -4,12 +4,10 @@ namespace Sproutoku.Core.Puzzles;
 /// A garden: an N×N grid split into N regions, and the one correct plant for each region.
 /// The only way to make one is <see cref="Create"/>, which runs the validator, so every Puzzle in the game is known to be valid.
 /// </summary>
-public sealed class Puzzle
-{
+public sealed class Puzzle {
     private readonly int[,] _regions;
 
-    private Puzzle(int[,] regions, IReadOnlyList<Cell> solution)
-    {
+    private Puzzle(int[,] regions, IReadOnlyList<Cell> solution) {
         _regions = regions;
         Solution = solution;
     }
@@ -37,21 +35,17 @@ public sealed class Puzzle
     /// <summary>
     /// Validates the data and builds a puzzle, or throws <see cref="InvalidPuzzleException"/>.
     /// </summary>
-    public static Puzzle Create(int[][] regions, IReadOnlyList<Cell> solution)
-    {
+    public static Puzzle Create(int[][] regions, IReadOnlyList<Cell> solution) {
         var errors = PuzzleValidator.Validate(regions, solution);
-        if (errors.Count > 0)
-        {
+        if (errors.Count > 0) {
             throw new InvalidPuzzleException(errors);
         }
 
         // Copy the input so later changes to the caller's arrays can't change this puzzle.
         int size = regions.Length;
         var regionCopy = new int[size, size];
-        for (int row = 0; row < size; row++)
-        {
-            for (int column = 0; column < size; column++)
-            {
+        for (int row = 0; row < size; row++) {
+            for (int column = 0; column < size; column++) {
                 regionCopy[row, column] = regions[row][column];
             }
         }

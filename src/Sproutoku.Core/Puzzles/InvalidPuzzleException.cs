@@ -6,7 +6,6 @@ namespace Sproutoku.Core.Puzzles;
 /// Errors lists every problem found.
 /// </summary>
 public sealed class InvalidPuzzleException(IReadOnlyList<PuzzleError> errors)
-    : Exception("Invalid puzzle: " + string.Join(" ", errors.Select(e => e.Message)))
-{
+    : Exception("Invalid puzzle: " + string.Join(" ", errors.Select(e => e.Message))) {
     public IReadOnlyList<PuzzleError> Errors { get; } = errors;
 }
