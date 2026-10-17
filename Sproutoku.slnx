@@ -1,6 +1,13 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path="README.md" />
+  </Folder>
   <Folder Name="/src/">
-    <Project Path="src/Sproutoku.App/Sproutoku.App.csproj" />
+    <Project Path="src/Sproutoku.App/Sproutoku.App.csproj">
+      <Deploy Solution="Debug|*" />
+    </Project>
     <Project Path="src/Sproutoku.Core/Sproutoku.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">

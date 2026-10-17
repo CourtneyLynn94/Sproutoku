@@ -14,6 +14,23 @@
                FontSize="16"
                TextColor="#2F3A2F"
                HorizontalOptions="Center" />
+
+        <VerticalStackLayout VerticalOptions="Center" Spacing="16" Padding="24">
+            <Label x:Name="InfoLabel"
+                   TextColor="#2F3A2F"
+                   HorizontalOptions="Center" />
+
+            <Label x:Name="GridLabel"
+                   FontFamily="{OnPlatform Android=monospace, WinUI=Consolas, iOS=Menlo, MacCatalyst=Menlo}"
+                   FontSize="18"
+                   LineBreakMode="NoWrap"
+                   TextColor="#2F3A2F"
+                   HorizontalOptions="Center" />
+
+            <Button Text="New grid"
+                    Clicked="OnNewGridClicked"
+                    HorizontalOptions="Center" />
+        </VerticalStackLayout>
     </VerticalStackLayout>
 
 </ContentPage>
