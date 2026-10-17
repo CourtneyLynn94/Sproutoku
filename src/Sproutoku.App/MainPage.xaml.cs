@@ -13,11 +13,22 @@ public partial class MainPage : ContentPage {
 
     private void OnNewGridClicked(object? sender, EventArgs e) => ShowNewGrid();
 
+    private int _shown;
     private void ShowNewGrid() {
-        int size = Random.Shared.Next(5, 10); // 5 to 9
-        var puzzle = RoughGenerator.Generate(size, Random.Shared);
+        Puzzle puzzle;
+        string source;
 
-        InfoLabel.Text = $"{size} × {size}   (* = solution)";
+        if (_shown < StarterGardens.All.Count) {
+            puzzle = StarterGardens.All[_shown];
+            source = $"Starter garden {_shown + 1}";
+        } else {
+            puzzle = RoughGenerator.Generate(Random.Shared.Next(5, 10), Random.Shared);
+            source = "Rough random garden";
+        }
+
+        _shown++;
+
+        InfoLabel.Text = $"{source}: {puzzle.Size} × {puzzle.Size}   (* = solution)";
         GridLabel.Text = Format(puzzle);
     }
 
