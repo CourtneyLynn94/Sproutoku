@@ -1,20 +1,31 @@
-﻿using System.Text;
 using Sproutoku.App.DevTools;
+using Sproutoku.App.Garden;
+using Sproutoku.Core.Play;
 using Sproutoku.Core.Puzzles;
-using Cell = Sproutoku.Core.Puzzles.Cell;
 
 namespace Sproutoku.App;
 
 public partial class MainPage : ContentPage {
+    private readonly GardenDrawable _garden = new();
+    private int _shown;
+
     public MainPage() {
         InitializeComponent();
-        ShowNewGrid();
+        GardenView.Drawable = _garden;
+
+#if WINDOWS || MACCATALYST
+        // Desktop hover. Touch screens don't send hover events, so this does nothing on a phone.
+        GardenView.MoveHoverInteraction += (_, e) => SetHover(_garden.CellAt(e.Touches[0]));
+        GardenView.EndHoverInteraction += (_, _) => SetHover(null);
+#endif
+
+        ShowNewGarden();
     }
 
-    private void OnNewGridClicked(object? sender, EventArgs e) => ShowNewGrid();
+    private void OnNewGardenClicked(object? sender, EventArgs e) => ShowNewGarden();
 
-    private int _shown;
-    private void ShowNewGrid() {
+    // Steps through the starter gardens, then rough random ones.
+    private void ShowNewGarden() {
         Puzzle puzzle;
         string source;
 
@@ -28,24 +39,16 @@ public partial class MainPage : ContentPage {
 
         _shown++;
 
-        InfoLabel.Text = $"{source}: {puzzle.Size} × {puzzle.Size}   (* = solution)";
-        GridLabel.Text = Format(puzzle);
+        _garden.Board = Board.Start(puzzle);
+        _garden.HoverCell = null;
+        InfoLabel.Text = $"{source}: {puzzle.Size} × {puzzle.Size}";
+        GardenView.Invalidate();
     }
 
-    // One line per row: each cell's region id, then * if it holds the solution plant.
-    private static string Format(Puzzle puzzle) {
-        var text = new StringBuilder();
-        for (int row = 0; row < puzzle.Size; row++) {
-            var line = new StringBuilder();
-            for (int column = 0; column < puzzle.Size; column++) {
-                var cell = new Cell(row, column);
-                line.Append(puzzle.RegionAt(cell));
-                line.Append(puzzle.IsSolutionCell(cell) ? "* " : "  ");
-            }
+    private void SetHover(Core.Puzzles.Cell? cell) {
+        if (_garden.HoverCell == cell) return;
 
-            text.AppendLine(line.ToString().TrimEnd());
-        }
-
-        return text.ToString().TrimEnd();
+        _garden.HoverCell = cell;
+        GardenView.Invalidate();
     }
 }

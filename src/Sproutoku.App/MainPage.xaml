@@ -1,36 +1,22 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Sproutoku.App.MainPage">
+             x:Class="Sproutoku.App.MainPage"
+             BackgroundColor="#F3EDD6">
 
-    <VerticalStackLayout VerticalOptions="Center" Spacing="8" Padding="24">
-        <Label Text="Sproutoku"
-               FontSize="40"
-               FontAttributes="Bold"
-               TextColor="#2F3A2F"
-               HorizontalOptions="Center"
-               SemanticProperties.HeadingLevel="Level1" />
-        <Label Text="A cozy logic garden. Coming soon."
-               FontSize="16"
-               TextColor="#2F3A2F"
+    <Grid RowDefinitions="Auto,*,Auto"
+          RowSpacing="16"
+          Padding="16">
+        <Label x:Name="InfoLabel"
+               TextColor="#2E241B"
                HorizontalOptions="Center" />
 
-        <VerticalStackLayout VerticalOptions="Center" Spacing="16" Padding="24">
-            <Label x:Name="InfoLabel"
-                   TextColor="#2F3A2F"
-                   HorizontalOptions="Center" />
+        <GraphicsView x:Name="GardenView"
+                      Grid.Row="1" />
 
-            <Label x:Name="GridLabel"
-                   FontFamily="{OnPlatform Android=monospace, WinUI=Consolas, iOS=Menlo, MacCatalyst=Menlo}"
-                   FontSize="18"
-                   LineBreakMode="NoWrap"
-                   TextColor="#2F3A2F"
-                   HorizontalOptions="Center" />
-
-            <Button Text="New grid"
-                    Clicked="OnNewGridClicked"
-                    HorizontalOptions="Center" />
-        </VerticalStackLayout>
-    </VerticalStackLayout>
-
+        <Button Grid.Row="2"
+                Text="New garden"
+                Clicked="OnNewGardenClicked"
+                HorizontalOptions="Center" />
+    </Grid>
 </ContentPage>
