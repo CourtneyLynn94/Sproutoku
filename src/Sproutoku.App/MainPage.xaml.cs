@@ -2,6 +2,7 @@ using Sproutoku.App.DevTools;
 using Sproutoku.App.Garden;
 using Sproutoku.Core.Play;
 using Sproutoku.Core.Puzzles;
+using Cell = Sproutoku.Core.Puzzles.Cell;
 
 namespace Sproutoku.App;
 
@@ -9,9 +10,16 @@ public partial class MainPage : ContentPage {
     private readonly GardenDrawable _garden = new() { ShouldDrawRegionBorders = false };
     private int _shown;
 
+    // The cell the current press started on, or null.
+    private Cell? _pressedCell;
+
     public MainPage() {
         InitializeComponent();
         GardenView.Drawable = _garden;
+
+        GardenView.StartInteraction += OnPress;
+        GardenView.EndInteraction += OnRelease;
+        GardenView.CancelInteraction += (_, _) => _pressedCell = null;
 
 #if WINDOWS || MACCATALYST
         // Desktop hover. Touch screens don't send hover events, so this does nothing on a phone.
@@ -45,10 +53,44 @@ public partial class MainPage : ContentPage {
         GardenView.Invalidate();
     }
 
-    private void SetHover(Core.Puzzles.Cell? cell) {
+    #region Event Interactions
+
+    // Finger or mouse down: remember which cell the press started on.
+    private void OnPress(object? sender, TouchEventArgs e) {
+        _pressedCell = _garden.CellAt(e.Touches[0]);
+    }
+
+    // Finger or mouse up on the same cell it went down on counts as a tap.
+    private void OnRelease(object? sender, TouchEventArgs e) {
+        var pressed = _pressedCell;
+        _pressedCell = null;
+
+        var released = _garden.CellAt(e.Touches[0]);
+        if (released is null || released != pressed) {
+            return;
+        }
+
+        OnCellTapped(released.Value);
+    }
+
+    // A tap toggles ✕. Board.ToggleMark leaves locked cells alone.
+    private void OnCellTapped(Cell cell) {
+        if (_garden.Board is null) {
+            return;
+        }
+
+        _garden.Board = _garden.Board.ToggleMark(cell);
+        GardenView.Invalidate();
+    }
+
+#if WINDOWS || MACCATALYST
+    private void SetHover(Cell? cell) {
         if (_garden.HoverCell == cell) return;
 
         _garden.HoverCell = cell;
         GardenView.Invalidate();
     }
+#endif
+
+#endregion
 }
