@@ -9,3 +9,7 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
 csharp_style_namespace_declarations = file_scoped:warning
+
+# Braces on the same line, including } else {, }
+csharp_new_line_before_open_brace = none
+csharp_new_line_before_else = false
