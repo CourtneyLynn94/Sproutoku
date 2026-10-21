@@ -39,6 +39,11 @@ public sealed class GardenDrawable : IDrawable {
     /// </summary>
     public Cell? HoverCell { get; set; }
 
+    /// <summary>
+    /// Optional: Draw region borders.
+    /// </summary>
+    public bool ShouldDrawRegionBorders { get; set; } = false;
+
     public void Draw(ICanvas canvas, RectF dirtyRect) {
         if (Board is null) return;
 
@@ -65,6 +70,11 @@ public sealed class GardenDrawable : IDrawable {
         }
 
         canvas.StrokeLineCap = LineCap.Square;
+        DrawEdges(canvas, Board.Puzzle, regionBorders: false);
+        if (ShouldDrawRegionBorders) {
+            DrawEdges(canvas, Board.Puzzle, regionBorders: true);
+        }
+
         canvas.StrokeColor = Ink;
         canvas.StrokeSize = 3;
         canvas.DrawRectangle(_origin.X, _origin.Y, side, side);
@@ -121,4 +131,30 @@ public sealed class GardenDrawable : IDrawable {
         canvas.DrawLine(area.Left, area.Top, area.Right, area.Bottom);
         canvas.DrawLine(area.Right, area.Top, area.Left, area.Bottom);
     }
+
+    // Draws the line on each cell's right and bottom edge: thin inside a region (first pass),
+    // thick where two regions meet (second pass, so borders sit on top).
+    private void DrawEdges(ICanvas canvas, Puzzle puzzle, bool regionBorders) {
+        canvas.StrokeColor = regionBorders ? Ink : Ink.WithAlpha(0.22f);
+        canvas.StrokeSize = regionBorders ? 3 : 1;
+
+        for (int row = 0; row < puzzle.Size; row++) {
+            for (int column = 0; column < puzzle.Size; column++) {
+                var cell = new Cell(row, column);
+                RectF rect = CellRect(cell);
+
+                var right = new Cell(row, column + 1);
+                if (right.IsInside(puzzle.Size) && IsBorder(puzzle, cell, right) == regionBorders) {
+                    canvas.DrawLine(rect.Right, rect.Top, rect.Right, rect.Bottom);
+                }
+
+                var below = new Cell(row + 1, column);
+                if (below.IsInside(puzzle.Size) && IsBorder(puzzle, cell, below) == regionBorders) {
+                    canvas.DrawLine(rect.Left, rect.Bottom, rect.Right, rect.Bottom);
+                }
+            }
+        }
+    }
+
+    private static bool IsBorder(Puzzle puzzle, Cell a, Cell b) => puzzle.RegionAt(a) != puzzle.RegionAt(b);
 }

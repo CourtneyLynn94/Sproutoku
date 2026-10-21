@@ -6,7 +6,7 @@ using Sproutoku.Core.Puzzles;
 namespace Sproutoku.App;
 
 public partial class MainPage : ContentPage {
-    private readonly GardenDrawable _garden = new();
+    private readonly GardenDrawable _garden = new() { ShouldDrawRegionBorders = false };
     private int _shown;
 
     public MainPage() {
