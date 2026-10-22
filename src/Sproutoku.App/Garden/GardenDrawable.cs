@@ -102,27 +102,27 @@ public sealed class GardenDrawable : IDrawable {
 
         switch (state) {
             case CellState.Marked:
-                canvas.StrokeColor = Ink;
-                canvas.StrokeSize = 3;
-                DrawCross(canvas, inner);
+            canvas.StrokeColor = Ink;
+            canvas.StrokeSize = 3;
+            DrawCross(canvas, inner);
             break;
 
             case CellState.Planted:
-                canvas.FillColor = Leaf;
-                canvas.FillCircle(rect.Center.X, rect.Center.Y, inner.Width / 2);
+            canvas.FillColor = Leaf;
+            canvas.FillCircle(rect.Center.X, rect.Center.Y, inner.Width / 2);
             break;
 
             case CellState.Wilted:
-                canvas.StrokeColor = Wilt;
-                canvas.StrokeSize = 3;
-                canvas.DrawCircle(rect.Center.X, rect.Center.Y, inner.Width / 2);
-                canvas.DrawLine(inner.Left, inner.Bottom, inner.Right, inner.Top);
+            canvas.StrokeColor = Wilt;
+            canvas.StrokeSize = 3;
+            canvas.DrawCircle(rect.Center.X, rect.Center.Y, inner.Width / 2);
+            canvas.DrawLine(inner.Left, inner.Bottom, inner.Right, inner.Top);
             break;
 
             case CellState.RevealedEmpty:
-                canvas.StrokeColor = Ink.WithAlpha(0.45f);
-                canvas.StrokeSize = 2;
-                DrawCross(canvas, inner);
+            canvas.StrokeColor = Ink.WithAlpha(0.45f);
+            canvas.StrokeSize = 2;
+            DrawCross(canvas, inner);
             break;
         }
     }
