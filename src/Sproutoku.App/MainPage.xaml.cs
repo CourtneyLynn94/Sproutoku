@@ -1,15 +1,19 @@
 using Sproutoku.App.DevTools;
 using Sproutoku.App.Garden;
+using Sproutoku.Core.Input;
 using Sproutoku.Core.Play;
 using Sproutoku.Core.Puzzles;
-using Sproutoku.Core.Input;
 using Cell = Sproutoku.Core.Puzzles.Cell;
 
 namespace Sproutoku.App;
 
 public partial class MainPage : ContentPage {
+    // At this width and up, the desktop layout puts the list, board and shelf side by side.
+    private const double WideLayoutMinWidth = 960;
+
     private readonly GardenDrawable _garden = new() { ShouldDrawRegionBorders = false };
     private int _shown;
+    private bool? _isWide;
 
     // The cell the current press started on, or null.
     private Cell? _pressedCell;
@@ -23,6 +27,9 @@ public partial class MainPage : ContentPage {
         InitializeComponent();
         GardenView.Drawable = _garden;
 
+        ApplyLayout(wide: false);
+        SizeChanged += (_, _) => ApplyLayout(Width >= WideLayoutMinWidth);
+
         GardenView.StartInteraction += OnPress;
         GardenView.EndInteraction += OnRelease;
         GardenView.CancelInteraction += (_, _) => _pressedCell = null;
@@ -33,14 +40,8 @@ public partial class MainPage : ContentPage {
         GardenView.EndHoverInteraction += (_, _) => SetHover(null);
 #endif
 
-#if DEBUG
-        AddSolutionToggle();
-#endif
-
         ShowNewGarden();
     }
-
-    private void OnNewGardenClicked(object? sender, EventArgs e) => ShowNewGarden();
 
     // Steps through the starter gardens, then rough random ones.
     private void ShowNewGarden() {
@@ -49,7 +50,7 @@ public partial class MainPage : ContentPage {
 
         if (_shown < StarterGardens.All.Count) {
             puzzle = StarterGardens.All[_shown];
-            source = $"Starter garden {_shown + 1}";
+            source = "Starter garden";
         } else {
             puzzle = RoughGenerator.Generate(Random.Shared.Next(5, 10), Random.Shared);
             source = "Rough random garden";
@@ -61,11 +62,103 @@ public partial class MainPage : ContentPage {
         _garden.HoverCell = null;
         _doubleTap.Reset();
         _boardBeforeTap = null;
-        InfoLabel.Text = $"{source}: {puzzle.Size} × {puzzle.Size}";
+
+        GardenSignLabel.Text = $"Garden {_shown}";
+        InfoLabel.Text = $"{source}, {puzzle.Size} × {puzzle.Size}";
+        UpdatePlantingList();
         GardenView.Invalidate();
     }
 
+    private void UpdatePlantingList() {
+        if (_garden.Board is null) return;
+
+        PlantingCountLabel.Text = $"{_garden.Board.CountOf(CellState.Planted)} of {_garden.Board.Size} grown";
+    }
+
+    #region Layout
+
+    // Phone: stacked vertical with board, planting list, tool shelf.
+    // Desktop: stacked horizontal with planting list, board, tool shelf.
+    private void ApplyLayout(bool wide) {
+        if (_isWide == wide) return;
+        _isWide = wide;
+
+        if (wide) {
+            GameArea.RowDefinitions = Rows(GridLength.Star);
+            GameArea.ColumnDefinitions = Columns(new GridLength(240), GridLength.Star, new GridLength(200));
+            Place(PlantingList, row: 0, column: 0);
+            Place(BoardArea, row: 0, column: 1);
+            Place(ToolShelf, row: 0, column: 2);
+        } else {
+            GameArea.RowDefinitions = Rows(GridLength.Star, GridLength.Auto, GridLength.Auto);
+            GameArea.ColumnDefinitions = Columns(GridLength.Star);
+            Place(BoardArea, row: 0, column: 0);
+            Place(PlantingList, row: 1, column: 0);
+            Place(ToolShelf, row: 2, column: 0);
+        }
+
+        ArrangeToolShelf(vertical: wide);
+    }
+
+    // Phone: tools share one row, so they shrink to fit a 360px screen.
+    // Desktop: tools stack in one column.
+    private void ArrangeToolShelf(bool vertical) {
+        View[] tools = [SeedsButton, WormButton, WaterButton, ShelfDivider, RakeButton];
+
+        if (vertical) {
+            ToolShelf.ColumnDefinitions = Columns(GridLength.Star);
+            ToolShelf.RowDefinitions = Rows(GridLength.Auto, GridLength.Auto, GridLength.Auto, GridLength.Auto, GridLength.Auto);
+        } else {
+            ToolShelf.ColumnDefinitions = Columns(GridLength.Star, GridLength.Star, GridLength.Star, GridLength.Auto, GridLength.Star);
+            ToolShelf.RowDefinitions = Rows(GridLength.Auto);
+        }
+
+        for (int i = 0; i < tools.Length; i++) {
+            Place(tools[i], row: vertical ? i : 0, column: vertical ? 0 : i);
+        }
+
+        // The divider is a thin vertical line in a row, a thin horizontal line in a column. -1 means "not set".
+        ShelfDivider.WidthRequest = vertical ? -1 : 2;
+        ShelfDivider.HeightRequest = vertical ? 2 : -1;
+    }
+
+    private static void Place(BindableObject view, int row, int column) {
+        Grid.SetRow(view, row);
+        Grid.SetColumn(view, column);
+    }
+
+    private static RowDefinitionCollection Rows(params GridLength[] heights) =>
+        new(heights.Select(height => new RowDefinition(height)).ToArray());
+
+    private static ColumnDefinitionCollection Columns(params GridLength[] widths) =>
+        new(widths.Select(width => new ColumnDefinition(width)).ToArray());
+
+    #endregion
+
     #region Event Interactions
+
+    // Rough Garden journal.
+    private async void OnJournalClicked(object? sender, EventArgs e) {
+        List<string> options = ["New garden"];
+#if DEBUG
+        options.Add(_garden.ShowSolution ? "Hide solution (dev)" : "Show solution (dev)");
+#endif
+
+        string choice = await DisplayActionSheetAsync("Garden journal", "Keep gardening", null, [.. options]);
+
+        switch (choice) {
+            case "New garden":
+            ShowNewGarden();
+            break;
+#if DEBUG
+            case "Show solution (dev)":
+            case "Hide solution (dev)":
+            _garden.ShowSolution = !_garden.ShowSolution;
+            GardenView.Invalidate();
+            break;
+#endif
+        }
+    }
 
     // Finger or mouse down: remember which cell the press started on.
     private void OnPress(object? sender, TouchEventArgs e) {
@@ -100,6 +193,7 @@ public partial class MainPage : ContentPage {
             _garden.Board = _garden.Board.ToggleMark(cell);
         }
 
+        UpdatePlantingList();
         GardenView.Invalidate();
     }
 
@@ -123,27 +217,4 @@ public partial class MainPage : ContentPage {
 #endif
 
     #endregion
-
-#if DEBUG
-    // Developer-only toggle that rings the solution cells. Left out of Release builds.
-    private void AddSolutionToggle() {
-        var toggle = new CheckBox { Color = Color.FromArgb("#487634") };
-        toggle.CheckedChanged += (_, e) => {
-            _garden.ShowSolution = e.Value;
-            GardenView.Invalidate();
-        };
-
-        BottomBar.Children.Add(new HorizontalStackLayout {
-            HorizontalOptions = LayoutOptions.Center,
-            Children = {
-                toggle,
-                new Label {
-                    Text = "Show solution (dev)",
-                    TextColor = Color.FromArgb("#2E241B"),
-                    VerticalOptions = LayoutOptions.Center,
-                },
-            },
-        });
-    }
-#endif
 }
