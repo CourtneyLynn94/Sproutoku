@@ -132,7 +132,8 @@ public sealed class GardenDrawable : IDrawable {
         canvas.DrawLine(area.Right, area.Top, area.Left, area.Bottom);
     }
 
-    // Draws the line on each cell's right and bottom edge: thin inside a region (first pass),
+    // Draws the line on each cell's right and bottom edge:
+    // thin inside a region (first pass),
     // thick where two regions meet (second pass, so borders sit on top).
     private void DrawEdges(ICanvas canvas, Puzzle puzzle, bool regionBorders) {
         canvas.StrokeColor = regionBorders ? Ink : Ink.WithAlpha(0.22f);
@@ -144,16 +145,23 @@ public sealed class GardenDrawable : IDrawable {
                 RectF rect = CellRect(cell);
 
                 var right = new Cell(row, column + 1);
-                if (right.IsInside(puzzle.Size) && IsBorder(puzzle, cell, right) == regionBorders) {
+                if (right.IsInside(puzzle.Size) && ShouldDrawEdge(puzzle, cell, right, regionBorders)) {
                     canvas.DrawLine(rect.Right, rect.Top, rect.Right, rect.Bottom);
                 }
 
                 var below = new Cell(row + 1, column);
-                if (below.IsInside(puzzle.Size) && IsBorder(puzzle, cell, below) == regionBorders) {
+                if (below.IsInside(puzzle.Size) && ShouldDrawEdge(puzzle, cell, below, regionBorders)) {
                     canvas.DrawLine(rect.Left, rect.Bottom, rect.Right, rect.Bottom);
                 }
             }
         }
+    }
+
+    // Thin pass: every edge, unless thick borders will cover region edges.
+    // Thick pass: region edges only.
+    private bool ShouldDrawEdge(Puzzle puzzle, Cell a, Cell b, bool regionBorders) {
+        bool isBorder = IsBorder(puzzle, a, b);
+        return regionBorders ? isBorder : !(isBorder && ShouldDrawRegionBorders);
     }
 
     private static bool IsBorder(Puzzle puzzle, Cell a, Cell b) => puzzle.RegionAt(a) != puzzle.RegionAt(b);
