@@ -33,6 +33,10 @@ public partial class MainPage : ContentPage {
         GardenView.EndHoverInteraction += (_, _) => SetHover(null);
 #endif
 
+#if DEBUG
+        AddSolutionToggle();
+#endif
+
         ShowNewGarden();
     }
 
@@ -119,4 +123,27 @@ public partial class MainPage : ContentPage {
 #endif
 
     #endregion
+
+#if DEBUG
+    // Developer-only toggle that rings the solution cells. Left out of Release builds.
+    private void AddSolutionToggle() {
+        var toggle = new CheckBox { Color = Color.FromArgb("#487634") };
+        toggle.CheckedChanged += (_, e) => {
+            _garden.ShowSolution = e.Value;
+            GardenView.Invalidate();
+        };
+
+        BottomBar.Children.Add(new HorizontalStackLayout {
+            HorizontalOptions = LayoutOptions.Center,
+            Children = {
+                toggle,
+                new Label {
+                    Text = "Show solution (dev)",
+                    TextColor = Color.FromArgb("#2E241B"),
+                    VerticalOptions = LayoutOptions.Center,
+                },
+            },
+        });
+    }
+#endif
 }

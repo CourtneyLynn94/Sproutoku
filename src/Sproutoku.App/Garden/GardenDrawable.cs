@@ -44,6 +44,12 @@ public sealed class GardenDrawable : IDrawable {
     /// </summary>
     public bool ShouldDrawRegionBorders { get; set; } = false;
 
+    /// <summary>
+    /// Developer view: ring every solution cell.
+    /// Drawing only; the board is not changed.
+    /// </summary>
+    public bool ShowSolution { get; set; }
+
     public void Draw(ICanvas canvas, RectF dirtyRect) {
         if (Board is null) return;
 
@@ -66,6 +72,11 @@ public sealed class GardenDrawable : IDrawable {
                 }
 
                 DrawContent(canvas, rect, Board[cell]);
+
+                // Developer view:
+                if (ShowSolution && Board.Puzzle.IsSolutionCell(cell) && Board[cell] != CellState.Planted) {
+                    DrawSolutionRing(canvas, rect);
+                }
             }
         }
 
@@ -130,6 +141,12 @@ public sealed class GardenDrawable : IDrawable {
     private static void DrawCross(ICanvas canvas, RectF area) {
         canvas.DrawLine(area.Left, area.Top, area.Right, area.Bottom);
         canvas.DrawLine(area.Right, area.Top, area.Left, area.Bottom);
+    }
+
+    private static void DrawSolutionRing(ICanvas canvas, RectF rect) {
+        canvas.StrokeColor = Leaf;
+        canvas.StrokeSize = 3;
+        canvas.DrawCircle(rect.Center.X, rect.Center.Y, rect.Width * 0.36f);
     }
 
     // Draws the line on each cell's right and bottom edge:

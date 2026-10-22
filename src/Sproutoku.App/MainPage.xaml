@@ -14,9 +14,12 @@
         <GraphicsView x:Name="GardenView"
                       Grid.Row="1" />
 
-        <Button Grid.Row="2"
-                Text="New garden"
-                Clicked="OnNewGardenClicked"
-                HorizontalOptions="Center" />
+        <VerticalStackLayout x:Name="BottomBar"
+                             Grid.Row="2"
+                             Spacing="8"
+                             HorizontalOptions="Center">
+            <Button Text="New garden"
+                    Clicked="OnNewGardenClicked" />
+        </VerticalStackLayout>
     </Grid>
 </ContentPage>
