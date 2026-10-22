@@ -139,7 +139,7 @@ public partial class MainPage : ContentPage {
 
     // Rough Garden journal.
     private async void OnJournalClicked(object? sender, EventArgs e) {
-        List<string> options = ["New garden"];
+        List<string> options = ["How to play", "New garden"];
 #if DEBUG
         options.Add(_garden.ShowSolution ? "Hide solution (dev)" : "Show solution (dev)");
 #endif
@@ -147,6 +147,9 @@ public partial class MainPage : ContentPage {
         string choice = await DisplayActionSheetAsync("Garden journal", "Keep gardening", null, [.. options]);
 
         switch (choice) {
+            case "How to play":
+            await Navigation.PushModalAsync(new HowToPlayPage());
+            break;
             case "New garden":
             ShowNewGarden();
             break;
