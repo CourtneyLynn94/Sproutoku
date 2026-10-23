@@ -17,11 +17,7 @@
             <HorizontalStackLayout x:Name="SunMeter"
                                    Grid.Column="1"
                                    Spacing="8"
-                                   VerticalOptions="Center">
-                <Ellipse Fill="#F2B632" Stroke="#2E241B" StrokeThickness="2" WidthRequest="32" HeightRequest="32" />
-                <Ellipse Fill="#F2B632" Stroke="#2E241B" StrokeThickness="2" WidthRequest="32" HeightRequest="32" />
-                <Ellipse Fill="#F2B632" Stroke="#2E241B" StrokeThickness="2" WidthRequest="32" HeightRequest="32" />
-            </HorizontalStackLayout>
+                                   VerticalOptions="Center" />
         </Grid>
 
         <!-- Game area. ApplyLayout places these three parts for phone or desktop. -->

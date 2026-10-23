@@ -1,3 +1,4 @@
+using Microsoft.Maui.Controls.Shapes;
 using Sproutoku.App.DevTools;
 using Sproutoku.App.Garden;
 using Sproutoku.Core.Input;
@@ -59,6 +60,8 @@ public partial class MainPage : ContentPage {
         _shown++;
 
         _garden.Board = Board.Start(puzzle);
+        BuildSunMeter(_garden.Board.StartingSuns);
+        UpdateSunMeter(animate: false);
         _garden.HoverCell = null;
         _doubleTap.Reset();
         _boardBeforeTap = null;
@@ -197,6 +200,7 @@ public partial class MainPage : ContentPage {
         }
 
         UpdatePlantingList();
+        UpdateSunMeter(animate: true);
         GardenView.Invalidate();
     }
 
@@ -218,6 +222,67 @@ public partial class MainPage : ContentPage {
         GardenView.Invalidate();
     }
 #endif
+
+    #endregion
+
+    #region Sun meter
+
+    private static readonly Color Ink = Color.FromArgb("#2E241B");
+    private static readonly Color SunColor = Color.FromArgb("#F2B632");
+    private static readonly Color SpentSunColor = Color.FromArgb("#D9CFB6");
+
+    // The bright sun in each sun slot, left to right.
+    // Spending a sun fades one out.
+    private readonly List<View> _brightSuns = [];
+
+    // Each sun slot stacks a bright sun on top of a spent one (pale, dashed outline).
+    // A gentle arc: with more than one sun, the outer suns sit a little lower.
+    private void BuildSunMeter(int suns) {
+        SunMeter.Children.Clear();
+        _brightSuns.Clear();
+
+        for (int i = 0; i < suns; i++) {
+            var spent = new Ellipse {
+                Fill = new SolidColorBrush(SpentSunColor),
+                Stroke = new SolidColorBrush(Ink),
+                StrokeThickness = 2,
+                StrokeDashArray = new DoubleCollection { 3, 3 },
+            };
+            var bright = new Ellipse {
+                Fill = new SolidColorBrush(SunColor),
+                Stroke = new SolidColorBrush(Ink),
+                StrokeThickness = 2,
+            };
+
+            SunMeter.Children.Add(new Grid {
+                WidthRequest = 44,
+                HeightRequest = 44,
+                TranslationY = suns > 1 && (i == 0 || i == suns - 1) ? 6 : 0,
+                Children = { spent, bright },
+            });
+            _brightSuns.Add(bright);
+        }
+    }
+
+    // Shows as many bright suns as the board has left.
+    // The rightmost sun is spent first.
+    private void UpdateSunMeter(bool animate) {
+        if (_garden.Board is null) return;
+
+        for (int i = 0; i < _brightSuns.Count; i++) {
+            var bright = _brightSuns[i];
+            double target = i < _garden.Board.SunsLeft ? 1 : 0;
+            if (bright.Opacity == target) continue;
+
+            if (animate) {
+                _ = bright.FadeToAsync(target, 300);
+            } else {
+                bright.Opacity = target;
+            }
+        }
+
+        SemanticProperties.SetDescription(SunMeter, $"{_garden.Board.SunsLeft} of {_garden.Board.StartingSuns} suns left");
+    }
 
     #endregion
 }

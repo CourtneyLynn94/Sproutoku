@@ -7,12 +7,23 @@ namespace Sproutoku.Core.Play;
 /// Immutable: every change returns a new Board and leaves the old one untouched.
 /// </summary>
 public sealed class Board {
-    private readonly CellState[,] _cells;
 
-    private Board(Puzzle puzzle, CellState[,] cells) {
-        Puzzle = puzzle;
-        _cells = cells;
-    }
+    /// <summary>
+    /// Suns a garden starts with unless its level settings say otherwise.
+    /// </summary>
+    public const int DefaultSuns = 3;
+
+    /// <summary>
+    /// Suns the garden started with, from the level's settings.
+    /// </summary>
+    public int StartingSuns { get; }
+
+    /// <summary>
+    /// Suns not spent yet. Each wrong plant spends one. Never below 0.
+    /// </summary>
+    public int SunsLeft { get; }
+
+    private readonly CellState[,] _cells;
 
     public Puzzle Puzzle { get; }
 
@@ -20,17 +31,25 @@ public sealed class Board {
 
     public CellState this[Cell cell] => _cells[cell.Row, cell.Column];
 
+    private Board(Puzzle puzzle, CellState[,] cells, int startingSuns, int sunsLeft) {
+        Puzzle = puzzle;
+        _cells = cells;
+        StartingSuns = startingSuns;
+        SunsLeft = sunsLeft;
+    }
+
     /// <summary>
     /// True once every region has its plant.
     /// </summary>
     public bool IsSolved => CountOf(CellState.Planted) == Size;
 
     /// <summary>
-    /// A fresh board for a puzzle: every cell empty.
+    /// A fresh board for a puzzle: every cell empty, every sun unspent.
     /// </summary>
-    public static Board Start(Puzzle puzzle) {
+    public static Board Start(Puzzle puzzle, int suns = DefaultSuns) {
         ArgumentNullException.ThrowIfNull(puzzle);
-        return new Board(puzzle, new CellState[puzzle.Size, puzzle.Size]);
+        ArgumentOutOfRangeException.ThrowIfLessThan(suns, 1);
+        return new Board(puzzle, new CellState[puzzle.Size, puzzle.Size], suns, suns);
     }
 
     public int CountOf(CellState state) {
@@ -72,13 +91,13 @@ public sealed class Board {
 
         return Puzzle.IsSolutionCell(cell)
             ? new PlantResult(With(cell, CellState.Planted), PlantOutcome.Grew)
-            : new PlantResult(With(cell, CellState.Wilted), PlantOutcome.Wilted);
+            : new PlantResult(With(cell, CellState.Wilted, sunsLeft: Math.Max(0, SunsLeft - 1)), PlantOutcome.Wilted);
     }
 
-    // A copy of this board with one cell changed.
-    private Board With(Cell cell, CellState state) {
+    // A copy of this board with one cell changed, and optionally a new sun count.
+    private Board With(Cell cell, CellState state, int? sunsLeft = null) {
         var cells = (CellState[,])_cells.Clone();
         cells[cell.Row, cell.Column] = state;
-        return new Board(Puzzle, cells);
+        return new Board(Puzzle, cells, StartingSuns, sunsLeft ?? SunsLeft);
     }
 }
