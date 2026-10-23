@@ -165,4 +165,41 @@ public class BoardTests {
         Assert.Equal(0, board.SunsLeft);
     }
     #endregion
+
+    #region Level
+    [Fact]
+    public void SpendingTheLastSun_EndsTheGarden_AndLocksIt() {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+        var board = Board.Start(puzzle, suns: 1).TryPlant(WrongCell).Board;
+
+        Assert.True(board.IsOutOfSun);
+        Assert.True(board.IsFinished);
+        Assert.False(board.IsSolved);
+        Assert.Same(board, board.ToggleMark(AnotherWrongCell));
+        Assert.Equal(PlantOutcome.Ignored, board.TryPlant(SolutionCell).Outcome);
+    }
+
+    [Fact]
+    public void Mistakes_CountsWrongPlants() {
+        var board = NewBoard()
+            .TryPlant(WrongCell).Board
+            .TryPlant(AnotherWrongCell).Board
+            .TryPlant(SolutionCell).Board;
+
+        Assert.Equal(2, board.Mistakes);
+    }
+
+    [Fact]
+    public void Restart_GivesAFreshBoardForTheSameGarden() {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+        var played = Board.Start(puzzle, suns: 1).ToggleMark(SolutionCell).TryPlant(WrongCell).Board;
+
+        var fresh = played.Restart();
+
+        Assert.Same(puzzle, fresh.Puzzle);
+        Assert.Equal(1, fresh.StartingSuns);
+        Assert.Equal(1, fresh.SunsLeft);
+        Assert.Equal(25, fresh.CountOf(CellState.Empty));
+    }
+    #endregion
 }

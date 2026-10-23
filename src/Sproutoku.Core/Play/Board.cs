@@ -44,6 +44,26 @@ public sealed class Board {
     public bool IsSolved => CountOf(CellState.Planted) == Size;
 
     /// <summary>
+    /// True once every sun is spent.
+    /// </summary>
+    public bool IsOutOfSun => SunsLeft == 0;
+
+    /// <summary>
+    /// True when the garden is solved or out of sun. A finished garden ignores all input.
+    /// </summary>
+    public bool IsFinished => IsSolved || IsOutOfSun;
+
+    /// <summary>
+    /// Wrong plants so far.
+    /// </summary>
+    public int Mistakes => CountOf(CellState.Wilted);
+
+    /// <summary>
+    /// The same garden from the start: every cell empty, every sun back.
+    /// </summary>
+    public Board Restart() => Start(Puzzle, StartingSuns);
+
+    /// <summary>
     /// A fresh board for a puzzle: every cell empty, every sun unspent.
     /// </summary>
     public static Board Start(Puzzle puzzle, int suns = DefaultSuns) {
@@ -65,10 +85,10 @@ public sealed class Board {
 
     /// <summary>
     /// Empty becomes ✕ and ✕ becomes empty.
-    /// Locked cells don't change, and nothing changes once the garden is solved.
+    /// Locked cells don't change, and nothing changes once the garden is finished.
     /// </summary>
     public Board ToggleMark(Cell cell) {
-        if (IsSolved) {
+        if (IsFinished) {
             return this;
         }
 
@@ -81,11 +101,11 @@ public sealed class Board {
 
     /// <summary>
     /// Tries to grow a plant.
-    /// Only empty cells can be planted: ✕ marks, locked cells and solved gardens are ignored.
+    /// Only empty cells can be planted: ✕ marks, locked cells and finished gardens are ignored.
     /// A correct cell grows; a wrong cell wilts and locks.
     /// </summary>
     public PlantResult TryPlant(Cell cell) {
-        if (IsSolved || this[cell] != CellState.Empty) {
+        if (IsFinished || this[cell] != CellState.Empty) {
             return new PlantResult(this, PlantOutcome.Ignored);
         }
 
