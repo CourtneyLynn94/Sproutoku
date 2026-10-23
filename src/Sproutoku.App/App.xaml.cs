@@ -16,11 +16,11 @@ public partial class App : Application {
 
         // 3. Apply sizing constraints exclusively to Windows and macOS
 #if WINDOWS || MACCATALYST
-        window.Width = 390;
-        window.Height = 768;
+        window.Width = 1280;
+        window.Height = 820;
 
-        window.MinimumWidth = 390;
-        window.MinimumHeight = 768;
+        window.MinimumWidth = 1280;
+        window.MinimumHeight = 820;
         window.MaximumWidth = 1920;
         window.MaximumHeight = 1080;
 #endif
