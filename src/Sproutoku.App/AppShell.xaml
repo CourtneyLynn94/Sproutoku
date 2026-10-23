@@ -7,7 +7,7 @@
     Title="Sproutoku.App">
 
     <ShellContent
-        Title="Home"
+        Title="Sproutoku"
         ContentTemplate="{DataTemplate local:MainPage}"
         Route="MainPage" />
 
