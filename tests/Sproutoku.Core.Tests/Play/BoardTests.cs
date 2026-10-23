@@ -74,13 +74,20 @@ public class BoardTests {
     }
 
     [Fact]
-    public void TryPlant_MarkedCell_IsIgnored() {
-        var board = NewBoard().ToggleMark(SolutionCell);
+    public void TryPlant_MarkedSolutionCell_Grows() {
+        var result = NewBoard().ToggleMark(SolutionCell).TryPlant(SolutionCell);
 
-        var result = board.TryPlant(SolutionCell);
+        Assert.Equal(PlantOutcome.Grew, result.Outcome);
+        Assert.Equal(CellState.Planted, result.Board[SolutionCell]);
+    }
 
-        Assert.Equal(PlantOutcome.Ignored, result.Outcome);
-        Assert.Same(board, result.Board);
+    [Fact]
+    public void TryPlant_MarkedWrongCell_Wilts_AndSpendsASun() {
+        var result = NewBoard().ToggleMark(WrongCell).TryPlant(WrongCell);
+
+        Assert.Equal(PlantOutcome.Wilted, result.Outcome);
+        Assert.Equal(CellState.Wilted, result.Board[WrongCell]);
+        Assert.Equal(Board.DefaultSuns - 1, result.Board.SunsLeft);
     }
 
     [Fact]

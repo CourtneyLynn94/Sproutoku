@@ -100,12 +100,12 @@ public sealed class Board {
     }
 
     /// <summary>
-    /// Tries to grow a plant.
-    /// Only empty cells can be planted: ✕ marks, locked cells and finished gardens are ignored.
-    /// A correct cell grows; a wrong cell wilts and locks.
+    /// Tries to grow a plant on an empty or ✕ cell; the plant replaces the ✕.
+    /// Locked cells and finished gardens are ignored.
+    /// A correct cell grows; a wrong cell wilts, locks and spends a sun.
     /// </summary>
     public PlantResult TryPlant(Cell cell) {
-        if (IsFinished || this[cell] != CellState.Empty) {
+        if (IsFinished || this[cell] is not (CellState.Empty or CellState.Marked)) {
             return new PlantResult(this, PlantOutcome.Ignored);
         }
 
