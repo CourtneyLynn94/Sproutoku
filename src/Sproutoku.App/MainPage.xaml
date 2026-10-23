@@ -4,22 +4,94 @@
              x:Class="Sproutoku.App.MainPage"
              BackgroundColor="#F3EDD6">
 
-    <Grid RowDefinitions="Auto,*,Auto"
-          RowSpacing="16"
-          Padding="16">
-        <Label x:Name="InfoLabel"
-               TextColor="#2E241B"
-               HorizontalOptions="Center" />
+    <Grid RowDefinitions="Auto,*">
 
-        <GraphicsView x:Name="GardenView"
-                      Grid.Row="1" />
+        <!-- Sky band: journal button on the left, suns centered. -->
+        <Grid BackgroundColor="#D6EAE8"
+              Padding="16,8"
+              ColumnDefinitions="*,Auto,*">
+            <Button Text="Journal"
+                    Clicked="OnJournalClicked"
+                    HorizontalOptions="Start" />
 
-        <VerticalStackLayout x:Name="BottomBar"
-                             Grid.Row="2"
-                             Spacing="8"
-                             HorizontalOptions="Center">
-            <Button Text="New garden"
-                    Clicked="OnNewGardenClicked" />
-        </VerticalStackLayout>
+            <HorizontalStackLayout x:Name="SunMeter"
+                                   Grid.Column="1"
+                                   Spacing="8"
+                                   VerticalOptions="Center">
+                <Ellipse Fill="#F2B632" Stroke="#2E241B" StrokeThickness="2" WidthRequest="32" HeightRequest="32" />
+                <Ellipse Fill="#F2B632" Stroke="#2E241B" StrokeThickness="2" WidthRequest="32" HeightRequest="32" />
+                <Ellipse Fill="#F2B632" Stroke="#2E241B" StrokeThickness="2" WidthRequest="32" HeightRequest="32" />
+            </HorizontalStackLayout>
+        </Grid>
+
+        <!-- Game area. ApplyLayout places these three parts for phone or desktop. -->
+        <Grid x:Name="GameArea"
+              Grid.Row="1"
+              Padding="16"
+              RowSpacing="12"
+              ColumnSpacing="16">
+
+            <!-- Board, with the garden sign above its top-left corner. -->
+            <Grid x:Name="BoardArea"
+                  RowDefinitions="Auto,*"
+                  RowSpacing="4">
+                <Border BackgroundColor="#B98A5B"
+                        Stroke="#2E241B"
+                        StrokeThickness="2"
+                        Padding="12,4"
+                        HorizontalOptions="Start">
+                    <Label x:Name="GardenSignLabel"
+                           TextColor="#2E241B"
+                           FontAttributes="Bold" />
+                </Border>
+
+                <GraphicsView x:Name="GardenView"
+                              Grid.Row="1" />
+            </Grid>
+
+            <!-- Planting list placeholder. -->
+            <Border x:Name="PlantingList"
+                    BackgroundColor="#FBF7EA"
+                    Stroke="#2E241B"
+                    StrokeThickness="2"
+                    Padding="12"
+                    VerticalOptions="Start">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Planting list"
+                           FontAttributes="Bold"
+                           TextColor="#2E241B" />
+                    <Label x:Name="PlantingCountLabel"
+                           TextColor="#2E241B" />
+                    <Label x:Name="InfoLabel"
+                           TextColor="#6B5B49" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Tool shelf placeholder: Seeds, Worm, Water | Rake. -->
+            <Grid x:Name="ToolShelf"
+                  RowSpacing="8"
+                  ColumnSpacing="8"
+                  VerticalOptions="Start">
+                <Button x:Name="SeedsButton"
+                        Text="Seeds"
+                        IsEnabled="False"
+                        Padding="4" />
+                <Button x:Name="WormButton"
+                        Text="Worm"
+                        IsEnabled="False"
+                        Padding="4" />
+                <Button x:Name="WaterButton"
+                        Text="Water"
+                        IsEnabled="False"
+                        Padding="4" />
+                <BoxView x:Name="ShelfDivider"
+                         Color="#CDBF9B" />
+                <Button x:Name="RakeButton"
+                        Text="Rake"
+                        IsEnabled="False"
+                        Padding="4" />
+            </Grid>
+        </Grid>
     </Grid>
+    
 </ContentPage>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Sproutoku.App.HowToPlayPage"
+             BackgroundColor="#F3EDD6">
+
+    <ContentPage.Resources>
+        <!-- Every Label on this page gets the ink color and body size. -->
+        <Style TargetType="Label">
+            <Setter Property="TextColor" Value="#2E241B" />
+            <Setter Property="FontSize" Value="17" />
+        </Style>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24"
+                             Spacing="12"
+                             MaximumWidthRequest="480">
+            <Label Text="How to play"
+                   FontSize="28"
+                   FontAttributes="Bold" />
+            <Label Text="Grow one plant in every bed. A bed is one colored area of the garden." />
+
+            <Label Text="Rules" FontAttributes="Bold" />
+            <Label Text="• Each bed gets exactly one plant." />
+            <Label Text="• Each row gets exactly one plant." />
+            <Label Text="• Each column gets exactly one plant." />
+            <Label Text="• Plants can't touch, not even at the corners." />
+
+            <GraphicsView x:Name="ExampleView"
+                          WidthRequest="160"
+                          HeightRequest="160"
+                          HorizontalOptions="Center" />
+            <Label Text="One plant has grown. The ✕ marks show cells where nothing else can grow."
+                   FontSize="14"
+                   TextColor="#6B5B49"
+                   HorizontalTextAlignment="Center" />
+
+            <Label Text="Controls" FontAttributes="Bold" />
+            <Label Text="• Tap a cell to mark ✕ where nothing can grow. Tap it again to clear it." />
+            <Label Text="• Double-tap a cell to grow a plant there." />
+            <Label Text="• A wrong plant wilts and costs one sun." />
+
+            <Button Text="Close"
+                    Clicked="OnCloseClicked"
+                    HorizontalOptions="Center" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
