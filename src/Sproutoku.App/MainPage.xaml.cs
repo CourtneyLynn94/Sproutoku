@@ -1,8 +1,10 @@
 using Microsoft.Maui.Controls.Shapes;
 using Sproutoku.App.Garden;
+using Sproutoku.App.Saving;
 using Sproutoku.Core.Input;
 using Sproutoku.Core.Play;
 using Sproutoku.Core.Puzzles;
+using Sproutoku.Core.Saving;
 using Cell = Sproutoku.Core.Puzzles.Cell;
 
 namespace Sproutoku.App;
@@ -16,6 +18,8 @@ public partial class MainPage : ContentPage {
 
     // The level being played (1 is the first garden).
     private int _level = 1;
+
+    private readonly GameStorage _store = new();
 
     // The cell the current press started on, or null.
     private Cell? _pressedCell;
@@ -42,6 +46,36 @@ public partial class MainPage : ContentPage {
         GardenView.EndHoverInteraction += (_, _) => SetHover(null);
 #endif
 
+        ResumeSavedGame();
+    }
+
+    // Pick up where the player left off, or start at Garden 1.
+    private void ResumeSavedGame() {
+        var save = _store.Load();
+        var (level, board) = GameSave.Resume(save);
+
+        _level = level;
+        ShowBoard(board, save is null ? $"Starter garden, {board.Size} × {board.Size}" : "Welcome back");
+    }
+
+    // Saved after every change.
+    private void SaveProgress() {
+        if (_garden.Board is null) return;
+
+        _store.Save(GameSave.From(_level, _garden.Board));
+    }
+
+    // A complete reset, like a fresh install. Asks first, because it can't be undone.
+    private async Task ConfirmResetAsync() {
+        bool erase = await DisplayAlertAsync(
+            "Reset all progress?",
+            "This erases every garden you've grown and everything you've earned, and starts you again at Garden 1. It can't be undone.",
+            "Erase everything",
+            "Keep my progress");
+
+        if (!erase) return;
+
+        _store.ResetEverything();
         ShowLevel(1);
     }
 
@@ -74,6 +108,8 @@ public partial class MainPage : ContentPage {
         InfoLabel.Text = info;
         UpdatePlantingList();
         GardenView.Invalidate();
+
+        SaveProgress();
     }
 
     private void UpdatePlantingList() {
@@ -199,23 +235,26 @@ public partial class MainPage : ContentPage {
         options.Add(_garden.ShowSolution ? "Hide solution (dev)" : "Show solution (dev)");
 #endif
 
-        string choice = await DisplayActionSheetAsync("Garden journal", "Keep gardening", null, [.. options]);
+        string choice = await DisplayActionSheetAsync("Garden journal", "Keep gardening", "Reset all progress", [.. options]);
 
         switch (choice) {
             case "How to play":
-            await Navigation.PushModalAsync(new HowToPlayPage());
-            break;
+                await Navigation.PushModalAsync(new HowToPlayPage());
+                break;
+            case "Reset all progress":
+                await ConfirmResetAsync();
+                break;
 #if DEBUG
             case "Skip to next garden (dev)":
-            if (GardenLevels.ForLevel(_level + 1) is not null) {
-                ShowLevel(_level + 1);
-            }
-            break;
+                if (GardenLevels.ForLevel(_level + 1) is not null) {
+                    ShowLevel(_level + 1);
+                }
+                break;
             case "Show solution (dev)":
             case "Hide solution (dev)":
-            _garden.ShowSolution = !_garden.ShowSolution;
-            GardenView.Invalidate();
-            break;
+                _garden.ShowSolution = !_garden.ShowSolution;
+                GardenView.Invalidate();
+                break;
 #endif
         }
     }
@@ -256,6 +295,9 @@ public partial class MainPage : ContentPage {
         UpdatePlantingList();
         UpdateSunMeter(animate: true);
         GardenView.Invalidate();
+
+        SaveProgress();
+
         if (_garden.Board.IsFinished) {
             ShowEndOfGarden();
         }
@@ -266,7 +308,7 @@ public partial class MainPage : ContentPage {
         var board = _garden.Board;
         if (board is null) return;
 
-        if (board.IsSolved || _garden.HoverCell == cell) return;
+        if (board.IsFinished || _garden.HoverCell == cell) return;
 
         _garden.HoverCell = cell;
         GardenView.Invalidate();

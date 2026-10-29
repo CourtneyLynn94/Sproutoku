@@ -1,4 +1,5 @@
 using Sproutoku.Core.Puzzles;
+using System.Text;
 
 namespace Sproutoku.Core.Play;
 
@@ -120,4 +121,59 @@ public sealed class Board {
         cells[cell.Row, cell.Column] = state;
         return new Board(Puzzle, cells, StartingSuns, sunsLeft ?? SunsLeft);
     }
+
+    #region Board to text
+
+    // One letter per CellState, in the enum's order: Empty, Marked, Planted, Wilted, RevealedEmpty.
+    private const string StateLetters = ".xPWr";
+
+    /// <summary>
+    /// The cells as text for saving: one letter per cell, row by row (. empty, x marked, P planted, W wilted, r revealed empty).
+    /// </summary>
+    public string CellsToText() {
+        var text = new StringBuilder(Size * Size);
+        foreach (var state in _cells) {
+            text.Append(StateLetters[(int)state]);
+        }
+
+        return text.ToString();
+    }
+
+    /// <summary>
+    /// Rebuilds a saved board, or returns null if the save doesn't fit this puzzle:
+    /// the wrong number of cells, an unknown letter, a plant off the solution, a wilt on the solution, or impossible suns.
+    /// </summary>
+    public static Board? TryRestore(Puzzle puzzle, string cellText, int startingSuns, int sunsLeft) {
+        ArgumentNullException.ThrowIfNull(puzzle);
+
+        if (cellText is null || cellText.Length != puzzle.Size * puzzle.Size) {
+            return null;
+        }
+
+        if (startingSuns < 1 || sunsLeft < 0 || sunsLeft > startingSuns) {
+            return null;
+        }
+
+        var cells = new CellState[puzzle.Size, puzzle.Size];
+        for (int i = 0; i < cellText.Length; i++) {
+            int letter = StateLetters.IndexOf(cellText[i]);
+            if (letter < 0) {
+                return null;
+            }
+
+            var cell = new Cell(i / puzzle.Size, i % puzzle.Size);
+            var state = (CellState)letter;
+            bool isSolution = puzzle.IsSolutionCell(cell);
+
+            if ((state == CellState.Planted && !isSolution)
+                || (state is CellState.Wilted or CellState.RevealedEmpty && isSolution)) {
+                return null;
+            }
+
+            cells[cell.Row, cell.Column] = state;
+        }
+
+        return new Board(puzzle, cells, startingSuns, sunsLeft);
+    }
+    #endregion
 }

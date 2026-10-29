@@ -209,4 +209,47 @@ public class BoardTests {
         Assert.Equal(25, fresh.CountOf(CellState.Empty));
     }
     #endregion
+
+    #region Saving
+    [Fact]
+    public void CellsToText_WritesOneLetterPerCell() {
+        var board = NewBoard().ToggleMark(WrongCell);
+
+        Assert.Equal(".x" + new string('.', 23), board.CellsToText());
+    }
+
+    [Fact]
+    public void TryRestore_RebuildsTheSameBoard() {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+        var played = Board.Start(puzzle).ToggleMark(AnotherWrongCell).TryPlant(SolutionCell).Board.TryPlant(WrongCell).Board;
+
+        var restored = Board.TryRestore(puzzle, played.CellsToText(), played.StartingSuns, played.SunsLeft);
+
+        Assert.NotNull(restored);
+        Assert.Equal(played.CellsToText(), restored.CellsToText());
+        Assert.Equal(played.SunsLeft, restored.SunsLeft);
+        Assert.Equal(played.StartingSuns, restored.StartingSuns);
+    }
+
+    [Theory]
+    [InlineData("x")]                         // wrong number of cells
+    [InlineData(".?.......................")] // unknown letter
+    [InlineData(".P.......................")] // plant on (0,1), not a solution cell
+    [InlineData("W........................")] // wilt on (0,0), a solution cell
+    public void TryRestore_RejectsCellsThatDontFit(string cellText) {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+
+        Assert.Null(Board.TryRestore(puzzle, cellText, startingSuns: 3, sunsLeft: 3));
+    }
+
+    [Theory]
+    [InlineData(0, 0)] // no starting suns
+    [InlineData(3, 4)] // more suns left than it started with
+    [InlineData(3, -1)]
+    public void TryRestore_RejectsImpossibleSuns(int startingSuns, int sunsLeft) {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+
+        Assert.Null(Board.TryRestore(puzzle, new string('.', 25), startingSuns, sunsLeft));
+    }
+    #endregion
 }
