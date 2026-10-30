@@ -130,6 +130,9 @@ public partial class MainPage : ContentPage {
         // Let the last plant grow or the last sun fade before the screen appears.
         await Task.Delay(500);
 
+        // The Journal still works during the wait. If a reset or skip changed the garden, this screen is stale.
+        if (!ReferenceEquals(_garden.Board, board)) return;
+
         if (board.IsSolved) {
             string stats =
                 $"Garden {_level}\n" +
