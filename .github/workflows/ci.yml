@@ -35,7 +35,7 @@ jobs:
       - name: Run unit tests
         run: dotnet test tests/Sproutoku.Core.Tests/Sproutoku.Core.Tests.csproj --no-build
 
-android-build:
+  android-build:
     name: App build (Android)
     runs-on: ubuntu-latest
 
