@@ -251,5 +251,15 @@ public class BoardTests {
 
         Assert.Null(Board.TryRestore(puzzle, new string('.', 25), startingSuns, sunsLeft));
     }
+
+    [Theory]
+    [InlineData(".W.......................", 3, 3)] // a wilt, but no sun spent
+    [InlineData(".........................", 3, 2)] // a sun spent, but no wilt
+    [InlineData(".WW......................", 3, 2)] // two wilts, one sun spent
+    public void TryRestore_RejectsSunsThatDontMatchTheWilts(string cellText, int startingSuns, int sunsLeft) {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+
+        Assert.Null(Board.TryRestore(puzzle, cellText, startingSuns, sunsLeft));
+    }
     #endregion
 }

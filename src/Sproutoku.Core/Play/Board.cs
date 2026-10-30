@@ -173,7 +173,9 @@ public sealed class Board {
             cells[cell.Row, cell.Column] = state;
         }
 
-        return new Board(puzzle, cells, startingSuns, sunsLeft);
+        // Suns are only spent by wilting, so the spent suns must match the wilted cells.
+        var board = new Board(puzzle, cells, startingSuns, sunsLeft);
+        return board.Mistakes == startingSuns - sunsLeft ? board : null;
     }
     #endregion
 }
