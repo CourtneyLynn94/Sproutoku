@@ -98,4 +98,20 @@ public class GameSaveTests {
 
         Assert.Equal(1, GameSave.Resume(save).Level);
     }
+
+    [Fact]
+    public void Resume_LastGardenSolved_StartsItAgain() {
+        int lastLevel = StarterGardens.All.Count;
+        var puzzle = GardenLevels.ForLevel(lastLevel)!;
+        var board = Board.Start(puzzle);
+        foreach (var cell in puzzle.Solution) {
+            board = board.TryPlant(cell).Board;
+        }
+
+        var (level, resumed) = GameSave.Resume(GameSave.From(lastLevel, board));
+
+        Assert.Equal(lastLevel, level);
+        Assert.False(resumed.IsSolved);
+        Assert.Equal(puzzle.Size * puzzle.Size, resumed.CountOf(CellState.Empty));
+    }
 }

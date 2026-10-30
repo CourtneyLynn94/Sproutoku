@@ -49,8 +49,11 @@ public sealed record GameSave(int Version, int Level, int StartingSuns, int Suns
                 return (save.Level, board.Restart());
             }
 
-            if (board.IsSolved && GardenLevels.ForLevel(save.Level + 1) is { } next) {
-                return (save.Level + 1, Board.Start(next));
+            if (board.IsSolved) {
+                // Move on, or replay the last garden until more arrive (S43).
+                return GardenLevels.ForLevel(save.Level + 1) is { } next
+                    ? (save.Level + 1, Board.Start(next))
+                    : (save.Level, board.Restart());
             }
 
             return (save.Level, board);

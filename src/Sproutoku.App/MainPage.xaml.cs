@@ -145,7 +145,12 @@ public partial class MainPage : ContentPage {
                 await DisplayAlertAsync("Garden complete", stats, "Next garden");
                 ShowLevel(_level + 1);
             } else {
-                await DisplayAlertAsync("Garden complete", stats + "\n\nMore gardens coming soon.", "Close");
+                await DisplayAlertAsync(
+                    "Garden complete",
+                    stats + "\n\nYou've grown every garden for now. More are coming soon.",
+                    "Play it again"
+                );
+                RestartGarden();
             }
 
             return;
