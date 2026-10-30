@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/CourtneyLynn94/Sproutoku/actions/workflows/ci.yml/badge.svg?branch=develop)
 
-A cozy logic puzzle for Android and iOS, built with .NET MAUI: grow one plant in every region of the garden.
+A cozy logic puzzle for Android phones and Windows desktops, built with .NET MAUI: grow one plant in every bed of the garden.
 
 ## Projects
 
@@ -57,7 +57,9 @@ Output: `src/Sproutoku.App/bin/Release/net10.0-windows10.0.19041.0/win-x64/publi
 
 ## Continuous integration
 
-Every pull request and every push to `develop` or `master` runs the lint, build (warnings as errors) and test checks above on GitHub Actions. See `.github/workflows/ci.yml`.
+Every pull request and every push to `develop` or `master` runs on GitHub Actions (`.github/workflows/ci.yml`):
+- **Core checks:** formatting, build with warnings as errors, and unit tests for `Sproutoku.Core`
+- **App build:** compiles the MAUI app for Android and for Windows
 
 ## License & Copyright
 
