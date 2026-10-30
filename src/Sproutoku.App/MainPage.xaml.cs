@@ -19,7 +19,7 @@ public partial class MainPage : ContentPage {
     // The level being played (1 is the first garden).
     private int _level = 1;
 
-    private readonly GameStorage _store = new();
+    private readonly GameStorage _gameStorage = new();
 
     // The cell the current press started on, or null.
     private Cell? _pressedCell;
@@ -51,7 +51,7 @@ public partial class MainPage : ContentPage {
 
     // Pick up where the player left off, or start at Garden 1.
     private void ResumeSavedGame() {
-        var save = _store.Load();
+        var save = _gameStorage.Load();
         var (level, board) = GameSave.Resume(save);
 
         _level = level;
@@ -62,20 +62,20 @@ public partial class MainPage : ContentPage {
     private void SaveProgress() {
         if (_garden.Board is null) return;
 
-        _store.Save(GameSave.From(_level, _garden.Board));
+        _gameStorage.Save(GameSave.From(_level, _garden.Board));
     }
 
     // A complete reset, like a fresh install. Asks first, because it can't be undone.
     private async Task ConfirmResetAsync() {
         bool erase = await DisplayAlertAsync(
             "Reset all progress?",
-            "This erases every garden you've grown and everything you've earned, and starts you again at Garden 1. It can't be undone.",
-            "Erase everything",
+            "This erases every garden you've grown and everything you've earned, and starts you again at Garden 1. Your settings stay as they are. It can't be undone.",
+            "Erase my progress",
             "Keep my progress");
 
         if (!erase) return;
 
-        _store.ResetEverything();
+        _gameStorage.ResetProgress();
         ShowLevel(1);
     }
 
