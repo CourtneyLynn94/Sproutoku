@@ -58,3 +58,12 @@ Output: `src/Sproutoku.App/bin/Release/net10.0-windows10.0.19041.0/win-x64/publi
 ## Continuous integration
 
 Every pull request and every push to `develop` or `master` runs the lint, build (warnings as errors) and test checks above on GitHub Actions. See `.github/workflows/ci.yml`.
+
+## License & Copyright
+
+© 2026 Courtney Phillips. All rights reserved.
+
+This project is a personal portfolio piece developed for showcase and evaluation purposes. 
+
+* **Code and Assets:** The source code, design assets, and documentation are proprietary. No part of this repository may be reproduced, distributed, or transmitted in any form or by any means without prior written permission.
+* **Review and Evaluation:** Prospective employers, recruiters, and collaborators are explicitly permitted to download, build, and run this project locally for evaluation purposes.
