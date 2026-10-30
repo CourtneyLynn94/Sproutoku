@@ -1,8 +1,10 @@
-using Sproutoku.App.DevTools;
+using Microsoft.Maui.Controls.Shapes;
 using Sproutoku.App.Garden;
+using Sproutoku.App.Saving;
 using Sproutoku.Core.Input;
 using Sproutoku.Core.Play;
 using Sproutoku.Core.Puzzles;
+using Sproutoku.Core.Saving;
 using Cell = Sproutoku.Core.Puzzles.Cell;
 
 namespace Sproutoku.App;
@@ -10,10 +12,14 @@ namespace Sproutoku.App;
 public partial class MainPage : ContentPage {
     // At this width and up, the desktop layout puts the list, board and shelf side by side.
     private const double WideLayoutMinWidth = 960;
+    private bool? _isWide;
 
     private readonly GardenDrawable _garden = new() { ShouldDrawRegionBorders = false };
-    private int _shown;
-    private bool? _isWide;
+
+    // The level being played (1 is the first garden).
+    private int _level = 1;
+
+    private readonly GameStorage _gameStorage = new();
 
     // The cell the current press started on, or null.
     private Cell? _pressedCell;
@@ -40,39 +46,131 @@ public partial class MainPage : ContentPage {
         GardenView.EndHoverInteraction += (_, _) => SetHover(null);
 #endif
 
-        ShowNewGarden();
+        ResumeSavedGame();
     }
 
-    // Steps through the starter gardens, then rough random ones.
-    private void ShowNewGarden() {
-        Puzzle puzzle;
-        string source;
+    // Pick up where the player left off, or start at Garden 1.
+    private void ResumeSavedGame() {
+        var save = _gameStorage.Load();
+        var (level, board) = GameSave.Resume(save);
 
-        if (_shown < StarterGardens.All.Count) {
-            puzzle = StarterGardens.All[_shown];
-            source = "Starter garden";
-        } else {
-            puzzle = RoughGenerator.Generate(Random.Shared.Next(5, 10), Random.Shared);
-            source = "Rough random garden";
-        }
+        _level = level;
+        ShowBoard(board, save is null ? $"Starter garden, {board.Size} × {board.Size}" : "Welcome back");
+    }
 
-        _shown++;
+    // Saved after every change.
+    private void SaveProgress() {
+        if (_garden.Board is null) return;
 
-        _garden.Board = Board.Start(puzzle);
+        _gameStorage.Save(GameSave.From(_level, _garden.Board));
+    }
+
+    // A complete reset, like a fresh install. Asks first, because it can't be undone.
+    private async Task ConfirmResetAsync() {
+        bool erase = await DisplayAlertAsync(
+            "Reset all progress?",
+            "This erases every garden you've grown and everything you've earned, and starts you again at Garden 1. Your settings stay as they are. It can't be undone.",
+            "Erase my progress",
+            "Keep my progress");
+
+        if (!erase) return;
+
+        _gameStorage.ResetProgress();
+        ShowLevel(1);
+    }
+
+    // Plays the garden for a level and shows its number on the sign.
+    private void ShowLevel(int level) {
+        var puzzle = GardenLevels.ForLevel(level)
+            ?? throw new ArgumentOutOfRangeException(nameof(level), $"There is no garden for level {level}.");
+
+        _level = level;
+        ShowBoard(Board.Start(puzzle), $"Starter garden, {puzzle.Size} × {puzzle.Size}");
+    }
+
+    // Try again: the same garden, every cell empty, every sun back.
+    private void RestartGarden() {
+        if (_garden.Board is null) return;
+
+        ShowBoard(_garden.Board.Restart(), "A fresh start");
+    }
+
+    private void ShowBoard(Board board, string info) {
+        _garden.Board = board;
         _garden.HoverCell = null;
         _doubleTap.Reset();
         _boardBeforeTap = null;
 
-        GardenSignLabel.Text = $"Garden {_shown}";
-        InfoLabel.Text = $"{source}, {puzzle.Size} × {puzzle.Size}";
+        BuildSunMeter(board.StartingSuns);
+        UpdateSunMeter(animate: false);
+
+        GardenSignLabel.Text = $"Garden {_level}";
+        InfoLabel.Text = info;
         UpdatePlantingList();
         GardenView.Invalidate();
+
+        SaveProgress();
     }
 
     private void UpdatePlantingList() {
         if (_garden.Board is null) return;
 
         PlantingCountLabel.Text = $"{_garden.Board.CountOf(CellState.Planted)} of {_garden.Board.Size} grown";
+    }
+
+    // Rough end-of-garden screens until the real sheets are designed.
+    private async void ShowEndOfGarden() {
+        var board = _garden.Board;
+        if (board is null) return;
+
+        // Reset hovered cell state
+        _garden.HoverCell = null;
+        GardenView.Invalidate();
+
+        // Let the last plant grow or the last sun fade before the screen appears.
+        await Task.Delay(500);
+
+        // The Journal still works during the wait. If a reset or skip changed the garden, this screen is stale.
+        if (!ReferenceEquals(_garden.Board, board)) return;
+
+        if (board.IsSolved) {
+            string stats =
+                $"Garden {_level}\n" +
+                $"Suns left: {board.SunsLeft} of {board.StartingSuns}\n" +
+                $"Mistakes: {board.Mistakes}\n" +
+                $"Beds: {board.Size}";
+
+            bool hasNextLevel = GardenLevels.ForLevel(_level + 1) is not null;
+            if (hasNextLevel) {
+                await DisplayAlertAsync("Garden complete", stats, "Next garden");
+                ShowLevel(_level + 1);
+            } else {
+                await DisplayAlertAsync(
+                    "Garden complete",
+                    stats + "\n\nYou've grown every garden for now. More are coming soon.",
+                    "Play it again"
+                );
+                RestartGarden();
+            }
+
+            return;
+        }
+
+        const string Title = "Your garden needs more sun";
+        const string Message = "All your suns are spent. Give this garden a fresh start.";
+
+        await DisplayAlertAsync(Title, Message, "Try again");
+        RestartGarden();
+    }
+
+    // Rough feedback.
+    private void ShowPlantOutcome(PlantResult result) {
+        InfoLabel.Text = result.Outcome switch {
+            PlantOutcome.Grew when result.Board.IsSolved => "Garden complete",
+            PlantOutcome.Grew => "It grew",
+            PlantOutcome.Wilted => "Wrong spot: it wilted",
+            _ => InfoLabel.Text,
+        };
     }
 
     #region Layout
@@ -139,26 +237,32 @@ public partial class MainPage : ContentPage {
 
     // Rough Garden journal.
     private async void OnJournalClicked(object? sender, EventArgs e) {
-        List<string> options = ["How to play", "New garden"];
+        List<string> options = ["How to play"];
 #if DEBUG
+        options.Add("Skip to next garden (dev)");
         options.Add(_garden.ShowSolution ? "Hide solution (dev)" : "Show solution (dev)");
 #endif
 
-        string choice = await DisplayActionSheetAsync("Garden journal", "Keep gardening", null, [.. options]);
+        string choice = await DisplayActionSheetAsync("Garden journal", "Keep gardening", "Reset all progress", [.. options]);
 
         switch (choice) {
             case "How to play":
-            await Navigation.PushModalAsync(new HowToPlayPage());
-            break;
-            case "New garden":
-            ShowNewGarden();
-            break;
+                await Navigation.PushModalAsync(new HowToPlayPage());
+                break;
+            case "Reset all progress":
+                await ConfirmResetAsync();
+                break;
 #if DEBUG
+            case "Skip to next garden (dev)":
+                if (GardenLevels.ForLevel(_level + 1) is not null) {
+                    ShowLevel(_level + 1);
+                }
+                break;
             case "Show solution (dev)":
             case "Hide solution (dev)":
-            _garden.ShowSolution = !_garden.ShowSolution;
-            GardenView.Invalidate();
-            break;
+                _garden.ShowSolution = !_garden.ShowSolution;
+                GardenView.Invalidate();
+                break;
 #endif
         }
     }
@@ -184,7 +288,7 @@ public partial class MainPage : ContentPage {
     // A single tap toggles ✕.
     // A double tap takes the first tap back and tries to plant on the cell as it was before.
     private void OnCellTapped(Cell cell) {
-        if (_garden.Board is null) return;
+        if (_garden.Board is null || _garden.Board.IsFinished) return;
 
         if (_doubleTap.RegisterTap(cell, Environment.TickCount64) && _boardBeforeTap is not null) {
             var result = _boardBeforeTap.TryPlant(cell);
@@ -197,27 +301,88 @@ public partial class MainPage : ContentPage {
         }
 
         UpdatePlantingList();
+        UpdateSunMeter(animate: true);
         GardenView.Invalidate();
-    }
 
-    // Rough feedback until sunlight (S18) and the complete screen (S20) exist.
-    private void ShowPlantOutcome(PlantResult result) {
-        InfoLabel.Text = result.Outcome switch {
-            PlantOutcome.Grew when result.Board.IsSolved => "Garden complete",
-            PlantOutcome.Grew => "It grew",
-            PlantOutcome.Wilted => "Wrong spot: it wilted",
-            _ => InfoLabel.Text,
-        };
+        SaveProgress();
+
+        if (_garden.Board.IsFinished) {
+            ShowEndOfGarden();
+        }
     }
 
 #if WINDOWS || MACCATALYST
     private void SetHover(Cell? cell) {
-        if (_garden.HoverCell == cell) return;
+        var board = _garden.Board;
+        if (board is null) return;
+
+        if (board.IsFinished || _garden.HoverCell == cell) return;
 
         _garden.HoverCell = cell;
         GardenView.Invalidate();
     }
 #endif
+
+    #endregion
+
+    #region Sun meter
+
+    private static readonly Color Ink = Color.FromArgb("#2E241B");
+    private static readonly Color SunColor = Color.FromArgb("#F2B632");
+    private static readonly Color SpentSunColor = Color.FromArgb("#D9CFB6");
+
+    // The bright sun in each sun slot, left to right.
+    // Spending a sun fades one out.
+    private readonly List<View> _brightSuns = [];
+
+    // Each sun slot stacks a bright sun on top of a spent one (pale, dashed outline).
+    // A gentle arc: with more than one sun, the outer suns sit a little lower.
+    private void BuildSunMeter(int suns) {
+        SunMeter.Children.Clear();
+        _brightSuns.Clear();
+
+        for (int i = 0; i < suns; i++) {
+            var spent = new Ellipse {
+                Fill = new SolidColorBrush(SpentSunColor),
+                Stroke = new SolidColorBrush(Ink),
+                StrokeThickness = 2,
+                StrokeDashArray = new DoubleCollection { 3, 3 },
+            };
+            var bright = new Ellipse {
+                Fill = new SolidColorBrush(SunColor),
+                Stroke = new SolidColorBrush(Ink),
+                StrokeThickness = 2,
+            };
+
+            SunMeter.Children.Add(new Grid {
+                WidthRequest = 44,
+                HeightRequest = 44,
+                TranslationY = suns > 1 && (i == 0 || i == suns - 1) ? 6 : 0,
+                Children = { spent, bright },
+            });
+            _brightSuns.Add(bright);
+        }
+    }
+
+    // Shows as many bright suns as the board has left.
+    // The rightmost sun is spent first.
+    private void UpdateSunMeter(bool animate) {
+        if (_garden.Board is null) return;
+
+        for (int i = 0; i < _brightSuns.Count; i++) {
+            var bright = _brightSuns[i];
+            double target = i < _garden.Board.SunsLeft ? 1 : 0;
+            if (bright.Opacity == target) continue;
+
+            if (animate) {
+                _ = bright.FadeToAsync(target, 300);
+            } else {
+                bright.Opacity = target;
+            }
+        }
+
+        SemanticProperties.SetDescription(SunMeter, $"{_garden.Board.SunsLeft} of {_garden.Board.StartingSuns} suns left");
+    }
 
     #endregion
 }

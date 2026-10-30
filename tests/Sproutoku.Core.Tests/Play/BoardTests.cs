@@ -8,10 +8,12 @@ public class BoardTests {
     // TestGardens' 5×5. Its solution: (0,0) (1,2) (2,4) (3,1) (4,3).
     private static readonly Cell SolutionCell = new(1, 2);
     private static readonly Cell WrongCell = new(0, 1);
+    private static readonly Cell AnotherWrongCell = new(0, 2);
 
     private static Board NewBoard() =>
         Board.Start(Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution()));
 
+    #region Toggle Marks
     [Fact]
     public void Start_EveryCellIsEmpty() {
         var board = NewBoard();
@@ -44,6 +46,18 @@ public class BoardTests {
     }
 
     [Fact]
+    public void ToggleMark_LockedCells_DoNotChange() {
+        var board = NewBoard().TryPlant(SolutionCell).Board.TryPlant(WrongCell).Board;
+
+        var after = board.ToggleMark(SolutionCell).ToggleMark(WrongCell);
+
+        Assert.Equal(CellState.Planted, after[SolutionCell]);
+        Assert.Equal(CellState.Wilted, after[WrongCell]);
+    }
+    #endregion
+
+    #region Planting
+    [Fact]
     public void TryPlant_SolutionCell_Grows() {
         var result = NewBoard().TryPlant(SolutionCell);
 
@@ -60,13 +74,20 @@ public class BoardTests {
     }
 
     [Fact]
-    public void TryPlant_MarkedCell_IsIgnored() {
-        var board = NewBoard().ToggleMark(SolutionCell);
+    public void TryPlant_MarkedSolutionCell_Grows() {
+        var result = NewBoard().ToggleMark(SolutionCell).TryPlant(SolutionCell);
 
-        var result = board.TryPlant(SolutionCell);
+        Assert.Equal(PlantOutcome.Grew, result.Outcome);
+        Assert.Equal(CellState.Planted, result.Board[SolutionCell]);
+    }
 
-        Assert.Equal(PlantOutcome.Ignored, result.Outcome);
-        Assert.Same(board, result.Board);
+    [Fact]
+    public void TryPlant_MarkedWrongCell_Wilts_AndSpendsASun() {
+        var result = NewBoard().ToggleMark(WrongCell).TryPlant(WrongCell);
+
+        Assert.Equal(PlantOutcome.Wilted, result.Outcome);
+        Assert.Equal(CellState.Wilted, result.Board[WrongCell]);
+        Assert.Equal(Board.DefaultSuns - 1, result.Board.SunsLeft);
     }
 
     [Fact]
@@ -76,16 +97,6 @@ public class BoardTests {
         var result = board.TryPlant(WrongCell);
 
         Assert.Equal(PlantOutcome.Ignored, result.Outcome);
-    }
-
-    [Fact]
-    public void ToggleMark_LockedCells_DoNotChange() {
-        var board = NewBoard().TryPlant(SolutionCell).Board.TryPlant(WrongCell).Board;
-
-        var after = board.ToggleMark(SolutionCell).ToggleMark(WrongCell);
-
-        Assert.Equal(CellState.Planted, after[SolutionCell]);
-        Assert.Equal(CellState.Wilted, after[WrongCell]);
     }
 
     [Fact]
@@ -99,4 +110,156 @@ public class BoardTests {
         Assert.Same(board, board.ToggleMark(WrongCell));
         Assert.Equal(PlantOutcome.Ignored, board.TryPlant(WrongCell).Outcome);
     }
+    #endregion
+
+    #region Sunlight
+    [Fact]
+    public void Start_HasTheDefaultSuns() {
+        var board = NewBoard();
+
+        Assert.Equal(Board.DefaultSuns, board.StartingSuns);
+        Assert.Equal(Board.DefaultSuns, board.SunsLeft);
+    }
+
+    [Fact]
+    public void Start_UsesTheSunsItIsGiven() {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+
+        var board = Board.Start(puzzle, suns: 1);
+
+        Assert.Equal(1, board.StartingSuns);
+        Assert.Equal(1, board.SunsLeft);
+    }
+
+    [Fact]
+    public void Start_WithNoSuns_Throws() {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => Board.Start(puzzle, suns: 0));
+    }
+
+    [Fact]
+    public void WrongPlant_SpendsOneSun() {
+        var board = NewBoard().TryPlant(WrongCell).Board;
+
+        Assert.Equal(Board.DefaultSuns - 1, board.SunsLeft);
+        Assert.Equal(Board.DefaultSuns, board.StartingSuns);
+    }
+
+    [Fact]
+    public void CorrectPlantsAndMarks_KeepEverySun() {
+        var board = NewBoard().TryPlant(SolutionCell).Board.ToggleMark(WrongCell);
+
+        Assert.Equal(Board.DefaultSuns, board.SunsLeft);
+    }
+
+    [Fact]
+    public void IgnoredPlant_KeepsEverySun() {
+        var board = NewBoard().TryPlant(WrongCell).Board;
+
+        var result = board.TryPlant(WrongCell);
+
+        Assert.Equal(PlantOutcome.Ignored, result.Outcome);
+        Assert.Equal(Board.DefaultSuns - 1, result.Board.SunsLeft);
+    }
+
+    [Fact]
+    public void Suns_NeverGoBelowZero() {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+
+        var board = Board.Start(puzzle, suns: 1).TryPlant(WrongCell).Board.TryPlant(AnotherWrongCell).Board;
+
+        Assert.Equal(0, board.SunsLeft);
+    }
+    #endregion
+
+    #region Level
+    [Fact]
+    public void SpendingTheLastSun_EndsTheGarden_AndLocksIt() {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+        var board = Board.Start(puzzle, suns: 1).TryPlant(WrongCell).Board;
+
+        Assert.True(board.IsOutOfSun);
+        Assert.True(board.IsFinished);
+        Assert.False(board.IsSolved);
+        Assert.Same(board, board.ToggleMark(AnotherWrongCell));
+        Assert.Equal(PlantOutcome.Ignored, board.TryPlant(SolutionCell).Outcome);
+    }
+
+    [Fact]
+    public void Mistakes_CountsWrongPlants() {
+        var board = NewBoard()
+            .TryPlant(WrongCell).Board
+            .TryPlant(AnotherWrongCell).Board
+            .TryPlant(SolutionCell).Board;
+
+        Assert.Equal(2, board.Mistakes);
+    }
+
+    [Fact]
+    public void Restart_GivesAFreshBoardForTheSameGarden() {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+        var played = Board.Start(puzzle, suns: 1).ToggleMark(SolutionCell).TryPlant(WrongCell).Board;
+
+        var fresh = played.Restart();
+
+        Assert.Same(puzzle, fresh.Puzzle);
+        Assert.Equal(1, fresh.StartingSuns);
+        Assert.Equal(1, fresh.SunsLeft);
+        Assert.Equal(25, fresh.CountOf(CellState.Empty));
+    }
+    #endregion
+
+    #region Saving
+    [Fact]
+    public void CellsToText_WritesOneLetterPerCell() {
+        var board = NewBoard().ToggleMark(WrongCell);
+
+        Assert.Equal(".x" + new string('.', 23), board.CellsToText());
+    }
+
+    [Fact]
+    public void TryRestore_RebuildsTheSameBoard() {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+        var played = Board.Start(puzzle).ToggleMark(AnotherWrongCell).TryPlant(SolutionCell).Board.TryPlant(WrongCell).Board;
+
+        var restored = Board.TryRestore(puzzle, played.CellsToText(), played.StartingSuns, played.SunsLeft);
+
+        Assert.NotNull(restored);
+        Assert.Equal(played.CellsToText(), restored.CellsToText());
+        Assert.Equal(played.SunsLeft, restored.SunsLeft);
+        Assert.Equal(played.StartingSuns, restored.StartingSuns);
+    }
+
+    [Theory]
+    [InlineData("x")]                         // wrong number of cells
+    [InlineData(".?.......................")] // unknown letter
+    [InlineData(".P.......................")] // plant on (0,1), not a solution cell
+    [InlineData("W........................")] // wilt on (0,0), a solution cell
+    public void TryRestore_RejectsCellsThatDontFit(string cellText) {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+
+        Assert.Null(Board.TryRestore(puzzle, cellText, startingSuns: 3, sunsLeft: 3));
+    }
+
+    [Theory]
+    [InlineData(0, 0)] // no starting suns
+    [InlineData(3, 4)] // more suns left than it started with
+    [InlineData(3, -1)]
+    public void TryRestore_RejectsImpossibleSuns(int startingSuns, int sunsLeft) {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+
+        Assert.Null(Board.TryRestore(puzzle, new string('.', 25), startingSuns, sunsLeft));
+    }
+
+    [Theory]
+    [InlineData(".W.......................", 3, 3)] // a wilt, but no sun spent
+    [InlineData(".........................", 3, 2)] // a sun spent, but no wilt
+    [InlineData(".WW......................", 3, 2)] // two wilts, one sun spent
+    public void TryRestore_RejectsSunsThatDontMatchTheWilts(string cellText, int startingSuns, int sunsLeft) {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+
+        Assert.Null(Board.TryRestore(puzzle, cellText, startingSuns, sunsLeft));
+    }
+    #endregion
 }
