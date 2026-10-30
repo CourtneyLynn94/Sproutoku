@@ -52,7 +52,7 @@ jobs:
         run: dotnet workload install maui-android
 
       - name: Build the Android app
-        run: dotnet build src/Sproutoku.App/Sproutoku.App.csproj -c Debug -p:TargetFrameworks=net10.0-android
+        run: dotnet build src/Sproutoku.App/Sproutoku.App.csproj -c Debug -p:CiTargetFramework=net10.0-android
 
   windows-build:
     name: App build (Windows)
@@ -71,4 +71,4 @@ jobs:
         run: dotnet workload install maui-windows
 
       - name: Build the Windows app
-        run: dotnet build src/Sproutoku.App/Sproutoku.App.csproj -c Debug -p:TargetFrameworks=net10.0-windows10.0.19041.0
+        run: dotnet build src/Sproutoku.App/Sproutoku.App.csproj -c Debug -p:CiTargetFramework=net10.0-windows10.0.19041.0
