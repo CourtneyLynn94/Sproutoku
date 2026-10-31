@@ -11,6 +11,12 @@ public partial class MainPage : ContentPage {
     private const double WideLayoutMinWidth = 960;
     private bool? _isWide;
 
+#if WINDOWS || MACCATALYST
+    // Keyboard support. Filled in by Platforms/Windows/MainPage.Keyboard.cs; on other platforms these do nothing.
+    partial void HookUpKeyboard();
+    partial void FocusGardenForKeyboard();
+#endif
+
     private readonly GardenDrawable _garden = new() { ShouldDrawRegionBorders = false };
     private readonly GameStorage _gameStorage = new();
 
@@ -39,6 +45,9 @@ public partial class MainPage : ContentPage {
         // Desktop hover. Touch screens don't send hover events, so this does nothing on a phone.
         GardenView.MoveHoverInteraction += (_, e) => SetHover(_garden.CellAt(e.Touches[0]));
         GardenView.EndHoverInteraction += (_, _) => SetHover(null);
+
+        // Desktop keyboard.
+        HookUpKeyboard();
 #endif
 
         // Pick up where the player left off, or start at Garden 1.
@@ -51,6 +60,8 @@ public partial class MainPage : ContentPage {
     private void ShowGarden(string info) {
         _garden.Board = _session.Board;
         _garden.HoverCell = null;
+        _garden.FocusCell = null;
+        _garden.ShowFocus = false;
 
         BuildSunMeter(_session.Board.StartingSuns);
         UpdateSunMeter(animate: false);
@@ -146,7 +157,6 @@ public partial class MainPage : ContentPage {
     }
 
     #region Layout
-
     // Phone: stacked vertical with board, planting list, tool shelf.
     // Desktop: stacked horizontal with planting list, board, tool shelf.
     private void ApplyLayout(bool wide) {
@@ -202,11 +212,9 @@ public partial class MainPage : ContentPage {
 
     private static ColumnDefinitionCollection Columns(params GridLength[] widths) =>
         new(widths.Select(width => new ColumnDefinition(width)).ToArray());
-
     #endregion
 
     #region Event Interactions
-
     // Rough Garden journal.
     private async void OnJournalClicked(object? sender, EventArgs e) {
         List<string> options = ["How to play"];
@@ -244,6 +252,16 @@ public partial class MainPage : ContentPage {
         _pressedCell = _garden.CellAt(e.Touches[0]);
         _lastPoint = e.Touches[0];
         _isDragging = false;
+
+        if (_pressedCell is { } pressed) {
+            _garden.FocusCell = pressed;
+        }
+
+        _garden.ShowFocus = false;
+
+#if WINDOWS || MACCATALYST
+        FocusGardenForKeyboard();
+#endif
     }
 
     // Moving onto another cell turns the press into a drag that marks or clears every cell it passes.
@@ -302,9 +320,10 @@ public partial class MainPage : ContentPage {
         _isDragging = false;
     }
 
-    // The session decides what the tap means; the page shows the result.
-    private void OnCellTapped(Cell cell) {
-        var result = _session.Tap(cell, Environment.TickCount64);
+    private void OnCellTapped(Cell cell) => ShowResult(_session.Tap(cell, Environment.TickCount64));
+
+    // Shows what a tap or key did, saves, and opens the end screen if the garden is over.
+    private void ShowResult(TapResult result) {
         if (result.Outcome == TapOutcome.Ignored) return;
 
         _garden.Board = _session.Board;
@@ -327,12 +346,51 @@ public partial class MainPage : ContentPage {
         _garden.HoverCell = cell;
         GardenView.Invalidate();
     }
-#endif
 
+    // Arrows move the focus ring; Space or X toggles ✕; Enter plants.
+    private void OnGardenKey(GardenKeyboardKey key) {
+        int size = _session.Board.Size;
+        var focus = _garden.FocusCell ?? new Cell(0, 0);
+        _garden.ShowFocus = true;
+
+        switch (key) {
+            case GardenKeyboardKey.Up:
+                focus = focus.MovedBy(-1, 0, size);
+                break;
+            case GardenKeyboardKey.Down:
+                focus = focus.MovedBy(1, 0, size);
+                break;
+            case GardenKeyboardKey.Left:
+                focus = focus.MovedBy(0, -1, size);
+                break;
+            case GardenKeyboardKey.Right:
+                focus = focus.MovedBy(0, 1, size);
+                break;
+            case GardenKeyboardKey.Mark:
+                ShowResult(_session.ToggleMark(focus));
+                break;
+            case GardenKeyboardKey.Plant:
+                ShowResult(_session.Plant(focus));
+                break;
+        }
+
+        _garden.FocusCell = focus;
+        GardenView.Invalidate();
+    }
+
+    // Shows or hides the focus ring when the garden gains or loses keyboard focus.
+    private void ShowKeyboardFocus(bool show) {
+        _garden.ShowFocus = show;
+        if (show) {
+            _garden.FocusCell ??= new Cell(0, 0);
+        }
+
+        GardenView.Invalidate();
+    }
+#endif
     #endregion
 
     #region Sun meter
-
     private static readonly Color Ink = Color.FromArgb("#2E241B");
     private static readonly Color SunColor = Color.FromArgb("#F2B632");
     private static readonly Color SpentSunColor = Color.FromArgb("#D9CFB6");
@@ -389,6 +447,5 @@ public partial class MainPage : ContentPage {
 
         SemanticProperties.SetDescription(SunMeter, $"{board.SunsLeft} of {board.StartingSuns} suns left");
     }
-
     #endregion
 }

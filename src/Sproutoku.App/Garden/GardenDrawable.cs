@@ -28,6 +28,8 @@ public sealed class GardenDrawable : IDrawable {
     private static readonly Color Leaf = Color.FromArgb("#487634");
     private static readonly Color Wilt = Color.FromArgb("#8E3F45");
 
+    private static readonly Color Cream = Color.FromArgb("#FBF7EA");
+
     // Worked out on each draw; used to turn a point into a cell.
     private PointF _origin;
     private float _cellSize;
@@ -38,6 +40,16 @@ public sealed class GardenDrawable : IDrawable {
     /// The cell under the mouse pointer (desktop only), or null.
     /// </summary>
     public Cell? HoverCell { get; set; }
+
+    /// <summary>
+    /// The keyboard focus cell, or null before the keyboard has been used.
+    /// </summary>
+    public Cell? FocusCell { get; set; }
+
+    /// <summary>
+    /// Whether to draw the focus ring: only while the keyboard is in use.
+    /// </summary>
+    public bool ShowFocus { get; set; }
 
     /// <summary>
     /// Optional: Draw region borders.
@@ -84,6 +96,10 @@ public sealed class GardenDrawable : IDrawable {
         DrawEdges(canvas, Board.Puzzle, regionBorders: false);
         if (ShouldDrawRegionBorders) {
             DrawEdges(canvas, Board.Puzzle, regionBorders: true);
+        }
+
+        if (ShowFocus && FocusCell is { } focus && focus.IsInside(size)) {
+            DrawFocusRing(canvas, CellRect(focus));
         }
 
         canvas.StrokeColor = Ink;
@@ -166,6 +182,17 @@ public sealed class GardenDrawable : IDrawable {
     private static void DrawCross(ICanvas canvas, RectF area) {
         canvas.DrawLine(area.Left, area.Top, area.Right, area.Bottom);
         canvas.DrawLine(area.Right, area.Top, area.Left, area.Bottom);
+    }
+
+    // Cell focus is ink inside cream, drawn on top so it shows on every region color.
+    private static void DrawFocusRing(ICanvas canvas, RectF rect) {
+        canvas.StrokeColor = Cream;
+        canvas.StrokeSize = 4;
+        canvas.DrawRectangle(rect.X + 2, rect.Y + 2, rect.Width - 4, rect.Height - 4);
+
+        canvas.StrokeColor = Ink;
+        canvas.StrokeSize = 2.5f;
+        canvas.DrawRectangle(rect.X + 5, rect.Y + 5, rect.Width - 10, rect.Height - 10);
     }
 
     private static void DrawSolutionRing(ICanvas canvas, RectF rect) {

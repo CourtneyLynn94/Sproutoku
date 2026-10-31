@@ -269,6 +269,84 @@ public class GameSessionTests {
     }
     #endregion
 
+    #region Keyboard
+    [Fact]
+    public void KeyboardToggleMark_TogglesStraightAway_EvenTwiceInARow() {
+        var session = NewGame();
+        var cell = new Cell(0, 0);
+
+        Assert.Equal(TapOutcome.MarkToggled, session.ToggleMark(cell).Outcome);
+        Assert.Equal(CellState.Marked, session.Board[cell]);
+
+        Assert.Equal(TapOutcome.MarkToggled, session.ToggleMark(cell).Outcome);
+        Assert.Equal(CellState.Empty, session.Board[cell]);
+    }
+
+    [Fact]
+    public void KeyboardPlant_OnTheSolution_Grows() {
+        var session = NewGame();
+        var cell = session.Board.Puzzle.Solution[0];
+
+        Assert.Equal(TapOutcome.Grew, session.Plant(cell).Outcome);
+        Assert.Equal(CellState.Planted, session.Board[cell]);
+    }
+
+    [Fact]
+    public void KeyboardPlant_OnAWrongCell_Wilts_AndSpendsASun() {
+        var session = NewGame();
+        var cell = WrongCells(session.Board.Puzzle).First();
+
+        Assert.Equal(TapOutcome.Wilted, session.Plant(cell).Outcome);
+        Assert.Equal(Board.DefaultSuns - 1, session.Board.SunsLeft);
+    }
+
+    [Fact]
+    public void KeyboardPlant_OnAMark_Plants() {
+        var session = NewGame();
+        var cell = session.Board.Puzzle.Solution[0];
+        session.ToggleMark(cell);
+
+        Assert.Equal(TapOutcome.Grew, session.Plant(cell).Outcome);
+    }
+
+    [Fact]
+    public void KeyboardPlanting_EveryBed_EndsTheGarden() {
+        var session = NewGame();
+        TapResult? last = null;
+        foreach (var cell in session.Board.Puzzle.Solution) {
+            last = session.Plant(cell);
+        }
+
+        Assert.NotNull(last);
+        Assert.True(last.EndedGarden);
+        Assert.True(session.Board.IsSolved);
+    }
+
+    [Fact]
+    public void KeyboardActions_OnAFinishedGarden_AreIgnored() {
+        var session = NewGame();
+        Lose(session);
+        var cell = session.Board.Puzzle.Solution[0];
+
+        Assert.Equal(TapOutcome.Ignored, session.ToggleMark(cell).Outcome);
+        Assert.Equal(TapOutcome.Ignored, session.Plant(cell).Outcome);
+    }
+
+    [Fact]
+    public void KeyboardAction_EndsAHalfFinishedDoubleTap() {
+        var session = NewGame();
+        var cell = new Cell(0, 0);
+        session.Tap(cell, 1000);
+
+        session.ToggleMark(new Cell(4, 4));
+        var result = session.Tap(cell, 1050);
+
+        // Without the keypress this would have been a double tap; now it just clears the ✕.
+        Assert.Equal(TapOutcome.MarkToggled, result.Outcome);
+        Assert.Equal(CellState.Empty, session.Board[cell]);
+    }
+    #endregion
+
     #region Ending a garden
     [Fact]
     public void PlantingTheLastPlant_EndsTheGarden() {

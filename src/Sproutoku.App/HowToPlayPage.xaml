@@ -41,6 +41,8 @@
             <Label Text="• Drag across cells to mark them all, or start on a ✕ to clear them all." />
             <Label Text="• Double-tap a cell to grow a plant there." />
             <Label Text="• A wrong plant wilts and costs one sun." />
+            <Label Text="• On a keyboard: arrow keys move, Space or X marks ✕, Enter plants."
+                   IsVisible="{OnPlatform Default=False, WinUI=True}"/>
 
             <Button Text="Close"
                     Clicked="OnCloseClicked"

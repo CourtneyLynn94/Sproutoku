@@ -27,5 +27,11 @@ public readonly record struct Cell(int Row, int Column) {
         new(Row, Column + 1),
     ];
 
+    /// <summary>
+    /// The cell a number of rows and columns away, kept on an N×N grid of the given size, so arrow keys stop at the garden's edge.
+    /// </summary>
+    public Cell MovedBy(int rows, int columns, int size) =>
+        new(Math.Clamp(Row + rows, 0, size - 1), Math.Clamp(Column + columns, 0, size - 1));
+
     public override string ToString() => $"(row {Row}, column {Column})";
 }

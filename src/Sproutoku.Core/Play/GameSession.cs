@@ -59,6 +59,56 @@ public sealed class GameSession {
     public GameSave ToSave() => GameSave.From(Level, Board);
 
     /// <summary>
+    /// Moves on to the next garden.
+    /// Only works once this one is solved and another exists, so a garden can never be advanced past twice.
+    /// Returns false when it can't.
+    /// </summary>
+    public bool TryAdvance() {
+        if (!Board.IsSolved || GardenLevels.ForLevel(Level + 1) is not { } next) {
+            return false;
+        }
+
+        SetGarden(Level + 1, Board.Start(next));
+        return true;
+    }
+
+    /// <summary>
+    /// Starts this garden again (Try again, Play it again).
+    /// Returns false mid-garden.
+    /// </summary>
+    public bool TryRestart() {
+        if (!CanRestart) {
+            return false;
+        }
+
+        SetGarden(Level, Board.Restart());
+        return true;
+    }
+
+    /// <summary>
+    /// Jumps to a level's garden, fresh: Garden 1 after a progress reset, or the dev skip.
+    /// Returns false when there's no garden for that level.
+    /// </summary>
+    public bool GoToLevel(int level) {
+        if (GardenLevels.ForLevel(level) is not { } puzzle) {
+            return false;
+        }
+
+        SetGarden(level, Board.Start(puzzle));
+        return true;
+    }
+
+    // A new garden forgets the last tap, so a tap on the old garden can't pair up with one on the new one.
+    private void SetGarden(int level, Board board) {
+        Level = level;
+        Board = board;
+        _doubleTap.Reset();
+        _boardBeforeTap = null;
+        _dragMode = null;
+    }
+
+    #region Actions
+    /// <summary>
     /// A tap on a cell at a time in milliseconds.
     /// A single tap toggles ✕.
     /// A second tap on the same cell soon after takes the first tap back and tries to plant on the cell as it was before.
@@ -141,53 +191,50 @@ public sealed class GameSession {
     public void EndDrag() {
         _dragMode = null;
     }
+    #endregion
 
+    #region Keyboard Actions
     /// <summary>
-    /// Moves on to the next garden.
-    /// Only works once this one is solved and another exists, so a garden can never be advanced past twice.
-    /// Returns false when it can't.
+    /// Toggles a cell's ✕ straight away, with no double-tap timing (keyboard: Space or X).
     /// </summary>
-    public bool TryAdvance() {
-        if (!Board.IsSolved || GardenLevels.ForLevel(Level + 1) is not { } next) {
-            return false;
+    public TapResult ToggleMark(Cell cell) {
+        ForgetLastTap();
+        if (Board.IsFinished) {
+            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }
 
-        SetGarden(Level + 1, Board.Start(next));
-        return true;
+        var before = Board;
+        Board = before.ToggleMark(cell);
+
+        var outcome = ReferenceEquals(Board, before) ? TapOutcome.Ignored : TapOutcome.MarkToggled;
+        return new TapResult(outcome, EndedGarden: false);
     }
 
     /// <summary>
-    /// Starts this garden again (Try again, Play it again).
-    /// Returns false mid-garden.
+    /// Tries to plant straight away, with no double-tap timing (keyboard: Enter).
+    /// Works on empty and ✕ cells, like a double tap.
     /// </summary>
-    public bool TryRestart() {
-        if (!CanRestart) {
-            return false;
+    public TapResult Plant(Cell cell) {
+        ForgetLastTap();
+        if (Board.IsFinished) {
+            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }
 
-        SetGarden(Level, Board.Restart());
-        return true;
+        var result = Board.TryPlant(cell);
+        Board = result.Board;
+        return new TapResult(ToTapOutcome(result.Outcome), Board.IsFinished);
     }
 
-    /// <summary>
-    /// Jumps to a level's garden, fresh: Garden 1 after a progress reset, or the dev skip.
-    /// Returns false when there's no garden for that level.
-    /// </summary>
-    public bool GoToLevel(int level) {
-        if (GardenLevels.ForLevel(level) is not { } puzzle) {
-            return false;
-        }
+    private static TapOutcome ToTapOutcome(PlantOutcome outcome) => outcome switch {
+        PlantOutcome.Grew => TapOutcome.Grew,
+        PlantOutcome.Wilted => TapOutcome.Wilted,
+        _ => TapOutcome.Ignored,
+    };
 
-        SetGarden(level, Board.Start(puzzle));
-        return true;
-    }
-
-    // A new garden forgets the last tap, so a tap on the old garden can't pair up with one on the new one.
-    private void SetGarden(int level, Board board) {
-        Level = level;
-        Board = board;
+    // Ends any half-finished double tap, so the next tap starts fresh.
+    private void ForgetLastTap() {
         _doubleTap.Reset();
         _boardBeforeTap = null;
-        _dragMode = null;
     }
+    #endregion
 }
