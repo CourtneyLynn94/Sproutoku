@@ -104,6 +104,31 @@ public sealed class GardenDrawable : IDrawable {
         return cell.IsInside(Board.Size) ? cell : null;
     }
 
+    /// <summary>
+    /// The board cells a straight line between two points passes over, in order, without repeats.
+    /// Fills the gaps when a fast finger or mouse jumps past cells between move events.
+    /// </summary>
+    public IReadOnlyList<Cell> CellsAlong(PointF from, PointF to) {
+        var cells = new List<Cell>();
+        if (_cellSize <= 0) return cells;
+
+        float dx = to.X - from.X;
+        float dy = to.Y - from.Y;
+        float distance = MathF.Sqrt((dx * dx) + (dy * dy));
+
+        // Check a point every quarter cell along the line.
+        int steps = Math.Max(1, (int)MathF.Ceiling(distance / (_cellSize / 4)));
+        for (int i = 0; i <= steps; i++) {
+            float t = (float)i / steps;
+            var cell = CellAt(new PointF(from.X + (dx * t), from.Y + (dy * t)));
+            if (cell is { } found && (cells.Count == 0 || cells[^1] != found)) {
+                cells.Add(found);
+            }
+        }
+
+        return cells;
+    }
+
     private RectF CellRect(Cell cell) =>
         new(_origin.X + (cell.Column * _cellSize), _origin.Y + (cell.Row * _cellSize), _cellSize, _cellSize);
 

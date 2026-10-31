@@ -152,6 +152,123 @@ public class GameSessionTests {
     }
     #endregion
 
+    #region Dragging
+    private static IEnumerable<Cell> RowOf(GameSession session, int row) =>
+        Enumerable.Range(0, session.Board.Size).Select(column => new Cell(row, column));
+
+    private static void Drag(GameSession session, params Cell[] cells) {
+        session.BeginDrag();
+        foreach (var cell in cells) {
+            session.DragOver(cell);
+        }
+
+        session.EndDrag();
+    }
+
+    [Fact]
+    public void Drag_FromAnEmptyCell_MarksEveryEmptyCellItPasses_WithoutPlantingOrSpendingSuns() {
+        var session = NewGame();
+
+        Drag(session, [.. RowOf(session, 0)]);
+
+        Assert.All(RowOf(session, 0), cell => Assert.Equal(CellState.Marked, session.Board[cell]));
+        Assert.Equal(0, session.Board.CountOf(CellState.Planted));
+        Assert.Equal(session.Board.StartingSuns, session.Board.SunsLeft);
+    }
+
+    [Fact]
+    public void Drag_FromAMark_ClearsMarks_AndLeavesEmptyCellsEmpty() {
+        var session = NewGame();
+        SingleTap(session, new Cell(0, 0));
+        SingleTap(session, new Cell(0, 2));
+
+        Drag(session, new Cell(0, 0), new Cell(0, 1), new Cell(0, 2));
+
+        Assert.Equal(CellState.Empty, session.Board[new Cell(0, 0)]);
+        Assert.Equal(CellState.Empty, session.Board[new Cell(0, 1)]);
+        Assert.Equal(CellState.Empty, session.Board[new Cell(0, 2)]);
+    }
+
+    [Fact]
+    public void MarkingDrag_LeavesMarksAndLockedCellsAlone() {
+        var session = NewGame();
+        DoubleTap(session, new Cell(1, 1)); // planted (a solution cell)
+        DoubleTap(session, new Cell(1, 0)); // wilted
+        SingleTap(session, new Cell(1, 3)); // ✕
+
+        Drag(session, new Cell(1, 2), new Cell(1, 1), new Cell(1, 0), new Cell(1, 3), new Cell(1, 4));
+
+        Assert.Equal(CellState.Marked, session.Board[new Cell(1, 2)]);
+        Assert.Equal(CellState.Planted, session.Board[new Cell(1, 1)]);
+        Assert.Equal(CellState.Wilted, session.Board[new Cell(1, 0)]);
+        Assert.Equal(CellState.Marked, session.Board[new Cell(1, 3)]);
+        Assert.Equal(CellState.Marked, session.Board[new Cell(1, 4)]);
+    }
+
+    [Fact]
+    public void Drag_StartingOnALockedCell_TakesItsModeFromTheFirstEmptyOrMarkedCell() {
+        var session = NewGame();
+        DoubleTap(session, new Cell(0, 3)); // planted
+        SingleTap(session, new Cell(0, 4)); // ✕
+
+        // Starts on the plant, then reaches the ✕ first, so it clears.
+        Drag(session, new Cell(0, 3), new Cell(0, 4), new Cell(0, 2));
+
+        Assert.Equal(CellState.Planted, session.Board[new Cell(0, 3)]);
+        Assert.Equal(CellState.Empty, session.Board[new Cell(0, 4)]);
+        Assert.Equal(CellState.Empty, session.Board[new Cell(0, 2)]);
+    }
+
+    [Fact]
+    public void Drag_PassingACellTwice_DoesNotFlipItBack() {
+        var session = NewGame();
+
+        Drag(session, new Cell(2, 0), new Cell(2, 1), new Cell(2, 0));
+
+        Assert.Equal(CellState.Marked, session.Board[new Cell(2, 0)]);
+        Assert.Equal(CellState.Marked, session.Board[new Cell(2, 1)]);
+    }
+
+    [Fact]
+    public void DragOver_WithoutADragInProgress_DoesNothing() {
+        var session = NewGame();
+        var cell = new Cell(2, 0);
+
+        Assert.False(session.DragOver(cell));
+
+        session.BeginDrag();
+        session.EndDrag();
+
+        Assert.False(session.DragOver(cell));
+        Assert.Equal(CellState.Empty, session.Board[cell]);
+    }
+
+    [Fact]
+    public void Drag_OnAFinishedGarden_DoesNothing() {
+        var session = NewGame();
+        Lose(session);
+
+        session.BeginDrag();
+
+        Assert.False(session.DragOver(session.Board.Puzzle.Solution[0]));
+    }
+
+    [Fact]
+    public void Drag_EndsAHalfFinishedDoubleTap() {
+        var session = NewGame();
+        var cell = new Cell(0, 0);
+        session.Tap(cell, 1000);
+
+        session.BeginDrag();
+        session.EndDrag();
+        var result = session.Tap(cell, 1050);
+
+        // Without the drag this would have been a double tap and a plant attempt; now it just clears the ✕.
+        Assert.Equal(TapOutcome.MarkToggled, result.Outcome);
+        Assert.Equal(CellState.Empty, session.Board[cell]);
+    }
+    #endregion
+
     #region Ending a garden
     [Fact]
     public void PlantingTheLastPlant_EndsTheGarden() {

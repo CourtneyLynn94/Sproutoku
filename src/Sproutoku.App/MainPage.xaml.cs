@@ -17,8 +17,11 @@ public partial class MainPage : ContentPage {
     // The game itself: level, board and every rule. The page only shows it and passes input in.
     private readonly GameSession _session;
 
-    // The cell the current press started on, or null.
+    // The press in progress:
+    // the cell it started on (null if it started off the board), the last point it was seen at, and whether it has turned into a drag.
     private Cell? _pressedCell;
+    private PointF _lastPoint;
+    private bool _isDragging;
 
     public MainPage() {
         InitializeComponent();
@@ -28,8 +31,9 @@ public partial class MainPage : ContentPage {
         SizeChanged += (_, _) => ApplyLayout(Width >= WideLayoutMinWidth);
 
         GardenView.StartInteraction += OnPress;
+        GardenView.DragInteraction += OnDrag;
         GardenView.EndInteraction += OnRelease;
-        GardenView.CancelInteraction += (_, _) => _pressedCell = null;
+        GardenView.CancelInteraction += (_, _) => FinishPress();
 
 #if WINDOWS || MACCATALYST
         // Desktop hover. Touch screens don't send hover events, so this does nothing on a phone.
@@ -235,22 +239,67 @@ public partial class MainPage : ContentPage {
         }
     }
 
-    // Finger or mouse down: remember which cell the press started on.
+    // Finger or mouse down: remember where the press started. Nothing changes until it lifts or moves.
     private void OnPress(object? sender, TouchEventArgs e) {
         _pressedCell = _garden.CellAt(e.Touches[0]);
+        _lastPoint = e.Touches[0];
+        _isDragging = false;
     }
 
-    // Finger or mouse up on the same cell it went down on counts as a tap.
-    private void OnRelease(object? sender, TouchEventArgs e) {
-        var pressed = _pressedCell;
-        _pressedCell = null;
+    // Moving onto another cell turns the press into a drag that marks or clears every cell it passes.
+    private void OnDrag(object? sender, TouchEventArgs e) {
+        if (_pressedCell is not { } start) return; // started off the board
 
-        var released = _garden.CellAt(e.Touches[0]);
-        if (released is null || released != pressed) {
-            return;
+        var point = e.Touches[0];
+        bool changed = false;
+
+        if (!_isDragging) {
+            // Still on the starting cell, so it may yet be a tap.
+            if (_garden.CellAt(point) == start) {
+                _lastPoint = point;
+                return;
+            }
+
+            _isDragging = true;
+            _session.BeginDrag();
+            changed |= _session.DragOver(start);
         }
 
+        foreach (var cell in _garden.CellsAlong(_lastPoint, point)) {
+            changed |= _session.DragOver(cell);
+        }
+
+        _lastPoint = point;
+
+        if (changed) {
+            _garden.Board = _session.Board;
+            GardenView.Invalidate();
+        }
+    }
+
+    // Finger or mouse up: the end of a drag, or a tap if it lifted on the cell it went down on.
+    private void OnRelease(object? sender, TouchEventArgs e) {
+        var pressed = _pressedCell;
+        bool wasDragging = _isDragging;
+        FinishPress();
+
+        if (wasDragging) return;
+
+        var released = _garden.CellAt(e.Touches[0]);
+        if (released is null || released != pressed) return;
+
         OnCellTapped(released.Value);
+    }
+
+    // Clears the press. A drag in progress ends and is saved once.
+    private void FinishPress() {
+        if (_isDragging) {
+            _session.EndDrag();
+            SaveProgress();
+        }
+
+        _pressedCell = null;
+        _isDragging = false;
     }
 
     // The session decides what the tap means; the page shows the result.

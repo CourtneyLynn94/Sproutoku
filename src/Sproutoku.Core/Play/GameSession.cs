@@ -14,6 +14,10 @@ public sealed class GameSession {
     // The board from just before the last single tap, so a double tap can take that tap back.
     private Board? _boardBeforeTap;
 
+    // The drag in progress. Null when there is none; Undecided until the drag reaches an empty or ✕ cell.
+    private enum DragMode { Undecided, Mark, Clear }
+    private DragMode? _dragMode;
+
     private GameSession(int level, Board board, DoubleTapDetector doubleTap) {
         Level = level;
         Board = board;
@@ -87,6 +91,58 @@ public sealed class GameSession {
     }
 
     /// <summary>
+    /// Starts a drag.
+    /// The first empty or ✕ cell the drag passes decides whether it marks or clears.
+    /// Also ends any half-finished double tap.
+    /// </summary>
+    public void BeginDrag() {
+        _dragMode = DragMode.Undecided;
+        _doubleTap.Reset();
+        _boardBeforeTap = null;
+    }
+
+    /// <summary>
+    /// The drag passing over a cell.
+    /// Marking only fills empty cells and clearing only clears ✕ cells;
+    /// planted, wilted and revealed cells are never touched, and a drag never plants.
+    /// Returns true if the cell changed.
+    /// </summary>
+    public bool DragOver(Cell cell) {
+        if (_dragMode is null || Board.IsFinished) {
+            return false;
+        }
+
+        var state = Board[cell];
+
+        if (_dragMode == DragMode.Undecided) {
+            if (state == CellState.Empty) {
+                _dragMode = DragMode.Mark;
+            } else if (state == CellState.Marked) {
+                _dragMode = DragMode.Clear;
+            } else {
+                return false; // A locked cell: keep looking for the cell that decides.
+            }
+        }
+
+        bool changes = _dragMode == DragMode.Mark
+            ? state == CellState.Empty
+            : state == CellState.Marked;
+        if (!changes) {
+            return false;
+        }
+
+        Board = Board.ToggleMark(cell);
+        return true;
+    }
+
+    /// <summary>
+    /// Ends the drag in progress, if any.
+    /// </summary>
+    public void EndDrag() {
+        _dragMode = null;
+    }
+
+    /// <summary>
     /// Moves on to the next garden.
     /// Only works once this one is solved and another exists, so a garden can never be advanced past twice.
     /// Returns false when it can't.
@@ -132,5 +188,6 @@ public sealed class GameSession {
         Board = board;
         _doubleTap.Reset();
         _boardBeforeTap = null;
+        _dragMode = null;
     }
 }

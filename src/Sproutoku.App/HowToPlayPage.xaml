@@ -38,6 +38,7 @@
 
             <Label Text="Controls" FontAttributes="Bold" />
             <Label Text="• Tap a cell to mark ✕ where nothing can grow. Tap it again to clear it." />
+            <Label Text="• Drag across cells to mark them all, or start on a ✕ to clear them all." />
             <Label Text="• Double-tap a cell to grow a plant there." />
             <Label Text="• A wrong plant wilts and costs one sun." />
 
