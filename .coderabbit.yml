@@ -1,0 +1,16 @@
+# CodeRabbit settings for Sproutoku.
+language: en-US
+reviews:
+  # "chill" skips nitpicks; "assertive" comments on more.
+  profile: chill
+  high_level_summary: true
+  auto_review:
+    enabled: true
+    drafts: false
+    # Review PRs into both branches, not just the default one.
+    base_branches:
+      - develop
+      - master
+knowledge_base:
+  code_guidelines:
+    enabled: true
