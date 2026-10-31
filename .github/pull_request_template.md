@@ -1,6 +1,3 @@
-## Description
--
-
 ## Commits Included
 <!-- Diff summary - START -->
 <!-- Diff summary - END -->

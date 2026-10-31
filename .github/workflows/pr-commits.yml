@@ -56,14 +56,15 @@ jobs:
 
             const body = pr.body ?? "";
             const from = body.indexOf(start);
-            const to = body.indexOf(end);
-            if (from === -1 || to === -1 || to < from) {
+            // Find END only at the start of a line after START. Commit lines start with "- ", so they can't match.
+            const endAt = from === -1 ? -1 : body.indexOf("\n" + end, from);
+            if (from === -1 || endAt === -1) {
               core.info("No commit-list markers in the description; leaving it alone.");
               return;
             }
 
             const list = (process.env.COMMIT_LIST ?? "").trim();
-            const updated = body.slice(0, from + start.length) + "\n" + list + "\n" + body.slice(to);
+            const updated = body.slice(0, from + start.length) + "\n" + list + "\n" + body.slice(endAt + 1);
 
             if (updated !== body) {
               await github.rest.pulls.update({
