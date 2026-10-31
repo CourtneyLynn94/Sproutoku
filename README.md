@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/CourtneyLynn94/Sproutoku/actions/workflows/ci.yml/badge.svg?branch=develop)
 
-A cozy logic puzzle for Android phones and Windows desktops, built with .NET MAUI: grow one plant in every bed of the garden.
+A warm logic puzzle for Android phones and Windows desktops, built with .NET MAUI: grow one plant in every bed of the garden.
 
 ## Projects
 
