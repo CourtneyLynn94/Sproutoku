@@ -4,6 +4,10 @@ using Sproutoku.App.Saving;
 using Sproutoku.Core.Play;
 using Cell = Sproutoku.Core.Puzzles.Cell;
 
+#if ANDROID || IOS
+using Sproutoku.App.Feedback;
+#endif
+
 namespace Sproutoku.App;
 
 public partial class MainPage : ContentPage {
@@ -11,14 +15,25 @@ public partial class MainPage : ContentPage {
     private const double WideLayoutMinWidth = 960;
     private bool? _isWide;
 
+#if WINDOWS || MACCATALYST
+    // Keyboard support. Filled in by Platforms/Windows/MainPage.Keyboard.cs; on other platforms these do nothing.
+    partial void HookUpKeyboard();
+    partial void FocusGardenForKeyboard();
+#elif ANDROID || IOS
+    private readonly Haptics _haptics = new();
+#endif
+
     private readonly GardenDrawable _garden = new() { ShouldDrawRegionBorders = false };
     private readonly GameStorage _gameStorage = new();
 
     // The game itself: level, board and every rule. The page only shows it and passes input in.
     private readonly GameSession _session;
 
-    // The cell the current press started on, or null.
+    // The press in progress:
+    // the cell it started on (null if it started off the board), the last point it was seen at, and whether it has turned into a drag.
     private Cell? _pressedCell;
+    private PointF _lastPoint;
+    private bool _isDragging;
 
     public MainPage() {
         InitializeComponent();
@@ -28,13 +43,17 @@ public partial class MainPage : ContentPage {
         SizeChanged += (_, _) => ApplyLayout(Width >= WideLayoutMinWidth);
 
         GardenView.StartInteraction += OnPress;
+        GardenView.DragInteraction += OnDrag;
         GardenView.EndInteraction += OnRelease;
-        GardenView.CancelInteraction += (_, _) => _pressedCell = null;
+        GardenView.CancelInteraction += (_, _) => FinishPress();
 
 #if WINDOWS || MACCATALYST
         // Desktop hover. Touch screens don't send hover events, so this does nothing on a phone.
         GardenView.MoveHoverInteraction += (_, e) => SetHover(_garden.CellAt(e.Touches[0]));
         GardenView.EndHoverInteraction += (_, _) => SetHover(null);
+
+        // Desktop keyboard.
+        HookUpKeyboard();
 #endif
 
         // Pick up where the player left off, or start at Garden 1.
@@ -47,6 +66,8 @@ public partial class MainPage : ContentPage {
     private void ShowGarden(string info) {
         _garden.Board = _session.Board;
         _garden.HoverCell = null;
+        _garden.FocusCell = null;
+        _garden.ShowFocus = false;
 
         BuildSunMeter(_session.Board.StartingSuns);
         UpdateSunMeter(animate: false);
@@ -107,6 +128,10 @@ public partial class MainPage : ContentPage {
         // The Journal still works during the wait. If a reset or skip changed the garden, this screen is stale.
         if (!ReferenceEquals(_session.Board, board)) return;
 
+#if ANDROID || IOS
+        _haptics.GardenEnded();
+#endif
+
         if (board.IsSolved) {
             string stats =
                 $"Garden {_session.Level}\n" +
@@ -142,7 +167,6 @@ public partial class MainPage : ContentPage {
     }
 
     #region Layout
-
     // Phone: stacked vertical with board, planting list, tool shelf.
     // Desktop: stacked horizontal with planting list, board, tool shelf.
     private void ApplyLayout(bool wide) {
@@ -198,11 +222,9 @@ public partial class MainPage : ContentPage {
 
     private static ColumnDefinitionCollection Columns(params GridLength[] widths) =>
         new(widths.Select(width => new ColumnDefinition(width)).ToArray());
-
     #endregion
 
     #region Event Interactions
-
     // Rough Garden journal.
     private async void OnJournalClicked(object? sender, EventArgs e) {
         List<string> options = ["How to play"];
@@ -235,28 +257,108 @@ public partial class MainPage : ContentPage {
         }
     }
 
-    // Finger or mouse down: remember which cell the press started on.
+    // Finger or mouse down: remember where the press started. Nothing changes until it lifts or moves.
     private void OnPress(object? sender, TouchEventArgs e) {
         _pressedCell = _garden.CellAt(e.Touches[0]);
+        _lastPoint = e.Touches[0];
+        _isDragging = false;
+
+        if (_pressedCell is { } pressed) {
+            _garden.FocusCell = pressed;
+        }
+
+        _garden.ShowFocus = false;
+
+#if WINDOWS || MACCATALYST
+        FocusGardenForKeyboard();
+#endif
     }
 
-    // Finger or mouse up on the same cell it went down on counts as a tap.
+    private void OnDrag(object? sender, TouchEventArgs e) => DragTo(e.Touches[0]);
+
+    // Moving onto another board cell turns the press into a drag that marks or clears every cell it passes.
+    // Moving into blank space doesn't: the press stays a possible tap until it reaches another cell.
+    private void DragTo(PointF point) {
+        if (_pressedCell is not { } start) return; // started off the board
+
+        var path = _garden.CellsAlong(_lastPoint, point);
+        bool changed = false;
+
+        if (!_isDragging) {
+            if (!path.Any(cell => cell != start)) {
+                _lastPoint = point;
+                return;
+            }
+
+            _isDragging = true;
+            _session.BeginDrag();
+            changed |= DragOver(start);
+        }
+
+        foreach (var cell in path) {
+            changed |= DragOver(cell);
+        }
+
+        _lastPoint = point;
+
+        if (changed) {
+            _garden.Board = _session.Board;
+            GardenView.Invalidate();
+        }
+    }
+
+    // One cell of a drag, with a tick when it changes.
+    private bool DragOver(Cell cell) {
+        if (!_session.DragOver(cell)) return false;
+
+#if ANDROID || IOS
+        _haptics.Mark();
+#endif
+        return true;
+    }
+
+    // Finger or mouse up: the end of a drag, or a tap if it lifted on the cell it went down on.
     private void OnRelease(object? sender, TouchEventArgs e) {
         var pressed = _pressedCell;
-        _pressedCell = null;
+        var point = e.Touches[0];
 
-        var released = _garden.CellAt(e.Touches[0]);
-        if (released is null || released != pressed) {
-            return;
+        // A fast swipe can cross cells after its last move update, so cover the stretch up to where it lifted.
+        // A press that lifts on its own cell stays a tap: DragTo leaves it alone.
+        if (pressed is not null) {
+            DragTo(point);
         }
+
+        bool wasDragging = _isDragging;
+        FinishPress();
+
+        if (wasDragging) return;
+
+        var released = _garden.CellAt(point);
+        if (released is null || released != pressed) return;
 
         OnCellTapped(released.Value);
     }
 
-    // The session decides what the tap means; the page shows the result.
-    private void OnCellTapped(Cell cell) {
-        var result = _session.Tap(cell, Environment.TickCount64);
+    // Clears the press. A drag in progress ends and is saved once.
+    private void FinishPress() {
+        if (_isDragging) {
+            _session.EndDrag();
+            SaveProgress();
+        }
+
+        _pressedCell = null;
+        _isDragging = false;
+    }
+
+    private void OnCellTapped(Cell cell) => ShowResult(_session.Tap(cell, Environment.TickCount64));
+
+    // Shows what a tap or key did, saves, and opens the end screen if the garden is over.
+    private void ShowResult(TapResult result) {
         if (result.Outcome == TapOutcome.Ignored) return;
+
+#if ANDROID || IOS
+        PlayHaptic(result.Outcome);
+#endif
 
         _garden.Board = _session.Board;
         ShowTapOutcome(result.Outcome);
@@ -278,12 +380,66 @@ public partial class MainPage : ContentPage {
         _garden.HoverCell = cell;
         GardenView.Invalidate();
     }
-#endif
 
+    // Arrows move the focus ring; Space or X toggles ✕; Enter plants.
+    private void OnGardenKey(GardenKeyboardKey key) {
+        int size = _session.Board.Size;
+        var focus = _garden.FocusCell ?? new Cell(0, 0);
+        _garden.ShowFocus = true;
+
+        switch (key) {
+            case GardenKeyboardKey.Up:
+                focus = focus.MovedBy(-1, 0, size);
+                break;
+            case GardenKeyboardKey.Down:
+                focus = focus.MovedBy(1, 0, size);
+                break;
+            case GardenKeyboardKey.Left:
+                focus = focus.MovedBy(0, -1, size);
+                break;
+            case GardenKeyboardKey.Right:
+                focus = focus.MovedBy(0, 1, size);
+                break;
+            case GardenKeyboardKey.Mark:
+                ShowResult(_session.ToggleMark(focus));
+                break;
+            case GardenKeyboardKey.Plant:
+                ShowResult(_session.Plant(focus));
+                break;
+        }
+
+        _garden.FocusCell = focus;
+        GardenView.Invalidate();
+    }
+
+    // Shows or hides the focus ring when the garden gains or loses keyboard focus.
+    private void ShowKeyboardFocus(bool show) {
+        _garden.ShowFocus = show;
+        if (show) {
+            _garden.FocusCell ??= new Cell(0, 0);
+        }
+
+        GardenView.Invalidate();
+    }
+#elif ANDROID || IOS
+    // A light tick for ✕, a firmer press for a plant, a buzz for a mistake.
+    private void PlayHaptic(TapOutcome outcome) {
+        switch (outcome) {
+            case TapOutcome.MarkToggled:
+                _haptics.Mark();
+                break;
+            case TapOutcome.Grew:
+                _ = _haptics.GrewAsync();
+                break;
+            case TapOutcome.Wilted:
+                _haptics.Wilted();
+                break;
+        }
+    }
+#endif
     #endregion
 
     #region Sun meter
-
     private static readonly Color Ink = Color.FromArgb("#2E241B");
     private static readonly Color SunColor = Color.FromArgb("#F2B632");
     private static readonly Color SpentSunColor = Color.FromArgb("#D9CFB6");
@@ -340,6 +496,5 @@ public partial class MainPage : ContentPage {
 
         SemanticProperties.SetDescription(SunMeter, $"{board.SunsLeft} of {board.StartingSuns} suns left");
     }
-
     #endregion
 }

@@ -14,4 +14,16 @@ public class CellTests {
 
         Assert.Equal(expected, center.Touches(new Cell(row, column)));
     }
+
+    [Theory]
+    [InlineData(2, 2, -1, 0, 1, 2)]  // up
+    [InlineData(2, 2, 0, 1, 2, 3)]   // right
+    [InlineData(0, 0, -1, 0, 0, 0)]  // up at the top edge stays put
+    [InlineData(4, 4, 0, 1, 4, 4)]   // right at the right edge stays put
+    [InlineData(4, 0, 1, -1, 4, 0)]  // bottom-left corner stays put
+    public void MovedBy_StaysOnTheGrid(int row, int column, int rows, int columns, int expectedRow, int expectedColumn) {
+        var moved = new Cell(row, column).MovedBy(rows, columns, size: 5);
+
+        Assert.Equal(new Cell(expectedRow, expectedColumn), moved);
+    }
 }

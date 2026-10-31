@@ -14,6 +14,10 @@ public sealed class GameSession {
     // The board from just before the last single tap, so a double tap can take that tap back.
     private Board? _boardBeforeTap;
 
+    // The drag in progress. Null when there is none; Undecided until the drag reaches an empty or ✕ cell.
+    private enum DragMode { Undecided, Mark, Clear }
+    private DragMode? _dragMode;
+
     private GameSession(int level, Board board, DoubleTapDetector doubleTap) {
         Level = level;
         Board = board;
@@ -53,38 +57,6 @@ public sealed class GameSession {
     /// What to store so this game can be resumed later.
     /// </summary>
     public GameSave ToSave() => GameSave.From(Level, Board);
-
-    /// <summary>
-    /// A tap on a cell at a time in milliseconds.
-    /// A single tap toggles ✕.
-    /// A second tap on the same cell soon after takes the first tap back and tries to plant on the cell as it was before.
-    /// A finished garden ignores taps.
-    /// </summary>
-    public TapResult Tap(Cell cell, long timeMs) {
-        if (Board.IsFinished) {
-            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
-        }
-
-        if (_doubleTap.RegisterTap(cell, timeMs) && _boardBeforeTap is not null) {
-            var result = _boardBeforeTap.TryPlant(cell);
-            Board = result.Board;
-            _boardBeforeTap = null;
-
-            var outcome = result.Outcome switch {
-                PlantOutcome.Grew => TapOutcome.Grew,
-                PlantOutcome.Wilted => TapOutcome.Wilted,
-                _ => TapOutcome.Ignored,
-            };
-            return new TapResult(outcome, Board.IsFinished);
-        }
-
-        var before = Board;
-        _boardBeforeTap = before;
-        Board = before.ToggleMark(cell);
-
-        var markOutcome = ReferenceEquals(Board, before) ? TapOutcome.Ignored : TapOutcome.MarkToggled;
-        return new TapResult(markOutcome, EndedGarden: false);
-    }
 
     /// <summary>
     /// Moves on to the next garden.
@@ -132,5 +104,137 @@ public sealed class GameSession {
         Board = board;
         _doubleTap.Reset();
         _boardBeforeTap = null;
+        _dragMode = null;
     }
+
+    #region Actions
+    /// <summary>
+    /// A tap on a cell at a time in milliseconds.
+    /// A single tap toggles ✕.
+    /// A second tap on the same cell soon after takes the first tap back and tries to plant on the cell as it was before.
+    /// A finished garden ignores taps.
+    /// </summary>
+    public TapResult Tap(Cell cell, long timeMs) {
+        if (Board.IsFinished) {
+            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
+        }
+
+        if (_doubleTap.RegisterTap(cell, timeMs) && _boardBeforeTap is not null) {
+            var result = _boardBeforeTap.TryPlant(cell);
+            Board = result.Board;
+            _boardBeforeTap = null;
+
+            var outcome = result.Outcome switch {
+                PlantOutcome.Grew => TapOutcome.Grew,
+                PlantOutcome.Wilted => TapOutcome.Wilted,
+                _ => TapOutcome.Ignored,
+            };
+            return new TapResult(outcome, Board.IsFinished);
+        }
+
+        var before = Board;
+        _boardBeforeTap = before;
+        Board = before.ToggleMark(cell);
+
+        var markOutcome = ReferenceEquals(Board, before) ? TapOutcome.Ignored : TapOutcome.MarkToggled;
+        return new TapResult(markOutcome, EndedGarden: false);
+    }
+
+    /// <summary>
+    /// Starts a drag.
+    /// The first empty or ✕ cell the drag passes decides whether it marks or clears.
+    /// Also ends any half-finished double tap.
+    /// </summary>
+    public void BeginDrag() {
+        _dragMode = DragMode.Undecided;
+        _doubleTap.Reset();
+        _boardBeforeTap = null;
+    }
+
+    /// <summary>
+    /// The drag passing over a cell.
+    /// Marking only fills empty cells and clearing only clears ✕ cells;
+    /// planted, wilted and revealed cells are never touched, and a drag never plants.
+    /// Returns true if the cell changed.
+    /// </summary>
+    public bool DragOver(Cell cell) {
+        if (_dragMode is null || Board.IsFinished) {
+            return false;
+        }
+
+        var state = Board[cell];
+
+        if (_dragMode == DragMode.Undecided) {
+            if (state == CellState.Empty) {
+                _dragMode = DragMode.Mark;
+            } else if (state == CellState.Marked) {
+                _dragMode = DragMode.Clear;
+            } else {
+                return false; // A locked cell: keep looking for the cell that decides.
+            }
+        }
+
+        bool changes = _dragMode == DragMode.Mark
+            ? state == CellState.Empty
+            : state == CellState.Marked;
+        if (!changes) {
+            return false;
+        }
+
+        Board = Board.ToggleMark(cell);
+        return true;
+    }
+
+    /// <summary>
+    /// Ends the drag in progress, if any.
+    /// </summary>
+    public void EndDrag() {
+        _dragMode = null;
+    }
+    #endregion
+
+    #region Keyboard Actions
+    /// <summary>
+    /// Toggles a cell's ✕ straight away, with no double-tap timing (keyboard: Space or X).
+    /// </summary>
+    public TapResult ToggleMark(Cell cell) {
+        ForgetLastTap();
+        if (Board.IsFinished) {
+            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
+        }
+
+        var before = Board;
+        Board = before.ToggleMark(cell);
+
+        var outcome = ReferenceEquals(Board, before) ? TapOutcome.Ignored : TapOutcome.MarkToggled;
+        return new TapResult(outcome, EndedGarden: false);
+    }
+
+    /// <summary>
+    /// Tries to plant straight away, with no double-tap timing (keyboard: Enter).
+    /// Works on empty and ✕ cells, like a double tap.
+    /// </summary>
+    public TapResult Plant(Cell cell) {
+        ForgetLastTap();
+        if (Board.IsFinished) {
+            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
+        }
+
+        var result = Board.TryPlant(cell);
+        Board = result.Board;
+        return new TapResult(ToTapOutcome(result.Outcome), Board.IsFinished);
+    }
+
+    private static TapOutcome ToTapOutcome(PlantOutcome outcome) => outcome switch {
+        PlantOutcome.Grew => TapOutcome.Grew,
+        PlantOutcome.Wilted => TapOutcome.Wilted,
+        _ => TapOutcome.Ignored,
+    };
+
+    // Ends any half-finished double tap, so the next tap starts fresh.
+    private void ForgetLastTap() {
+        _doubleTap.Reset();
+        _boardBeforeTap = null;
+    }
+    #endregion
 }
