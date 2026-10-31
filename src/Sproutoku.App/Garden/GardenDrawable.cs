@@ -1,3 +1,4 @@
+using Sproutoku.Core.Input;
 using Sproutoku.Core.Play;
 using Sproutoku.Core.Puzzles;
 using Cell = Sproutoku.Core.Puzzles.Cell;
@@ -121,30 +122,19 @@ public sealed class GardenDrawable : IDrawable {
     }
 
     /// <summary>
-    /// The board cells a straight line between two points passes over, in order, without repeats.
-    /// Fills the gaps when a fast finger or mouse jumps past cells between move events.
+    /// The board cells a straight line between two points passes through, in order (S27).
     /// </summary>
     public IReadOnlyList<Cell> CellsAlong(PointF from, PointF to) {
-        var cells = new List<Cell>();
-        if (_cellSize <= 0) return cells;
+        if (Board is null || _cellSize <= 0) return [];
 
-        float dx = to.X - from.X;
-        float dy = to.Y - from.Y;
-        float distance = MathF.Sqrt((dx * dx) + (dy * dy));
-
-        // Check a point every quarter cell along the line.
-        int steps = Math.Max(1, (int)MathF.Ceiling(distance / (_cellSize / 4)));
-        for (int i = 0; i <= steps; i++) {
-            float t = (float)i / steps;
-            var cell = CellAt(new PointF(from.X + (dx * t), from.Y + (dy * t)));
-            if (cell is { } found && (cells.Count == 0 || cells[^1] != found)) {
-                cells.Add(found);
-            }
-        }
-
-        return cells;
+        return DragGridLine.CellsAlong(
+                (from.X - _origin.X) / _cellSize,
+                (from.Y - _origin.Y) / _cellSize,
+                (to.X - _origin.X) / _cellSize,
+                (to.Y - _origin.Y) / _cellSize)
+            .Where(cell => cell.IsInside(Board.Size))
+            .ToList();
     }
-
     private RectF CellRect(Cell cell) =>
         new(_origin.X + (cell.Column * _cellSize), _origin.Y + (cell.Row * _cellSize), _cellSize, _cellSize);
 

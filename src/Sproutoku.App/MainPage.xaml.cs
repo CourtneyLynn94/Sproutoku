@@ -276,36 +276,27 @@ public partial class MainPage : ContentPage {
 
     private void OnDrag(object? sender, TouchEventArgs e) => DragTo(e.Touches[0]);
 
-    // Moving onto another cell turns the press into a drag that marks or clears every cell it passes.
+    // Moving onto another board cell turns the press into a drag that marks or clears every cell it passes.
+    // Moving into blank space doesn't: the press stays a possible tap until it reaches another cell.
     private void DragTo(PointF point) {
         if (_pressedCell is not { } start) return; // started off the board
 
+        var path = _garden.CellsAlong(_lastPoint, point);
         bool changed = false;
 
         if (!_isDragging) {
-            // Still on the starting cell, so it may yet be a tap.
-            if (_garden.CellAt(point) == start) {
+            if (!path.Any(cell => cell != start)) {
                 _lastPoint = point;
                 return;
             }
 
             _isDragging = true;
             _session.BeginDrag();
-            if (_session.DragOver(start)) {
-                changed = true;
-#if ANDROID || IOS
-                _haptics.Mark();
-#endif
-            }
+            changed |= DragOver(start);
         }
 
-        foreach (var cell in _garden.CellsAlong(_lastPoint, point)) {
-            if (_session.DragOver(cell)) {
-                changed = true;
-#if ANDROID || IOS
-                _haptics.Mark();
-#endif
-            }
+        foreach (var cell in path) {
+            changed |= DragOver(cell);
         }
 
         _lastPoint = point;
@@ -314,6 +305,16 @@ public partial class MainPage : ContentPage {
             _garden.Board = _session.Board;
             GardenView.Invalidate();
         }
+    }
+
+    // One cell of a drag, with a tick when it changes.
+    private bool DragOver(Cell cell) {
+        if (!_session.DragOver(cell)) return false;
+
+#if ANDROID || IOS
+        _haptics.Mark();
+#endif
+        return true;
     }
 
     // Finger or mouse up: the end of a drag, or a tap if it lifted on the cell it went down on.
