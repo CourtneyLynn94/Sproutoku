@@ -1,66 +1,75 @@
-name: Populate PR Commits
+name: PR commit list
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened]
+
+# A newer push replaces a run that's still going, so the list never ends up out of date.
+concurrency:
+  group: pr-commits-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   update-pr-body:
+    name: Update PR commit list
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pull-requests: write
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Check out the PR branch
+        uses: actions/checkout@v5
         with:
-          fetch-depth: 0 # Fetches full history so git log can see all commits
+          # The PR's own latest commit, not GitHub's temporary merge with the base branch.
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
 
-      - name: Gather Commit Messages
-        id: get_commits
+      - name: List the PR's commits
+        id: commits
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
-          # Fetch the target branch to ensure we have comparison history
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          
-          # List all commit titles between the base branch and the head PR branch
-          COMMITS=$(git log --oneline origin/${{ github.event.pull_request.base.ref }}..HEAD)
-          
-          # Format the commit messages as a Markdown list
-          FORMATTED_COMMITS=""
-          while IFS= read -r line; do
-            FORMATTED_COMMITS="${FORMATTED_COMMITS}- ${line}\n"
-          done <<< "$COMMITS"
-          
-          # Save the multiline string securely to GitHub outputs
-          echo "commit_list<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$FORMATTED_COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          git fetch origin "$BASE_REF"
+          delimiter="COMMITS_$(date +%s%N)"
+          {
+            echo "list<<$delimiter"
+            git log --reverse --no-merges --format='- %s' "origin/$BASE_REF..HEAD"
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Update PR Description
+      - name: Put the list in the PR description
         uses: actions/github-script@v7
+        env:
+          # Passed as an environment variable, so backticks or ${ } in commit messages can't break the script.
+          COMMIT_LIST: ${{ steps.commits.outputs.list }}
         with:
           script: |
-            const pr = await github.rest.pullRequests.get({
+            const start = "<!-- Diff summary - START -->";
+            const end = "<!-- Diff summary - END -->";
+
+            const { data: pr } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number
+              pull_number: context.issue.number,
             });
-            
-            let body = pr.data.body || "";
-            const commitList = `${{ steps.get_commits.outputs.commit_list }}`;
-            
-            // Define markers matching the PR template
-            const startMarker = "<!-- Diff summary - START -->";
-            const endMarker = "<!-- Diff summary - END -->";
-            
-            if (body.includes(startMarker) && body.includes(endMarker)) {
-              const regex = new RegExp(`${startMarker}[\\s\\S]*?${endMarker}`);
-              body = body.replace(regex, `${startMarker}\n${commitList}\n${endMarker}`);
-              
-              await github.rest.pullRequests.update({
+
+            const body = pr.body ?? "";
+            const from = body.indexOf(start);
+            const to = body.indexOf(end);
+            if (from === -1 || to === -1 || to < from) {
+              core.info("No commit-list markers in the description; leaving it alone.");
+              return;
+            }
+
+            const list = (process.env.COMMIT_LIST ?? "").trim();
+            const updated = body.slice(0, from + start.length) + "\n" + list + "\n" + body.slice(to);
+
+            if (updated !== body) {
+              await github.rest.pulls.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: context.issue.number,
-                body: body
+                body: updated,
               });
             }
