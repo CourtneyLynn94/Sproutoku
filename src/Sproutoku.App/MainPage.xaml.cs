@@ -274,11 +274,12 @@ public partial class MainPage : ContentPage {
 #endif
     }
 
+    private void OnDrag(object? sender, TouchEventArgs e) => DragTo(e.Touches[0]);
+
     // Moving onto another cell turns the press into a drag that marks or clears every cell it passes.
-    private void OnDrag(object? sender, TouchEventArgs e) {
+    private void DragTo(PointF point) {
         if (_pressedCell is not { } start) return; // started off the board
 
-        var point = e.Touches[0];
         bool changed = false;
 
         if (!_isDragging) {
@@ -318,12 +319,20 @@ public partial class MainPage : ContentPage {
     // Finger or mouse up: the end of a drag, or a tap if it lifted on the cell it went down on.
     private void OnRelease(object? sender, TouchEventArgs e) {
         var pressed = _pressedCell;
+        var point = e.Touches[0];
+
+        // A fast swipe can cross cells after its last move update, so cover the stretch up to where it lifted.
+        // A press that lifts on its own cell stays a tap: DragTo leaves it alone.
+        if (pressed is not null) {
+            DragTo(point);
+        }
+
         bool wasDragging = _isDragging;
         FinishPress();
 
         if (wasDragging) return;
 
-        var released = _garden.CellAt(e.Touches[0]);
+        var released = _garden.CellAt(point);
         if (released is null || released != pressed) return;
 
         OnCellTapped(released.Value);

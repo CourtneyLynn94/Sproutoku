@@ -42,6 +42,12 @@ public partial class MainPage {
 
         if (key is null) return;
 
+        // A held key repeats. Arrows may repeat to move quickly, but a held Space or X would flip the ✕ on and off.
+        if (e.KeyStatus.WasKeyDown && (key is GardenKeyboardKey.Mark or GardenKeyboardKey.Plant)) {
+            e.Handled = true;
+            return;
+        }
+
         e.Handled = true; //stops Windows also using the key, e.g. arrows moving focus elsewhere
         OnGardenKey(key.Value);
     }
