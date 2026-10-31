@@ -4,6 +4,10 @@ using Sproutoku.App.Saving;
 using Sproutoku.Core.Play;
 using Cell = Sproutoku.Core.Puzzles.Cell;
 
+#if ANDROID || IOS
+using Sproutoku.App.Feedback;
+#endif
+
 namespace Sproutoku.App;
 
 public partial class MainPage : ContentPage {
@@ -15,6 +19,8 @@ public partial class MainPage : ContentPage {
     // Keyboard support. Filled in by Platforms/Windows/MainPage.Keyboard.cs; on other platforms these do nothing.
     partial void HookUpKeyboard();
     partial void FocusGardenForKeyboard();
+#elif ANDROID || IOS
+    private readonly Haptics _haptics = new();
 #endif
 
     private readonly GardenDrawable _garden = new() { ShouldDrawRegionBorders = false };
@@ -121,6 +127,10 @@ public partial class MainPage : ContentPage {
 
         // The Journal still works during the wait. If a reset or skip changed the garden, this screen is stale.
         if (!ReferenceEquals(_session.Board, board)) return;
+
+#if ANDROID || IOS
+        _haptics.GardenEnded();
+#endif
 
         if (board.IsSolved) {
             string stats =
@@ -280,11 +290,21 @@ public partial class MainPage : ContentPage {
 
             _isDragging = true;
             _session.BeginDrag();
-            changed |= _session.DragOver(start);
+            if (_session.DragOver(start)) {
+                changed = true;
+#if ANDROID || IOS
+                _haptics.Mark();
+#endif
+            }
         }
 
         foreach (var cell in _garden.CellsAlong(_lastPoint, point)) {
-            changed |= _session.DragOver(cell);
+            if (_session.DragOver(cell)) {
+                changed = true;
+#if ANDROID || IOS
+                _haptics.Mark();
+#endif
+            }
         }
 
         _lastPoint = point;
@@ -325,6 +345,10 @@ public partial class MainPage : ContentPage {
     // Shows what a tap or key did, saves, and opens the end screen if the garden is over.
     private void ShowResult(TapResult result) {
         if (result.Outcome == TapOutcome.Ignored) return;
+
+#if ANDROID || IOS
+        PlayHaptic(result.Outcome);
+#endif
 
         _garden.Board = _session.Board;
         ShowTapOutcome(result.Outcome);
@@ -386,6 +410,21 @@ public partial class MainPage : ContentPage {
         }
 
         GardenView.Invalidate();
+    }
+#elif ANDROID || IOS
+    // A light tick for ✕, a firmer press for a plant, a buzz for a mistake.
+    private void PlayHaptic(TapOutcome outcome) {
+        switch (outcome) {
+            case TapOutcome.MarkToggled:
+                _haptics.Mark();
+                break;
+            case TapOutcome.Grew:
+                _ = _haptics.GrewAsync();
+                break;
+            case TapOutcome.Wilted:
+                _haptics.Wilted();
+                break;
+        }
     }
 #endif
     #endregion
