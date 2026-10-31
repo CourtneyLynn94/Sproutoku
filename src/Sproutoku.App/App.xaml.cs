@@ -1,28 +1,19 @@
-using Microsoft.Extensions.DependencyInjection;
-
 namespace Sproutoku.App;
 
 public partial class App : Application {
     public App() {
         InitializeComponent();
-
-        // 1. Mobile platforms require it on startup.
-        MainPage = new AppShell();
     }
 
     protected override Window CreateWindow(IActivationState? activationState) {
-        // 2. Let the base implementation securely handle window generation
-        var window = base.CreateWindow(activationState);
+        var window = new Window(new AppShell());
 
-        // 3. Apply sizing constraints exclusively to Windows and macOS
 #if WINDOWS || MACCATALYST
+        // Opens at a comfortable desktop size, but can shrink to phone width so the stacked layout can be tested on Windows.
         window.Width = 1280;
         window.Height = 820;
-
-        window.MinimumWidth = 1280;
-        window.MinimumHeight = 820;
-        window.MaximumWidth = 1920;
-        window.MaximumHeight = 1080;
+        window.MinimumWidth = 400;
+        window.MinimumHeight = 600;
 #endif
 
         return window;

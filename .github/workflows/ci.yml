@@ -7,6 +7,11 @@ on:
   push:
     branches: [develop, master]
 
+# A newer push to the same PR (or branch) cancels the run that's still going.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   core-checks:
     name: Core checks
@@ -34,3 +39,43 @@ jobs:
 
       - name: Run unit tests
         run: dotnet test tests/Sproutoku.Core.Tests/Sproutoku.Core.Tests.csproj --no-build
+
+  android-build:
+    name: App build (Android)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install the MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Build the Android app
+        run: dotnet build src/Sproutoku.App/Sproutoku.App.csproj -c Debug -p:CiTargetFramework=net10.0-android
+
+  windows-build:
+    name: App build (Windows)
+    runs-on: windows-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install the MAUI Windows workload
+        run: dotnet workload install maui-windows
+
+      - name: Build the Windows app
+        run: dotnet build src/Sproutoku.App/Sproutoku.App.csproj -c Debug -p:CiTargetFramework=net10.0-windows10.0.19041.0
