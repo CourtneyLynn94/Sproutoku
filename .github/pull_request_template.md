@@ -1,5 +1,9 @@
-## What changed
+## Description
 -
+
+## Commits Included
+<!-- Diff summary - START -->
+<!-- Diff summary - END -->
 
 ## How I tested it
 - [ ] `dotnet test tests/Sproutoku.Core.Tests` passes

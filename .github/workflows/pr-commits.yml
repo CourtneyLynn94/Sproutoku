@@ -1,0 +1,66 @@
+name: Populate PR Commits
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  update-pr-body:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches full history so git log can see all commits
+
+      - name: Gather Commit Messages
+        id: get_commits
+        run: |
+          # Fetch the target branch to ensure we have comparison history
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          
+          # List all commit titles between the base branch and the head PR branch
+          COMMITS=$(git log --oneline origin/${{ github.event.pull_request.base.ref }}..HEAD)
+          
+          # Format the commit messages as a Markdown list
+          FORMATTED_COMMITS=""
+          while IFS= read -r line; do
+            FORMATTED_COMMITS="${FORMATTED_COMMITS}- ${line}\n"
+          done <<< "$COMMITS"
+          
+          # Save the multiline string securely to GitHub outputs
+          echo "commit_list<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$FORMATTED_COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update PR Description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pullRequests.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            let body = pr.data.body || "";
+            const commitList = `${{ steps.get_commits.outputs.commit_list }}`;
+            
+            // Define markers matching the PR template
+            const startMarker = "<!-- Diff summary - START -->";
+            const endMarker = "<!-- Diff summary - END -->";
+            
+            if (body.includes(startMarker) && body.includes(endMarker)) {
+              const regex = new RegExp(`${startMarker}[\\s\\S]*?${endMarker}`);
+              body = body.replace(regex, `${startMarker}\n${commitList}\n${endMarker}`);
+              
+              await github.rest.pullRequests.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                body: body
+              });
+            }
