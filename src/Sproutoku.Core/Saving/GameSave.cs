@@ -39,12 +39,17 @@ public sealed record GameSave(int Version, int Level, int StartingSuns, int Suns
 
     /// <summary>
     /// Where to pick up. Without a usable save, Garden 1 from the start.
-    /// A lost garden starts fresh (Try again was the only choice), and a solved one moves on to the next garden when there is one.
+    /// A failed garden starts fresh (Try again was the only choice), and a solved one moves on to the next garden, or starts again if it's the last.
+    /// If the saved board no longer fits its garden (for example after an update changed that garden), the player keeps their level and that garden starts fresh.
     /// </summary>
     public static (int Level, Board Board) Resume(GameSave? save) {
-        if (save is not null
-            && GardenLevels.ForLevel(save.Level) is { } puzzle
-            && Board.TryRestore(puzzle, save.Cells, save.StartingSuns, save.SunsLeft) is { } board) {
+        if (save is not null && GardenLevels.ForLevel(save.Level) is { } puzzle) {
+            if (Board.TryRestore(puzzle, save.Cells, save.StartingSuns, save.SunsLeft) is not { } board) {
+                // Keep the garden's own sun count (e.g. a one-sun garden); fall back to the default if the save's is invalid.
+                int suns = save.StartingSuns >= 1 ? save.StartingSuns : Board.DefaultSuns;
+                return (save.Level, Board.Start(puzzle, suns));
+            }
+
             if (board.IsOutOfSun) {
                 return (save.Level, board.Restart());
             }
@@ -59,7 +64,7 @@ public sealed record GameSave(int Version, int Level, int StartingSuns, int Suns
             return (save.Level, board);
         }
 
-        // Level 1 always exists, so the ! is safe.
+        // No save, or a level that doesn't exist. Level 1 always exists, so the ! is safe.
         return (1, Board.Start(GardenLevels.ForLevel(1)!));
     }
 }

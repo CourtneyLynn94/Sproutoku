@@ -13,6 +13,8 @@ jobs:
   update-pr-body:
     name: Update PR commit list
     runs-on: ubuntu-latest
+    # Only for branches in this repo: fork and Dependabot PRs get a read-only token and couldn't update the description.
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]'
     permissions:
       contents: read
       pull-requests: write
