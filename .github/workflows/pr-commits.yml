@@ -1,0 +1,78 @@
+name: PR commit list
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# A newer push replaces a run that's still going, so the list never ends up out of date.
+concurrency:
+  group: pr-commits-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  update-pr-body:
+    name: Update PR commit list
+    runs-on: ubuntu-latest
+    # Only for branches in this repo: fork and Dependabot PRs get a read-only token and couldn't update the description.
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]'
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Check out the PR branch
+        uses: actions/checkout@v5
+        with:
+          # The PR's own latest commit, not GitHub's temporary merge with the base branch.
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: List the PR's commits
+        id: commits
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          git fetch origin "$BASE_REF"
+          delimiter="COMMITS_$(date +%s%N)"
+          {
+            echo "list<<$delimiter"
+            git log --reverse --no-merges --format='- %s' "origin/$BASE_REF..HEAD"
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Put the list in the PR description
+        uses: actions/github-script@v7
+        env:
+          # Passed as an environment variable, so backticks or ${ } in commit messages can't break the script.
+          COMMIT_LIST: ${{ steps.commits.outputs.list }}
+        with:
+          script: |
+            const start = "<!-- Diff summary - START -->";
+            const end = "<!-- Diff summary - END -->";
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const body = pr.body ?? "";
+            const from = body.indexOf(start);
+            // Find END only at the start of a line after START. Commit lines start with "- ", so they can't match.
+            const endAt = from === -1 ? -1 : body.indexOf("\n" + end, from);
+            if (from === -1 || endAt === -1) {
+              core.info("No commit-list markers in the description; leaving it alone.");
+              return;
+            }
+
+            const list = (process.env.COMMIT_LIST ?? "").trim();
+            const updated = body.slice(0, from + start.length) + "\n" + list + "\n" + body.slice(endAt + 1);
+
+            if (updated !== body) {
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                body: updated,
+              });
+            }

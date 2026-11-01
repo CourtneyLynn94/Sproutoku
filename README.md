@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/CourtneyLynn94/Sproutoku/actions/workflows/ci.yml/badge.svg?branch=develop)
 
-A cozy logic puzzle for Android and iOS, built with .NET MAUI: grow one plant in every region of the garden.
+A cozy logic puzzle for Android phones and Windows desktops, built with .NET MAUI: grow one plant in every bed of the garden.
 
 ## Projects
 
@@ -43,12 +43,29 @@ Run the same commands without `--verify-no-changes` to fix formatting automatica
 
 ## Build for release
 
+**Android** (installable APK):
 ```powershell
-dotnet publish src/Sproutoku.App -f net10.0-android -c Release
+dotnet publish src/Sproutoku.App -f net10.0-android -c Release -p:AndroidPackageFormat=apk
 ```
+Output: `src/Sproutoku.App/bin/Release/net10.0-android/publish/` (use the `-Signed.apk`).
 
-Output: `src/Sproutoku.App/bin/Release/net10.0-android/publish/`
+**Windows** (self-contained folder; zip it and run `Sproutoku.App.exe`):
+```powershell
+dotnet publish src/Sproutoku.App -f net10.0-windows10.0.19041.0 -c Release
+```
+Output: `src/Sproutoku.App/bin/Release/net10.0-windows10.0.19041.0/win-x64/publish/`
 
 ## Continuous integration
 
-Every pull request and every push to `develop` or `master` runs the lint, build (warnings as errors) and test checks above on GitHub Actions. See `.github/workflows/ci.yml`.
+GitHub Actions (`.github/workflows/ci.yml`):
+- **Every pull request** into `develop` or `master`: Core checks (formatting, build with warnings as errors, unit tests) and app builds for Android and Windows.
+- **Every push** to `develop` or `master`: Core checks only, since the pull request already built the app. (Branch rules require pull requests, so these pushes come from merges.)
+
+## License & Copyright
+
+© 2026 Courtney Phillips. All rights reserved.
+
+This project is a personal portfolio piece developed for showcase and evaluation purposes. 
+
+* **Code and Assets:** The source code, design assets, and documentation are proprietary. No part of this repository may be reproduced, distributed, or transmitted in any form or by any means without prior written permission.
+* **Review and Evaluation:** Prospective employers, recruiters, and collaborators are explicitly permitted to download, build, and run this project locally for evaluation purposes.
