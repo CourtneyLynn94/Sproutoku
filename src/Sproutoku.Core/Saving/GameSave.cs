@@ -46,7 +46,7 @@ public sealed record GameSave(int Version, int Level, int StartingSuns, int Suns
         if (save is not null && GardenLevels.ForLevel(save.Level) is { } puzzle) {
             if (Board.TryRestore(puzzle, save.Cells, save.StartingSuns, save.SunsLeft) is not { } board) {
                 // Keep the garden's own sun count (e.g. a one-sun garden); fall back to the default if the save's is invalid.
-                int suns = save.StartingSuns >= 1 ? save.StartingSuns : Board.DefaultSuns;
+                int suns = Board.IsValidSunCount(save.StartingSuns) ? save.StartingSuns : Board.DefaultSuns;
                 return (save.Level, Board.Start(puzzle, suns));
             }
 

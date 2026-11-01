@@ -15,6 +15,16 @@ public sealed class Board {
     public const int DefaultSuns = 3;
 
     /// <summary>
+    /// The most suns any garden can have. A save asking for more is treated as corrupted.
+    /// </summary>
+    public const int MaxSuns = 3;
+
+    /// <summary>
+    /// True for a sun count a garden can really have: 1 to MaxSuns.
+    /// </summary>
+    public static bool IsValidSunCount(int suns) => suns is >= 1 and <= MaxSuns;
+
+    /// <summary>
     /// Suns the garden started with, from the level's settings.
     /// </summary>
     public int StartingSuns { get; }
@@ -69,7 +79,9 @@ public sealed class Board {
     /// </summary>
     public static Board Start(Puzzle puzzle, int suns = DefaultSuns) {
         ArgumentNullException.ThrowIfNull(puzzle);
-        ArgumentOutOfRangeException.ThrowIfLessThan(suns, 1);
+        if (!IsValidSunCount(suns)) {
+            throw new ArgumentOutOfRangeException(nameof(suns), suns, $"A garden has 1 to {MaxSuns} suns.");
+        }
         return new Board(puzzle, new CellState[puzzle.Size, puzzle.Size], suns, suns);
     }
 
@@ -150,7 +162,7 @@ public sealed class Board {
             return null;
         }
 
-        if (startingSuns < 1 || sunsLeft < 0 || sunsLeft > startingSuns) {
+        if (!IsValidSunCount(startingSuns) || sunsLeft < 0 || sunsLeft > startingSuns) {
             return null;
         }
 
