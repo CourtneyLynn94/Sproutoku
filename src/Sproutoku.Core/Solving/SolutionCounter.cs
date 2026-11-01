@@ -38,6 +38,10 @@ public static class SolutionCounter {
         ArgumentNullException.ThrowIfNull(regions);
 
         int size = regions.Length;
+        if (size < 1 || size > PuzzleValidator.MaxSize) {
+            throw new ArgumentOutOfRangeException(nameof(regions), size, $"A garden is 1 to {PuzzleValidator.MaxSize} rows.");
+        }
+
         var regionOf = new int[size, size];
         for (int row = 0; row < size; row++) {
             if (regions[row].Length != size) {

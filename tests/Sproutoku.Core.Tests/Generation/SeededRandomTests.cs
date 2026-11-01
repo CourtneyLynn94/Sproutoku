@@ -67,6 +67,15 @@ public class SeededRandomTests {
         }
     }
 
+    [Fact]
+    public void NextWithMinimum_HandlesTheWidestRange() {
+        var random = new SeededRandom(7);
+
+        for (int i = 0; i < 100; i++) {
+            random.Next(int.MinValue, int.MaxValue); //must not throw
+        }
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-3)]

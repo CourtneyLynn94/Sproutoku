@@ -40,16 +40,7 @@ public sealed class SeededRandom {
     /// </summary>
     public int Next(int maxExclusive) {
         ArgumentOutOfRangeException.ThrowIfLessThan(maxExclusive, 1);
-
-        // Skip the few lowest values so every result is equally likely, instead of the small bias a plain remainder would give.
-        ulong bound = (ulong)maxExclusive;
-        ulong threshold = unchecked(0UL - bound) % bound;
-        while (true) {
-            ulong value = NextUInt64();
-            if (value >= threshold) {
-                return (int)(value % bound);
-            }
-        }
+        return (int)NextBelow((ulong)maxExclusive);
     }
 
     /// <summary>
@@ -57,7 +48,21 @@ public sealed class SeededRandom {
     /// </summary>
     public int Next(int minInclusive, int maxExclusive) {
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(minInclusive, maxExclusive);
-        return minInclusive + Next(maxExclusive - minInclusive);
+
+        // The width is worked out as a long, so even int.MinValue to int.MaxValue doesn't overflow.
+        ulong width = (ulong)((long)maxExclusive - minInclusive);
+        return (int)(minInclusive + (long)NextBelow(width));
+    }
+
+    // A number from 0 up to, but not including, bound, every value equally likely.
+    private ulong NextBelow(ulong bound) {
+        ulong threshold = unchecked(0UL - bound) % bound;
+        while (true) {
+            ulong value = NextUInt64();
+            if (value >= threshold) {
+                return value % bound;
+            }
+        }
     }
 
     /// <summary>

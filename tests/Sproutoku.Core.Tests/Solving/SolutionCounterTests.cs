@@ -58,4 +58,12 @@ public class SolutionCounterTests {
 
         Assert.Throws<ArgumentException>(() => SolutionCounter.Count(regions));
     }
+
+    [Fact]
+    public void EmptyOrOversizedGrids_Throw() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => SolutionCounter.Count([]));
+
+        var tooBig = Enumerable.Range(0, 11).Select(row => Enumerable.Repeat(row, 11).ToArray()).ToArray();
+        Assert.Throws<ArgumentOutOfRangeException>(() => SolutionCounter.Count(tooBig));
+    }
 }
