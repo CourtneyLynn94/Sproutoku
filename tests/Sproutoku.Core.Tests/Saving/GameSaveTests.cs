@@ -92,11 +92,15 @@ public class GameSaveTests {
     }
 
     [Fact]
-    public void Resume_SaveThatDoesntFitItsGarden_StartsAtLevel1() {
-        // Level 2 is 6×6, so a 5×5 board's cells don't fit it.
+    public void Resume_SaveThatDoesntFitItsGarden_KeepsTheLevel_AndStartsItFresh() {
+        // Level 2 is 6×6, so a 5×5 board's cells don't fit it (as if an update had changed the garden).
         var save = new GameSave(GameSave.CurrentVersion, 2, 3, 3, new string('.', 25));
 
-        Assert.Equal(1, GameSave.Resume(save).Level);
+        var (level, board) = GameSave.Resume(save);
+
+        Assert.Equal(2, level);
+        Assert.Same(Level2, board.Puzzle);
+        Assert.Equal(Level2.Size * Level2.Size, board.CountOf(CellState.Empty));
     }
 
     [Fact]
