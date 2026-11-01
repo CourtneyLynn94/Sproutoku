@@ -128,4 +128,15 @@ public class GameSaveTests {
         Assert.False(resumed.IsSolved);
         Assert.Equal(puzzle.Size * puzzle.Size, resumed.CountOf(CellState.Empty));
     }
+
+    [Fact]
+    public void Resume_SaveWithTooManySuns_StartsItsGardenFresh_WithDefaultSuns() {
+        // Level 2 is 6×6. A corrupted save claiming a million suns must not build a million sun slots.
+        var save = new GameSave(GameSave.CurrentVersion, 2, 1_000_000, 1_000_000, new string('.', 36));
+
+        var (level, board) = GameSave.Resume(save);
+
+        Assert.Equal(2, level);
+        Assert.Equal(Board.DefaultSuns, board.StartingSuns);
+    }
 }

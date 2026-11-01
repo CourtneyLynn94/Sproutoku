@@ -243,13 +243,21 @@ public class BoardTests {
     }
 
     [Theory]
-    [InlineData(0, 0)] // no starting suns
-    [InlineData(3, 4)] // more suns left than it started with
+    [InlineData(0, 0)]   // no starting suns
+    [InlineData(3, 4)]   // more suns left than it started with
     [InlineData(3, -1)]
+    [InlineData(11, 11)] // more suns than any garden can have
     public void TryRestore_RejectsImpossibleSuns(int startingSuns, int sunsLeft) {
         var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
 
         Assert.Null(Board.TryRestore(puzzle, new string('.', 25), startingSuns, sunsLeft));
+    }
+
+    [Fact]
+    public void Start_WithMoreThanMaxSuns_Throws() {
+        var puzzle = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => Board.Start(puzzle, suns: Board.MaxSuns + 1));
     }
 
     [Theory]
