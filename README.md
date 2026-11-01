@@ -57,9 +57,9 @@ Output: `src/Sproutoku.App/bin/Release/net10.0-windows10.0.19041.0/win-x64/publi
 
 ## Continuous integration
 
-Every pull request and every push to `develop` or `master` runs on GitHub Actions (`.github/workflows/ci.yml`):
-- **Core checks:** formatting, build with warnings as errors, and unit tests for `Sproutoku.Core`
-- **App build:** compiles the MAUI app for Android and for Windows
+GitHub Actions (`.github/workflows/ci.yml`):
+- **Every pull request** into `develop` or `master`: Core checks (formatting, build with warnings as errors, unit tests) and app builds for Android and Windows.
+- **Every push** to `develop` or `master` (that is, every merge): Core checks only, since the PR already built the app.
 
 ## License & Copyright
 
