@@ -59,7 +59,7 @@ Output: `src/Sproutoku.App/bin/Release/net10.0-windows10.0.19041.0/win-x64/publi
 
 GitHub Actions (`.github/workflows/ci.yml`):
 - **Every pull request** into `develop` or `master`: Core checks (formatting, build with warnings as errors, unit tests) and app builds for Android and Windows.
-- **Every push** to `develop` or `master` (that is, every merge): Core checks only, since the PR already built the app.
+- **Every push** to `develop` or `master`: Core checks only, since the pull request already built the app. (Branch rules require pull requests, so these pushes come from merges.)
 
 ## License & Copyright
 

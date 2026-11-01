@@ -104,6 +104,16 @@ public class GameSaveTests {
     }
 
     [Fact]
+    public void Resume_SaveThatDoesntFitItsGarden_KeepsItsStartingSuns() {
+        var save = new GameSave(GameSave.CurrentVersion, 2, 1, 1, new string('.', 25));
+
+        var (_, board) = GameSave.Resume(save);
+
+        Assert.Equal(1, board.StartingSuns);
+        Assert.Equal(1, board.SunsLeft);
+    }
+
+    [Fact]
     public void Resume_LastGardenSolved_StartsItAgain() {
         int lastLevel = StarterGardens.All.Count;
         var puzzle = GardenLevels.ForLevel(lastLevel)!;
