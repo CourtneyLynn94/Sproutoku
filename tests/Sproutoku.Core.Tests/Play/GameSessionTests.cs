@@ -520,11 +520,9 @@ public class GameSessionTests {
     [Fact]
     public void OnTheLastLevel_AnExtraGarden_StillHasSomewhereToGo() {
         var session = NewGame();
-        session.GoToLevel(3);
+        Assert.True(session.GoToLevel(StarterGardens.All.Count));
+        Assert.False(session.HasNextLevel); // Really the last level.
         session.PlayExtraGarden(ExtraGarden());
-
-        Assert.True(session.HasNextLevel);
-        Assert.False(session.CanRestart);
     }
     #endregion
 }

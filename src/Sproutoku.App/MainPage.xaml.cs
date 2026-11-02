@@ -282,18 +282,24 @@ public partial class MainPage : ContentPage {
         ulong seed = (ulong)Random.Shared.Next();
         InfoLabel.Text = $"Growing a {size} × {size} garden…";
 
-        // Off the main thread, so the screen doesn't freeze while it works.
-        var timer = Stopwatch.StartNew();
-        var (puzzle, attempts) = await Task.Run(() => {
-            var garden = GardenGenerator.Generate(size, new SeededRandom(seed), out int tries);
-            return (garden, tries);
-        });
-        timer.Stop();
+        // Off the main thread, so the screen doesn't freeze while it works (the real version is #42).
+        try {
+            var timer = Stopwatch.StartNew();
+            var (puzzle, attempts) = await Task.Run(() => {
+                var garden = GardenGenerator.Generate(size, new SeededRandom(seed), out int tries);
+                return (garden, tries);
+            });
+            timer.Stop();
 
-        Debug.WriteLine($"Generated {size}×{size}: seed {seed}, {attempts} attempts, {timer.ElapsedMilliseconds} ms");
+            Debug.WriteLine($"Generated {size}×{size}: seed {seed}, {attempts} attempts, {timer.ElapsedMilliseconds} ms");
 
-        _session.PlayExtraGarden(puzzle);
-        ShowGarden($"Seed {seed} · {attempts} {(attempts == 1 ? "try" : "tries")} · {timer.ElapsedMilliseconds} ms");
+            _session.PlayExtraGarden(puzzle);
+            ShowGarden($"Seed {seed} · {attempts} {(attempts == 1 ? "try" : "tries")} · {timer.ElapsedMilliseconds} ms");
+        }
+        catch (InvalidOperationException ex) {
+            Debug.WriteLine($"Couldn't generate a {size}×{size} garden from seed {seed}: {ex.Message}");
+            InfoLabel.Text = $"Couldn't grow a garden from seed {seed}. Try again.";
+        }
     }
 #endif
 
