@@ -11,17 +11,6 @@ public class GardenGeneratorTests {
         .Select(row => string.Concat(Enumerable.Range(0, puzzle.Size).Select(column => puzzle.RegionAt(new Cell(row, column)))))
         .ToArray();
 
-    [Theory]
-    [MemberData(nameof(AllSizes))]
-    public void EveryGarden_HasExactlyOneSolution(int size) {
-        for (ulong seed = 0; seed < 100; seed++) {
-            var puzzle = GardenGenerator.Generate(size, seed);
-
-            Assert.Equal(size, puzzle.Size);
-            Assert.True(SolutionCounter.Count(puzzle) == SolutionCount.One, $"Seed {seed} has more than one answer.");
-        }
-    }
-
     [Fact]
     public void TheSameSeed_GivesTheSameGarden() {
         var first = GardenGenerator.Generate(8, 123);
@@ -51,11 +40,13 @@ public class GardenGeneratorTests {
 
     [Theory]
     [MemberData(nameof(AllSizes))]
-    public void EveryGarden_SolvesWithLogicAlone(int size) {
+    public void EveryGarden_HasOneAnswer_ThatLogicAloneReaches(int size) {
         for (ulong seed = 0; seed < 100; seed++) {
             var puzzle = GardenGenerator.Generate(size, seed);
             var result = LogicSolver.Solve(GardenFacts.Blank(puzzle));
 
+            Assert.Equal(size, puzzle.Size);
+            Assert.True(SolutionCounter.Count(puzzle) == SolutionCount.One, $"Seed {seed} has more than one answer.");
             Assert.True(result.IsSolved, $"Seed {seed} needs a guess.");
             Assert.Equal(puzzle.Solution.ToHashSet(), result.Plants.ToHashSet());
         }
