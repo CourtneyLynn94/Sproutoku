@@ -35,6 +35,12 @@ public enum Technique {
     /// so the beds' cells outside those rows are ruled out (k = 1 is a row with only one bed left).
     /// </summary>
     LinesFillBeds,
+
+    /// <summary>
+    /// A cell whose plant would rule out every remaining cell of another bed, row or column
+    /// can't hold a plant, or that area would have nowhere left to grow.
+    /// </summary>
+    WouldStarve,
 }
 
 /// <summary>

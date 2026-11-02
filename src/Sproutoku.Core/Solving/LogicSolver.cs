@@ -37,7 +37,8 @@ public static class LogicSolver {
     private static LogicStep? NextStep(SolverGrid grid) =>
         PlantRulesOut(grid)
         ?? OnlyCellLeft(grid)
-        ?? GroupsFillLines(grid);
+        ?? GroupsFillLines(grid)
+        ?? WouldStarve(grid);
 
     // A plant rules out its row, column, bed and the touching cells: the first plant that still has something to rule out.
     private static LogicStep? PlantRulesOut(SolverGrid grid) {
@@ -69,17 +70,6 @@ public static class LogicSolver {
 
         return null;
     }
-
-    /// <summary>
-    /// True if a plant on one cell means the other can't hold a plant:
-    /// same row, same column, same bed, or touching (including diagonally).
-    /// </summary>
-    internal static bool Blocks(SolverGrid grid, Cell plant, Cell other) =>
-        other != plant
-        && (other.Row == plant.Row
-            || other.Column == plant.Column
-            || grid.RegionAt(other) == grid.RegionAt(plant)
-            || other.Touches(plant));
 
     private static readonly AreaKind[] LineKinds = [AreaKind.Row, AreaKind.Column];
 
@@ -201,4 +191,40 @@ public static class LogicSolver {
             }
         }
     }
+
+    // A cell whose plant would rule out every remaining cell of another bed, row or column can't hold a plant.
+    // One area at a time, with all the cells that would starve it, so a hint can explain them together.
+    private static LogicStep? WouldStarve(SolverGrid grid) {
+        var open = grid.AllCells().Where(cell => grid[cell] == Known.Unknown).ToList();
+
+        foreach (var area in grid.AllAreas()) {
+            var cells = grid.CellsOf(area).ToList();
+            if (cells.Any(cell => grid[cell] == Known.Plant)) continue;
+
+            var candidates = cells.Where(cell => grid[cell] == Known.Unknown).ToList();
+            if (candidates.Count == 0) continue;
+
+            // A cell inside the area would fill it, not starve it, so only cells outside count.
+            var ruledOut = open
+                .Where(cell => !candidates.Contains(cell) && candidates.All(candidate => Blocks(grid, cell, candidate)))
+                .ToList();
+
+            if (ruledOut.Count > 0) {
+                return new LogicStep(Technique.WouldStarve, Areas: [area], Plants: [], ruledOut, Reasons: candidates);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// True if a plant on one cell means the other can't hold a plant:
+    /// same row, same column, same bed, or touching (including diagonally).
+    /// </summary>
+    internal static bool Blocks(SolverGrid grid, Cell plant, Cell other) =>
+        other != plant
+        && (other.Row == plant.Row
+            || other.Column == plant.Column
+            || grid.RegionAt(other) == grid.RegionAt(plant)
+            || other.Touches(plant));
 }

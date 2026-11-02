@@ -143,28 +143,54 @@ public class LogicSolverTests {
             step.Areas);
         Assert.Equal([new Cell(2, 4), new Cell(4, 2)], step.RuledOut);
     }
+    #endregion
+
+    #region Cells that would leave an area with nowhere to grow
+    [Fact]
+    public void CellsTouchingAllOfATwoCellBed_AreRuledOut() {
+        // Your example: the test garden's bed 0 is just (0,0) and (0,1).
+        // After bed 0 fills row 0, a plant at (1,0) or (1,1) would touch both of its cells, leaving it nowhere to grow.
+        var result = LogicSolver.Solve(GardenFacts.Blank(TestGarden()));
+        var step = result.Steps.First(step => step.Technique == Technique.WouldStarve);
+
+        Assert.Equal([new Area(AreaKind.Bed, 0)], step.Areas);
+        Assert.Equal([new Cell(1, 0), new Cell(1, 1)], step.RuledOut);
+        Assert.Equal([new Cell(0, 0), new Cell(0, 1)], step.Reasons);
+    }
 
     [Fact]
-    public void StarterGarden1_NowSolvesFromScratch_AndMatchesItsAnswer() {
-        var garden = StarterGardens.All[0];
+    public void ACellThatWouldEmptyARow_IsRuledOut() {
+        // Every column is its own bed. Row 1 can only grow at (1,1) or (1,2);
+        // the four cells above and below that touch both would leave row 1 nowhere to grow.
+        var regions = TestGardens.Regions(
+            "0123",
+            "0123",
+            "0123",
+            "0123");
+        var facts = GardenFacts.Blank(regions)
+            .WithNoPlant(new Cell(1, 0))
+            .WithNoPlant(new Cell(1, 3));
 
-        var result = LogicSolver.Solve(GardenFacts.Blank(garden));
+        var step = LogicSolver.NextStep(facts);
 
-        Assert.True(result.IsSolved);
-        Assert.Equal(garden.Solution.ToHashSet(), result.Plants.ToHashSet());
-        Assert.Contains(result.Steps, step => step.Technique == Technique.BedsFillLines);
+        Assert.NotNull(step);
+        Assert.Equal(Technique.WouldStarve, step.Technique);
+        Assert.Equal([new Area(AreaKind.Row, 1)], step.Areas);
+        Assert.Equal([new Cell(0, 1), new Cell(0, 2), new Cell(2, 1), new Cell(2, 2)], step.RuledOut);
     }
     #endregion
 
     #region Solving
     [Fact]
-    public void StarterGarden2_SolvesFromScratch_AndMatchesItsAnswer() {
-        var garden = StarterGardens.All[1];
+    public void EveryStarterGarden_AndTheTestGarden_SolveByLogicAlone() {
+        Puzzle[] gardens = [.. StarterGardens.All, TestGarden()];
 
-        var result = LogicSolver.Solve(GardenFacts.Blank(garden));
+        Assert.All(gardens, garden => {
+            var result = LogicSolver.Solve(GardenFacts.Blank(garden));
 
-        Assert.True(result.IsSolved);
-        Assert.Equal(garden.Solution.ToHashSet(), result.Plants.ToHashSet());
+            Assert.True(result.IsSolved);
+            Assert.Equal(garden.Solution.ToHashSet(), result.Plants.ToHashSet());
+        });
     }
 
     [Fact]
