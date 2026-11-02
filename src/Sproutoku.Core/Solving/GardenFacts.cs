@@ -75,6 +75,32 @@ public sealed class GardenFacts {
     }
 
     /// <summary>
+    /// Only the bed shapes from a grid of bed ids (regions[row][column], ids 0 to N−1), nothing known yet.
+    /// For bed layouts that aren't puzzles yet, like the generator's.
+    /// </summary>
+    public static GardenFacts Blank(int[][] regions) {
+        ArgumentNullException.ThrowIfNull(regions);
+
+        int size = regions.Length;
+        if (size < 1 || size > PuzzleValidator.MaxSize) {
+            throw new ArgumentOutOfRangeException(nameof(regions), size, $"A garden is 1 to {PuzzleValidator.MaxSize} rows.");
+        }
+
+        var grid = new int[size, size];
+        for (int row = 0; row < size; row++) {
+            if (regions[row].Length != size) {
+                throw new ArgumentException("The bed grid must be square.", nameof(regions));
+            }
+
+            for (int column = 0; column < size; column++) {
+                grid[row, column] = regions[row][column];
+            }
+        }
+
+        return new GardenFacts(grid, new Known[size, size]);
+    }
+
+    /// <summary>
     /// These facts plus one more plant.
     /// </summary>
     public GardenFacts WithPlant(Cell cell) => With(cell, Known.Plant);

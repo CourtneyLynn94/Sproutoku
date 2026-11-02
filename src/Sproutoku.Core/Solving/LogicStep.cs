@@ -23,15 +23,27 @@ public enum Technique {
     /// A bed, row or column with only one possible cell left must hold its plant there.
     /// </summary>
     OnlyCellLeft,
+
+    /// <summary>
+    /// k beds whose open cells all lie in the same k rows (or columns) own those rows' plants,
+    /// so other beds' cells in those rows are ruled out (k = 1 is a bed squeezed into one row).
+    /// </summary>
+    BedsFillLines,
+
+    /// <summary>
+    /// k rows (or columns) whose open cells all belong to the same k beds hold those beds' plants,
+    /// so the beds' cells outside those rows are ruled out (k = 1 is a row with only one bed left).
+    /// </summary>
+    LinesFillBeds,
 }
 
 /// <summary>
-/// One deduction: the technique, the area it's about (if any), what it proves, and the cells that explain why.
+/// One deduction: the technique, the beds, rows and columns it's about, what it proves, and the cells that explain why.
 /// The Worm's hints are written from these.
 /// </summary>
 public sealed record LogicStep(
     Technique Technique,
-    Area? Area,
+    IReadOnlyList<Area> Areas,
     IReadOnlyList<Cell> Plants,
     IReadOnlyList<Cell> RuledOut,
     IReadOnlyList<Cell> Reasons);
