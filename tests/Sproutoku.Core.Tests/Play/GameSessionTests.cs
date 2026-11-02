@@ -1,5 +1,6 @@
 using Sproutoku.Core.Play;
 using Sproutoku.Core.Puzzles;
+using Sproutoku.Core.Tests.Puzzles;
 
 namespace Sproutoku.Core.Tests.Play;
 
@@ -442,6 +443,86 @@ public class GameSessionTests {
 
         Assert.False(session.GoToLevel(99));
         Assert.Equal(1, session.Level);
+    }
+    #endregion
+
+    #region Extra gardens
+    private static Puzzle ExtraGarden() => Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
+
+    [Fact]
+    public void AnExtraGarden_IsPlayed_WhileTheLevelWaits() {
+        var session = NewGame();
+        SingleTap(session, new Cell(0, 0));
+        var saveBefore = session.ToSave();
+        var extra = ExtraGarden();
+
+        session.PlayExtraGarden(extra);
+
+        Assert.True(session.IsExtraGarden);
+        Assert.Same(extra, session.Board.Puzzle);
+        Assert.Equal(1, session.Level);
+        Assert.Equal(saveBefore, session.ToSave()); // Saving keeps the level's board, not the extra garden.
+    }
+
+    [Fact]
+    public void SolvingAnExtraGarden_ReturnsToTheLevel_AsItWas() {
+        var session = NewGame();
+        SingleTap(session, new Cell(0, 0));
+        var levelBoard = session.Board;
+
+        session.PlayExtraGarden(ExtraGarden());
+        Solve(session);
+
+        Assert.True(session.HasNextLevel);
+        Assert.True(session.TryAdvance());
+        Assert.False(session.IsExtraGarden);
+        Assert.Equal(1, session.Level);
+        Assert.Same(levelBoard, session.Board);
+    }
+
+    [Fact]
+    public void ASecondExtraGarden_StillReturnsToTheLevel() {
+        var session = NewGame();
+        var levelBoard = session.Board;
+
+        session.PlayExtraGarden(ExtraGarden());
+        session.PlayExtraGarden(ExtraGarden());
+        Solve(session);
+        session.TryAdvance();
+
+        Assert.Same(levelBoard, session.Board);
+    }
+
+    [Fact]
+    public void AnExtraGarden_CanBeTriedAgain_AfterRunningOutOfSun() {
+        var session = NewGame();
+        var extra = ExtraGarden();
+        session.PlayExtraGarden(extra);
+
+        Lose(session);
+
+        Assert.True(session.TryRestart());
+        Assert.True(session.IsExtraGarden);
+        Assert.Same(extra, session.Board.Puzzle);
+        Assert.Equal(0, session.Board.Mistakes);
+    }
+
+    [Fact]
+    public void GoingToALevel_EndsTheExtraGarden() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+
+        Assert.True(session.GoToLevel(2));
+        Assert.False(session.IsExtraGarden);
+        Assert.Equal(2, session.Level);
+    }
+
+    [Fact]
+    public void OnTheLastLevel_AnExtraGarden_StillHasSomewhereToGo() {
+        var session = NewGame();
+        Assert.True(session.GoToLevel(StarterGardens.All.Count));
+        Assert.False(session.HasNextLevel); // Really the last level.
+        session.PlayExtraGarden(ExtraGarden());
     }
     #endregion
 }

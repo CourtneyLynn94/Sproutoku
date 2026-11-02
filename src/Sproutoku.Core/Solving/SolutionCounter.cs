@@ -34,7 +34,30 @@ public static class SolutionCounter {
     /// Counts the solutions for a square grid of bed ids (regions[row][column], ids 0 to N−1).
     /// The grid isn't validated; use this for bed layouts that aren't puzzles yet.
     /// </summary>
-    public static SolutionCount Count(int[][] regions) {
+    public static SolutionCount Count(int[][] regions) => Count(ToGrid(regions));
+
+    /// <summary>
+    /// A solution for the beds other than <paramref name="known"/>, with its plants in row order, or null if <paramref name="known"/> is the only one.
+    /// The generator uses it to see which cells a second answer needs.
+    /// </summary>
+    public static IReadOnlyList<Cell>? FindOther(int[][] regions, IReadOnlyList<Cell> known) {
+        ArgumentNullException.ThrowIfNull(known);
+
+        var regionOf = ToGrid(regions);
+        var knownCells = known.ToHashSet();
+
+        // If there are two or more answers, at least one of the first two found isn't the known one.
+        foreach (var columns in FirstTwoSolutions(regionOf)) {
+            var plants = columns.Select((column, row) => new Cell(row, column)).ToArray();
+            if (!plants.All(knownCells.Contains)) {
+                return plants;
+            }
+        }
+
+        return null;
+    }
+
+    private static int[,] ToGrid(int[][] regions) {
         ArgumentNullException.ThrowIfNull(regions);
 
         int size = regions.Length;
@@ -53,30 +76,34 @@ public static class SolutionCounter {
             }
         }
 
-        return Count(regionOf);
+        return regionOf;
     }
 
-    private static SolutionCount Count(int[,] regionOf) {
+    private static SolutionCount Count(int[,] regionOf) => FirstTwoSolutions(regionOf).Count switch {
+        0 => SolutionCount.None,
+        1 => SolutionCount.One,
+        _ => SolutionCount.TwoOrMore,
+    };
+
+    // Finds up to two solutions, each as the plant's column in every row. Two is all the game ever needs.
+    private static List<int[]> FirstTwoSolutions(int[,] regionOf) {
         int size = regionOf.GetLength(0);
         int allRegions = (1 << size) - 1;
-        int found = 0;
+        var found = new List<int[]>();
+        var columnInRow = new int[size];
 
         Search(row: 0, usedColumns: 0, usedRegions: 0, previousColumn: -2);
 
-        return found switch {
-            0 => SolutionCount.None,
-            1 => SolutionCount.One,
-            _ => SolutionCount.TwoOrMore,
-        };
+        return found;
 
         // usedColumns and usedRegions are bit sets: bit c is on once column c (or bed c) has a plant.
         void Search(int row, int usedColumns, int usedRegions, int previousColumn) {
             if (row == size) {
-                found++;
+                found.Add((int[])columnInRow.Clone());
                 return;
             }
 
-            for (int column = 0; column < size && found < 2; column++) {
+            for (int column = 0; column < size && found.Count < 2; column++) {
                 int region = regionOf[row, column];
 
                 if ((usedColumns & (1 << column)) != 0) continue;
@@ -89,6 +116,7 @@ public static class SolutionCounter {
                 int regions = usedRegions | (1 << region);
                 if (!EveryOpenBedCanStillGrow(row + 1, columns, regions)) continue;
 
+                columnInRow[row] = column;
                 Search(row + 1, columns, regions, column);
             }
         }

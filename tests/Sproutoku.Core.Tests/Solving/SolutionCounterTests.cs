@@ -66,4 +66,20 @@ public class SolutionCounterTests {
         var tooBig = Enumerable.Range(0, 11).Select(row => Enumerable.Repeat(row, 11).ToArray()).ToArray();
         Assert.Throws<ArgumentOutOfRangeException>(() => SolutionCounter.Count(tooBig));
     }
+
+    [Fact]
+    public void FindOther_ReturnsNull_WhenTheKnownAnswerIsTheOnlyOne() {
+        Assert.Null(SolutionCounter.FindOther(TestGardens.ValidRegions(), TestGardens.ValidSolution()));
+    }
+
+    [Fact]
+    public void FindOther_ReturnsTheSecondAnswer() {
+        var beds = TestGardens.Regions("1000", "1002", "1222", "1333");
+        Cell[] known = [new(0, 2), new(1, 0), new(2, 3), new(3, 1)];
+
+        var other = SolutionCounter.FindOther(beds, known);
+
+        Assert.NotNull(other);
+        Assert.Equal([new Cell(0, 1), new Cell(1, 3), new Cell(2, 0), new Cell(3, 2)], other);
+    }
 }
