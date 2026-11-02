@@ -2,6 +2,8 @@ using Microsoft.Maui.Controls.Shapes;
 using Sproutoku.App.Garden;
 using Sproutoku.App.Saving;
 using Sproutoku.Core.Play;
+using System.Diagnostics;
+using Sproutoku.Core.Generation;
 using Cell = Sproutoku.Core.Puzzles.Cell;
 
 #if ANDROID || IOS
@@ -72,7 +74,7 @@ public partial class MainPage : ContentPage {
         BuildSunMeter(_session.Board.StartingSuns);
         UpdateSunMeter(animate: false);
 
-        GardenSignLabel.Text = $"Garden {_session.Level}";
+        GardenSignLabel.Text = _session.IsExtraGarden ? "Test garden" : $"Garden {_session.Level}";
         InfoLabel.Text = info;
         UpdatePlantingList();
         GardenView.Invalidate();
@@ -133,16 +135,22 @@ public partial class MainPage : ContentPage {
 #endif
 
         if (board.IsSolved) {
+            bool extra = _session.IsExtraGarden;
             string stats =
-                $"Garden {_session.Level}\n" +
+                $"{(extra ? "Test garden" : $"Garden {_session.Level}")}\n" +
                 $"Suns left: {board.SunsLeft} of {board.StartingSuns}\n" +
                 $"Mistakes: {board.Mistakes}\n" +
                 $"Beds: {board.Size}";
 
             if (_session.HasNextLevel) {
-                await DisplayAlertAsync("Garden complete", stats, "Next garden");
+                await DisplayAlertAsync("Garden complete", stats, extra ? $"Back to Garden {_session.Level}" : "Next garden");
                 if (_session.TryAdvance()) {
-                    ShowGarden(StarterInfo());
+                    ShowGarden(extra ? "Back to your garden" : StarterInfo());
+
+                    // A level finished before the test garden started gets its end screen again.
+                    if (_session.Board.IsFinished) {
+                        ShowEndOfGarden();
+                    }
                 }
             } else {
                 await DisplayAlertAsync(
@@ -229,6 +237,7 @@ public partial class MainPage : ContentPage {
     private async void OnJournalClicked(object? sender, EventArgs e) {
         List<string> options = ["How to play"];
 #if DEBUG
+        options.Add("Generated garden (dev)");
         options.Add("Skip to next garden (dev)");
         options.Add(_garden.ShowSolution ? "Hide solution (dev)" : "Show solution (dev)");
 #endif
@@ -243,6 +252,9 @@ public partial class MainPage : ContentPage {
                 await ConfirmResetAsync();
                 break;
 #if DEBUG
+            case "Generated garden (dev)":
+                await PlayGeneratedGardenAsync();
+                break;
             case "Skip to next garden (dev)":
                 if (_session.GoToLevel(_session.Level + 1)) {
                     ShowGarden(StarterInfo());
@@ -256,6 +268,34 @@ public partial class MainPage : ContentPage {
 #endif
         }
     }
+
+#if DEBUG
+    // Dev: plays a newly generated garden with a random seed. The level's progress waits untouched.
+    private async Task PlayGeneratedGardenAsync() {
+        string[] sizes = ["5 × 5", "6 × 6", "7 × 7", "8 × 8", "9 × 9", "10 × 10"];
+        string choice = await DisplayActionSheetAsync("Garden size", "Cancel", null, sizes);
+
+        int index = Array.IndexOf(sizes, choice);
+        if (index < 0) return;
+
+        int size = index + 5;
+        ulong seed = (ulong)Random.Shared.Next();
+        InfoLabel.Text = $"Growing a {size} × {size} garden…";
+
+        // Off the main thread, so the screen doesn't freeze while it works.
+        var timer = Stopwatch.StartNew();
+        var (puzzle, attempts) = await Task.Run(() => {
+            var garden = GardenGenerator.Generate(size, new SeededRandom(seed), out int tries);
+            return (garden, tries);
+        });
+        timer.Stop();
+
+        Debug.WriteLine($"Generated {size}×{size}: seed {seed}, {attempts} attempts, {timer.ElapsedMilliseconds} ms");
+
+        _session.PlayExtraGarden(puzzle);
+        ShowGarden($"Seed {seed} · {attempts} {(attempts == 1 ? "try" : "tries")} · {timer.ElapsedMilliseconds} ms");
+    }
+#endif
 
     // Finger or mouse down: remember where the press started. Nothing changes until it lifts or moves.
     private void OnPress(object? sender, TouchEventArgs e) {

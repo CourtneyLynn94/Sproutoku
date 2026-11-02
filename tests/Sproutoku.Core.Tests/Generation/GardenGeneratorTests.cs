@@ -51,4 +51,13 @@ public class GardenGeneratorTests {
             Assert.Equal(puzzle.Solution.ToHashSet(), result.Plants.ToHashSet());
         }
     }
+
+    [Fact]
+    public void Attempts_AreCounted() {
+        GardenGenerator.Generate(5, new SeededRandom(1), out int fiveAttempts);
+        GardenGenerator.Generate(6, new SeededRandom(1), out int sixAttempts);
+
+        Assert.Equal(1, fiveAttempts);
+        Assert.Equal(2, sixAttempts); // The first attempt gets stuck reshaping.
+    }
 }
