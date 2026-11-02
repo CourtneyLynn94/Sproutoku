@@ -7,6 +7,10 @@ namespace Sproutoku.Core.Tests.Generation;
 public class GardenGeneratorTests {
     public static TheoryData<int> AllSizes => [4, 5, 6, 7, 8, 9, 10];
 
+    private static string[] Beds(Puzzle puzzle) => Enumerable.Range(0, puzzle.Size)
+        .Select(row => string.Concat(Enumerable.Range(0, puzzle.Size).Select(column => puzzle.RegionAt(new Cell(row, column)))))
+        .ToArray();
+
     [Theory]
     [MemberData(nameof(AllSizes))]
     public void EveryGarden_HasExactlyOneSolution(int size) {
@@ -45,7 +49,15 @@ public class GardenGeneratorTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => GardenGenerator.Generate(size, 1));
     }
 
-    private static string[] Beds(Puzzle puzzle) => Enumerable.Range(0, puzzle.Size)
-        .Select(row => string.Concat(Enumerable.Range(0, puzzle.Size).Select(column => puzzle.RegionAt(new Cell(row, column)))))
-        .ToArray();
+    [Theory]
+    [MemberData(nameof(AllSizes))]
+    public void EveryGarden_SolvesWithLogicAlone(int size) {
+        for (ulong seed = 0; seed < 100; seed++) {
+            var puzzle = GardenGenerator.Generate(size, seed);
+            var result = LogicSolver.Solve(GardenFacts.Blank(puzzle));
+
+            Assert.True(result.IsSolved, $"Seed {seed} needs a guess.");
+            Assert.Equal(puzzle.Solution.ToHashSet(), result.Plants.ToHashSet());
+        }
+    }
 }
