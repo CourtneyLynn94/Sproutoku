@@ -18,6 +18,9 @@ public sealed class GameSession {
     private enum DragMode { Undecided, Mark, Clear }
     private DragMode? _dragMode;
 
+    // The level's board, set aside while an extra garden is played. Null when playing the level itself.
+    private Board? _levelBoard;
+
     private GameSession(int level, Board board, DoubleTapDetector doubleTap) {
         Level = level;
         Board = board;
@@ -35,9 +38,14 @@ public sealed class GameSession {
     public Board Board { get; private set; }
 
     /// <summary>
-    /// True if there is a garden after this one.
+    /// True while playing a garden outside the levels. Finishing it returns to the level.
     /// </summary>
-    public bool HasNextLevel => GardenLevels.ForLevel(Level + 1) is not null;
+    public bool IsExtraGarden => _levelBoard is not null;
+
+    /// <summary>
+    /// True if there is a garden after this one. After an extra garden, that's the level it set aside.
+    /// </summary>
+    public bool HasNextLevel => IsExtraGarden || GardenLevels.ForLevel(Level + 1) is not null;
 
     /// <summary>
     /// True when this garden may start over:
@@ -54,17 +62,26 @@ public sealed class GameSession {
     }
 
     /// <summary>
-    /// What to store so this game can be resumed later.
+    /// What to store so this game can be resumed later. An extra garden is never saved; the level's board is.
     /// </summary>
-    public GameSave ToSave() => GameSave.From(Level, Board);
+    public GameSave ToSave() => GameSave.From(Level, _levelBoard ?? Board);
 
     /// <summary>
-    /// Moves on to the next garden.
-    /// Only works once this one is solved and another exists, so a garden can never be advanced past twice.
-    /// Returns false when it can't.
+    /// Moves on once this garden is solved: back to the level after an extra garden, otherwise to the next level.
+    /// A garden can never be advanced past twice. Returns false when it can't move on.
     /// </summary>
     public bool TryAdvance() {
-        if (!Board.IsSolved || GardenLevels.ForLevel(Level + 1) is not { } next) {
+        if (!Board.IsSolved) {
+            return false;
+        }
+
+        if (_levelBoard is { } levelBoard) {
+            _levelBoard = null;
+            SetGarden(Level, levelBoard);
+            return true;
+        }
+
+        if (GardenLevels.ForLevel(Level + 1) is not { } next) {
             return false;
         }
 
@@ -94,8 +111,20 @@ public sealed class GameSession {
             return false;
         }
 
+        _levelBoard = null;
         SetGarden(level, Board.Start(puzzle));
         return true;
+    }
+
+    /// <summary>
+    /// Plays a garden outside the levels, setting the level's board aside until this one is solved.
+    /// Playing another extra garden on top keeps the same level board waiting.
+    /// </summary>
+    public void PlayExtraGarden(Puzzle puzzle) {
+        ArgumentNullException.ThrowIfNull(puzzle);
+
+        _levelBoard ??= Board;
+        SetGarden(Level, Board.Start(puzzle));
     }
 
     // A new garden forgets the last tap, so a tap on the old garden can't pair up with one on the new one.
