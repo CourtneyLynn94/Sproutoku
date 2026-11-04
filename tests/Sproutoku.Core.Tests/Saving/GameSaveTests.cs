@@ -41,9 +41,24 @@ public class GameSaveTests {
     [InlineData("")]
     [InlineData("not json")]
     [InlineData("""{"Version":99,"Level":1,"StartingSuns":3,"SunsLeft":3,"Cells":""}""")]
-    [InlineData("""{"Version":1,"Level":2,"StartingSuns":3,"SunsLeft":3,"Cells":"........................."}""")]
     public void FromJson_MissingBrokenOrOtherVersion_IsNull(string? json) {
         Assert.Null(GameSave.FromJson(json));
+    }
+
+    [Fact]
+    public void FromJson_Version1Save_KeepsItsLevel_ButDropsItsBoard() {
+        string json = $$"""{"Version":1,"Level":3,"StartingSuns":3,"SunsLeft":2,"Cells":"{{new string('x', 25)}}"}""";
+
+        var save = GameSave.FromJson(json);
+
+        Assert.NotNull(save);
+        Assert.Equal(3, save.Level);
+        Assert.Equal("", save.Cells);
+
+        var (garden, board) = GameSave.Resume(save);
+        Assert.Equal(3, garden.Level);
+        Assert.Equal(board.Size * board.Size, board.CountOf(CellState.Empty));
+        Assert.Equal(garden.Recipe.Suns, board.StartingSuns);
     }
 
     [Fact]

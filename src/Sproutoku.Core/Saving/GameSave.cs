@@ -9,8 +9,8 @@ namespace Sproutoku.Core.Saving;
 /// </summary>
 public sealed record GameSave(int Version, int Level, int StartingSuns, int SunsLeft, string Cells) {
     /// <summary>
-    /// Bump this when the save format or what a level number means changes; saves with another version are ignored.
-    /// 2: levels are generated from the level plan (#43), so version 1 saves belong to different gardens.
+    /// Bump this when the save format or what a level number means changes.
+    /// 2: levels are generated from the level plan (#43). Version 1 saves keep their level but not their board; other versions are ignored.
     /// </summary>
     public const int CurrentVersion = 2;
 
@@ -22,7 +22,8 @@ public sealed record GameSave(int Version, int Level, int StartingSuns, int Suns
     public string ToJson() => JsonSerializer.Serialize(this);
 
     /// <summary>
-    /// Reads a save, or returns null if there is none, it can't be read, or it's another version.
+    /// Reads a save, or returns null if there is none, it can't be read, or it's a version this game doesn't know.
+    /// A version 1 save keeps its level but loses its board: before #43 a level number meant a different garden, so Resume starts that level fresh.
     /// </summary>
     public static GameSave? FromJson(string? json) {
         if (string.IsNullOrWhiteSpace(json)) {
@@ -31,7 +32,11 @@ public sealed record GameSave(int Version, int Level, int StartingSuns, int Suns
 
         try {
             var save = JsonSerializer.Deserialize<GameSave>(json);
-            return save?.Version == CurrentVersion ? save : null;
+            return save?.Version switch {
+                CurrentVersion => save,
+                1 => save with { Version = CurrentVersion, Cells = "" },
+                _ => null,
+            };
         }
         catch (JsonException) {
             return null;
