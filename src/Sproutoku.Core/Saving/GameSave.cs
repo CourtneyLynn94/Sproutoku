@@ -9,9 +9,10 @@ namespace Sproutoku.Core.Saving;
 /// </summary>
 public sealed record GameSave(int Version, int Level, int StartingSuns, int SunsLeft, string Cells) {
     /// <summary>
-    /// Bump this when the save format changes; saves with another version are ignored.
+    /// Bump this when the save format or what a level number means changes; saves with another version are ignored.
+    /// 2: levels are generated from the level plan (#43), so version 1 saves belong to different gardens.
     /// </summary>
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public static GameSave From(int level, Board board) {
         ArgumentNullException.ThrowIfNull(board);

@@ -35,6 +35,7 @@ public static class GardenLevels {
 
     /// <summary>
     /// A level's garden: the recipe first, then the garden, both from the same random sequence.
+    /// Never fails: if the seed and its backups can't reach the recipe's grade, the level takes a garden of any grade.
     /// </summary>
     public static LevelGarden ForLevel(int level) {
         ulong seed = SeedFor(level);
@@ -49,6 +50,10 @@ public static class GardenLevels {
             }
         }
 
-        throw new InvalidOperationException($"Level {level} couldn't grow a garden from seed {seed} or its {MaxBackups} backups.");
+        // Last resort, never expected in practice: the recipe's size and suns, but any grade.
+        // A one-answer garden turns up within a few attempts at every size, so the level always exists and the player keeps their progress.
+        var lastRandom = new SeededRandom(seed);
+        var lastRecipe = LevelPlan.For(level, lastRandom);
+        return new LevelGarden(level, seed, lastRecipe, GardenGenerator.Generate(lastRecipe.Size, lastRandom));
     }
 }

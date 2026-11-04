@@ -41,6 +41,7 @@ public class GameSaveTests {
     [InlineData("")]
     [InlineData("not json")]
     [InlineData("""{"Version":99,"Level":1,"StartingSuns":3,"SunsLeft":3,"Cells":""}""")]
+    [InlineData("""{"Version":1,"Level":2,"StartingSuns":3,"SunsLeft":3,"Cells":"........................."}""")]
     public void FromJson_MissingBrokenOrOtherVersion_IsNull(string? json) {
         Assert.Null(GameSave.FromJson(json));
     }
