@@ -4,6 +4,7 @@ using Sproutoku.App.Saving;
 using Sproutoku.Core.Play;
 using System.Diagnostics;
 using Sproutoku.Core.Generation;
+using Sproutoku.Core.Solving;
 using Cell = Sproutoku.Core.Puzzles.Cell;
 
 #if ANDROID || IOS
@@ -61,7 +62,7 @@ public partial class MainPage : ContentPage {
         // Pick up where the player left off, or start at Garden 1.
         var save = _gameStorage.Load();
         _session = GameSession.Resume(save);
-        ShowGarden(save is null ? StarterInfo() : "Welcome back");
+        ShowGarden(save is null ? GardenInfo() : "Welcome back");
     }
 
     // Draws the session's garden from scratch (new garden, Try again, reset) and saves.
@@ -82,22 +83,25 @@ public partial class MainPage : ContentPage {
         SaveProgress();
     }
 
-    private string StarterInfo() => $"Starter garden, {_session.Board.Size} × {_session.Board.Size}";
+    // The info line for a level: size, plus Hard, Super hard and One sun until the real tags exist. Debug adds the grade and seed.
+    private string GardenInfo() {
+        var recipe = _session.LevelGarden.Recipe;
+        List<string> parts = [$"{recipe.Size} × {recipe.Size}"];
+
+        if (recipe.Tier == GardenTier.Hard) parts.Add("Hard");
+        if (recipe.Tier == GardenTier.SuperHard) parts.Add("Super hard");
+        if (recipe.IsOneSun) parts.Add("One sun");
+#if DEBUG
+        parts.Add(_session.LevelGarden.Garden.Grade.ToString());
+        parts.Add($"seed {_session.Seed}");
+#endif
+        return string.Join(" · ", parts);
+    }
 
     private void SaveProgress() => _gameStorage.Save(_session.ToSave());
 
     private void UpdatePlantingList() {
         PlantingCountLabel.Text = $"{_session.Board.CountOf(CellState.Planted)} of {_session.Board.Size} grown";
-    }
-
-    // Rough feedback.
-    private void ShowTapOutcome(TapOutcome outcome) {
-        InfoLabel.Text = outcome switch {
-            TapOutcome.Grew when _session.Board.IsSolved => "Garden complete",
-            TapOutcome.Grew => "It grew",
-            TapOutcome.Wilted => "Wrong spot: it wilted",
-            _ => InfoLabel.Text,
-        };
     }
 
     // A complete progress reset. Asks first, because it can't be undone.
@@ -112,7 +116,7 @@ public partial class MainPage : ContentPage {
 
         _gameStorage.ResetProgress();
         _session.GoToLevel(1);
-        ShowGarden(StarterInfo());
+        ShowGarden(GardenInfo());
     }
 
     // Rough end-of-garden screens until the real sheets are designed.
@@ -142,23 +146,13 @@ public partial class MainPage : ContentPage {
                 $"Mistakes: {board.Mistakes}\n" +
                 $"Beds: {board.Size}";
 
-            if (_session.HasNextLevel) {
-                await DisplayAlertAsync("Garden complete", stats, extra ? $"Back to Garden {_session.Level}" : "Next garden");
-                if (_session.TryAdvance()) {
-                    ShowGarden(extra ? "Back to your garden" : StarterInfo());
+            await DisplayAlertAsync("Garden complete", stats, extra ? $"Back to Garden {_session.Level}" : "Next garden");
+            if (_session.TryAdvance()) {
+                ShowGarden(extra ? "Back to your garden" : GardenInfo());
 
-                    // A level finished before the test garden started gets its end screen again.
-                    if (_session.Board.IsFinished) {
-                        ShowEndOfGarden();
-                    }
-                }
-            } else {
-                await DisplayAlertAsync(
-                    "Garden complete",
-                    stats + "\n\nYou've grown every garden for now. More are coming soon.",
-                    "Play it again");
-                if (_session.TryRestart()) {
-                    ShowGarden("A fresh start");
+                // A level finished before the test garden started gets its end screen again.
+                if (_session.Board.IsFinished) {
+                    ShowEndOfGarden();
                 }
             }
 
@@ -237,7 +231,7 @@ public partial class MainPage : ContentPage {
     private async void OnJournalClicked(object? sender, EventArgs e) {
         List<string> options = ["How to play"];
 #if DEBUG
-        options.Add("Generated garden (dev)");
+        options.Add("Go to level (dev)");
         options.Add("Skip to next garden (dev)");
         options.Add(_garden.ShowSolution ? "Hide solution (dev)" : "Show solution (dev)");
 #endif
@@ -252,12 +246,12 @@ public partial class MainPage : ContentPage {
                 await ConfirmResetAsync();
                 break;
 #if DEBUG
-            case "Generated garden (dev)":
-                await PlayGeneratedGardenAsync();
+            case "Go to level (dev)":
+                await GoToLevelAsync();
                 break;
             case "Skip to next garden (dev)":
                 if (_session.GoToLevel(_session.Level + 1)) {
-                    ShowGarden(StarterInfo());
+                    ShowGarden(GardenInfo());
                 }
                 break;
             case "Show solution (dev)":
@@ -270,35 +264,39 @@ public partial class MainPage : ContentPage {
     }
 
 #if DEBUG
-    // Dev: plays a newly generated garden with a random seed. The level's progress waits untouched.
-    private async Task PlayGeneratedGardenAsync() {
-        string[] sizes = ["5 × 5", "6 × 6", "7 × 7", "8 × 8", "9 × 9", "10 × 10"];
-        string choice = await DisplayActionSheetAsync("Garden size", "Cancel", null, sizes);
+    // Dev: jumps straight to any level by number. The garden is grown off the main thread, since big or Super hard ones can take a moment.
+    private async Task GoToLevelAsync() {
+        string? answer = await DisplayPromptAsync(
+            "Go to level",
+            $"You're on Garden {_session.Level}. Which level?",
+            accept: "Go",
+            cancel: "Cancel",
+            placeholder: "Level number",
+            maxLength: 7,
+            keyboard: Keyboard.Numeric);
 
-        int index = Array.IndexOf(sizes, choice);
-        if (index < 0) return;
+        if (answer is null) return; // Cancel
 
-        int size = index + 5;
-        ulong seed = (ulong)Random.Shared.Next();
-        InfoLabel.Text = $"Growing a {size} × {size} garden…";
+        if (!int.TryParse(answer, out int level) || level < 1) {
+            InfoLabel.Text = $"\"{answer}\" isn't a level number.";
+            return;
+        }
 
-        // Off the main thread, so the screen doesn't freeze while it works (the real version is #42).
+        InfoLabel.Text = $"Growing Garden {level}…";
+
         try {
             var timer = Stopwatch.StartNew();
-            var (puzzle, attempts) = await Task.Run(() => {
-                var garden = GardenGenerator.Generate(size, new SeededRandom(seed), out int tries);
-                return (garden, tries);
-            });
+            var levelGarden = await Task.Run(() => GardenLevels.ForLevel(level));
             timer.Stop();
 
-            Debug.WriteLine($"Generated {size}×{size}: seed {seed}, {attempts} attempts, {timer.ElapsedMilliseconds} ms");
+            Debug.WriteLine($"Garden {level}: {levelGarden.Recipe}, grown in {timer.ElapsedMilliseconds} ms");
 
-            _session.PlayExtraGarden(puzzle);
-            ShowGarden($"Seed {seed} · {attempts} {(attempts == 1 ? "try" : "tries")} · {timer.ElapsedMilliseconds} ms");
+            _session.GoToLevel(levelGarden);
+            ShowGarden($"{GardenInfo()} · {timer.ElapsedMilliseconds} ms");
         }
         catch (InvalidOperationException ex) {
-            Debug.WriteLine($"Couldn't generate a {size}×{size} garden from seed {seed}: {ex.Message}");
-            InfoLabel.Text = $"Couldn't grow a garden from seed {seed}. Try again.";
+            Debug.WriteLine($"Couldn't grow Garden {level}: {ex.Message}");
+            InfoLabel.Text = $"Couldn't grow Garden {level}.";
         }
     }
 #endif
@@ -407,7 +405,6 @@ public partial class MainPage : ContentPage {
 #endif
 
         _garden.Board = _session.Board;
-        ShowTapOutcome(result.Outcome);
         UpdatePlantingList();
         UpdateSunMeter(animate: true);
         GardenView.Invalidate();

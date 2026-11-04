@@ -118,30 +118,26 @@ public class LogicSolverTests {
     }
 
     [Fact]
-    public void TwoBedsSqueezedIntoTwoSeparateRows_RuleOutOtherBedsInThoseRows() {
-        // Mid-solve, beds 0 and 2 can only grow in rows 2 and 4 (not next to each other), and each needs both rows.
-        // So rows 2 and 4 hold beds 0 and 2's plants, and every other bed's cells in those rows are ruled out.
+    public void TwoBedsSqueezedIntoTwoRows_RuleOutOtherBedsInThoseRows() {
+        // A generated garden that needs this deduction.
+        // By then beds 1 and 2 can only grow in rows 1 and 2, so those rows hold their plants, and bed 3's cell in row 2 is ruled out.
         var regions = TestGardens.Regions(
-            "44411",
-            "44411",
-            "00021",
-            "03321",
-            "00322");
-        var facts = GardenFacts.Blank(regions)
-            .WithNoPlant(new Cell(0, 4))
-            .WithNoPlant(new Cell(1, 1))
-            .WithNoPlant(new Cell(3, 0))
-            .WithNoPlant(new Cell(3, 3))
-            .WithNoPlant(new Cell(4, 3));
+            "11200",
+            "11203",
+            "11223",
+            "44443",
+            "44433");
 
-        var step = LogicSolver.NextStep(facts);
+        var result = LogicSolver.Solve(GardenFacts.Blank(regions));
+        var step = result.Steps.First(step => step.Areas.Count == 4);
 
-        Assert.NotNull(step);
+        Assert.True(result.IsSolved);
         Assert.Equal(Technique.BedsFillLines, step.Technique);
         Assert.Equal(
-            [new Area(AreaKind.Bed, 0), new Area(AreaKind.Bed, 2), new Area(AreaKind.Row, 2), new Area(AreaKind.Row, 4)],
-            step.Areas);
-        Assert.Equal([new Cell(2, 4), new Cell(4, 2)], step.RuledOut);
+            [new Area(AreaKind.Bed, 1), new Area(AreaKind.Bed, 2), new Area(AreaKind.Row, 1), new Area(AreaKind.Row, 2)],
+            step.Areas
+        );
+        Assert.Equal([new Cell(2, 4)], step.RuledOut);
     }
     #endregion
 

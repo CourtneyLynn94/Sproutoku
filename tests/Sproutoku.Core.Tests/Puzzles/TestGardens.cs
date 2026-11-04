@@ -32,4 +32,11 @@ internal static class TestGardens {
         new(3, 1), // region 3
         new(4, 3), // region 4
     ];
+
+    /// <summary>
+    /// A puzzle's beds as one digit string per row, for comparing gardens in tests.
+    /// </summary>
+    public static string[] BedRows(Puzzle puzzle) => Enumerable.Range(0, puzzle.Size)
+        .Select(row => string.Concat(Enumerable.Range(0, puzzle.Size).Select(column => puzzle.RegionAt(new Cell(row, column)))))
+        .ToArray();
 }

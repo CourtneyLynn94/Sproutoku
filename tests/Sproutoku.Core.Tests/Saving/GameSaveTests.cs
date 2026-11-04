@@ -1,12 +1,13 @@
 using Sproutoku.Core.Play;
 using Sproutoku.Core.Puzzles;
 using Sproutoku.Core.Saving;
+using Sproutoku.Core.Tests.Puzzles;
 
 namespace Sproutoku.Core.Tests.Saving;
 
 public class GameSaveTests {
-    private static readonly Puzzle Level1 = GardenLevels.ForLevel(1)!;
-    private static readonly Puzzle Level2 = GardenLevels.ForLevel(2)!;
+    private static readonly Puzzle Level1 = GardenLevels.ForLevel(1).Puzzle;
+    private static readonly Puzzle Level2 = GardenLevels.ForLevel(2).Puzzle;
 
     // The first cell (reading row by row) that isn't part of the solution.
     private static Cell WrongCell(Puzzle puzzle) {
@@ -21,6 +22,9 @@ public class GameSaveTests {
 
         throw new InvalidOperationException("Every cell is a solution cell.");
     }
+
+    // Cells for a garden one size bigger than level 2, so they can't fit it (as if an update had changed the garden).
+    private static string CellsThatDontFitLevel2() => new('.', (Level2.Size + 1) * (Level2.Size + 1));
 
     [Fact]
     public void Json_RoundTrip_KeepsEverything() {
@@ -42,11 +46,27 @@ public class GameSaveTests {
     }
 
     [Fact]
-    public void Resume_WithNoSave_StartsAtLevel1() {
-        var (level, board) = GameSave.Resume(null);
+    public void FromJson_Version1Save_KeepsItsLevel_ButDropsItsBoard() {
+        string json = $$"""{"Version":1,"Level":3,"StartingSuns":3,"SunsLeft":2,"Cells":"{{new string('x', 25)}}"}""";
 
-        Assert.Equal(1, level);
-        Assert.Same(Level1, board.Puzzle);
+        var save = GameSave.FromJson(json);
+
+        Assert.NotNull(save);
+        Assert.Equal(3, save.Level);
+        Assert.Equal("", save.Cells);
+
+        var (garden, board) = GameSave.Resume(save);
+        Assert.Equal(3, garden.Level);
+        Assert.Equal(board.Size * board.Size, board.CountOf(CellState.Empty));
+        Assert.Equal(garden.Recipe.Suns, board.StartingSuns);
+    }
+
+    [Fact]
+    public void Resume_WithNoSave_StartsAtLevel1() {
+        var (garden, board) = GameSave.Resume(null);
+
+        Assert.Equal(1, garden.Level);
+        Assert.Equal(TestGardens.BedRows(Level1), TestGardens.BedRows(board.Puzzle));
         Assert.Equal(Level1.Size * Level1.Size, board.CountOf(CellState.Empty));
     }
 
@@ -54,9 +74,9 @@ public class GameSaveTests {
     public void Resume_MidGarden_PicksUpExactlyWhereItWasLeft() {
         var board = Board.Start(Level2).ToggleMark(WrongCell(Level2)).TryPlant(Level2.Solution[0]).Board;
 
-        var (level, resumed) = GameSave.Resume(GameSave.From(2, board));
+        var (garden, resumed) = GameSave.Resume(GameSave.From(2, board));
 
-        Assert.Equal(2, level);
+        Assert.Equal(2, garden.Level);
         Assert.Equal(board.CellsToText(), resumed.CellsToText());
     }
 
@@ -64,79 +84,54 @@ public class GameSaveTests {
     public void Resume_OutOfSun_StartsTheSameGardenFresh() {
         var lost = Board.Start(Level2, suns: 1).TryPlant(WrongCell(Level2)).Board;
 
-        var (level, resumed) = GameSave.Resume(GameSave.From(2, lost));
+        var (garden, resumed) = GameSave.Resume(GameSave.From(2, lost));
 
-        Assert.Equal(2, level);
+        Assert.Equal(2, garden.Level);
         Assert.Equal(1, resumed.SunsLeft);
         Assert.Equal(0, resumed.Mistakes);
     }
 
     [Fact]
-    public void Resume_Solved_MovesOnToTheNextGarden() {
+    public void Resume_Solved_MovesOnToTheNextLevel() {
         var board = Board.Start(Level1);
         foreach (var cell in Level1.Solution) {
             board = board.TryPlant(cell).Board;
         }
 
-        var (level, resumed) = GameSave.Resume(GameSave.From(1, board));
+        var (garden, resumed) = GameSave.Resume(GameSave.From(1, board));
 
-        Assert.Equal(2, level);
-        Assert.Same(Level2, resumed.Puzzle);
-    }
-
-    [Fact]
-    public void Resume_LevelThatDoesntExist_StartsAtLevel1() {
-        var save = new GameSave(GameSave.CurrentVersion, 99, 3, 3, "");
-
-        Assert.Equal(1, GameSave.Resume(save).Level);
-    }
-
-    [Fact]
-    public void Resume_SaveThatDoesntFitItsGarden_KeepsTheLevel_AndStartsItFresh() {
-        // Level 2 is 6×6, so a 5×5 board's cells don't fit it (as if an update had changed the garden).
-        var save = new GameSave(GameSave.CurrentVersion, 2, 3, 3, new string('.', 25));
-
-        var (level, board) = GameSave.Resume(save);
-
-        Assert.Equal(2, level);
-        Assert.Same(Level2, board.Puzzle);
-        Assert.Equal(Level2.Size * Level2.Size, board.CountOf(CellState.Empty));
-    }
-
-    [Fact]
-    public void Resume_SaveThatDoesntFitItsGarden_KeepsItsStartingSuns() {
-        var save = new GameSave(GameSave.CurrentVersion, 2, 1, 1, new string('.', 25));
-
-        var (_, board) = GameSave.Resume(save);
-
-        Assert.Equal(1, board.StartingSuns);
-        Assert.Equal(1, board.SunsLeft);
-    }
-
-    [Fact]
-    public void Resume_LastGardenSolved_StartsItAgain() {
-        int lastLevel = StarterGardens.All.Count;
-        var puzzle = GardenLevels.ForLevel(lastLevel)!;
-        var board = Board.Start(puzzle);
-        foreach (var cell in puzzle.Solution) {
-            board = board.TryPlant(cell).Board;
-        }
-
-        var (level, resumed) = GameSave.Resume(GameSave.From(lastLevel, board));
-
-        Assert.Equal(lastLevel, level);
+        Assert.Equal(2, garden.Level);
+        Assert.Equal(TestGardens.BedRows(Level2), TestGardens.BedRows(resumed.Puzzle));
         Assert.False(resumed.IsSolved);
-        Assert.Equal(puzzle.Size * puzzle.Size, resumed.CountOf(CellState.Empty));
     }
 
     [Fact]
-    public void Resume_SaveWithTooManySuns_StartsItsGardenFresh_WithDefaultSuns() {
-        // Level 2 is 6×6. A corrupted save claiming a million suns must not build a million sun slots.
-        var save = new GameSave(GameSave.CurrentVersion, 2, 1_000_000, 1_000_000, new string('.', 36));
+    public void Resume_LevelBelowOne_StartsAtLevel1() {
+        var save = new GameSave(GameSave.CurrentVersion, 0, 3, 3, "");
 
-        var (level, board) = GameSave.Resume(save);
+        Assert.Equal(1, GameSave.Resume(save).Garden.Level);
+    }
 
-        Assert.Equal(2, level);
-        Assert.Equal(Board.DefaultSuns, board.StartingSuns);
+    [Fact]
+    public void Resume_SaveThatDoesntFitItsGarden_KeepsTheLevel_AndStartsItFresh_WithItsOwnSuns() {
+        var save = new GameSave(GameSave.CurrentVersion, 2, 1, 1, CellsThatDontFitLevel2());
+
+        var (garden, board) = GameSave.Resume(save);
+
+        Assert.Equal(2, garden.Level);
+        Assert.Equal(TestGardens.BedRows(Level2), TestGardens.BedRows(board.Puzzle));
+        Assert.Equal(Level2.Size * Level2.Size, board.CountOf(CellState.Empty));
+        Assert.Equal(garden.Recipe.Suns, board.StartingSuns);
+    }
+
+    [Fact]
+    public void Resume_SaveWithTooManySuns_StartsItsGardenFresh() {
+        // A corrupted save claiming a million suns must not build a million sun slots.
+        var save = new GameSave(GameSave.CurrentVersion, 2, 1_000_000, 1_000_000, new string('.', Level2.Size * Level2.Size));
+
+        var (garden, board) = GameSave.Resume(save);
+
+        Assert.Equal(2, garden.Level);
+        Assert.Equal(garden.Recipe.Suns, board.StartingSuns);
     }
 }
