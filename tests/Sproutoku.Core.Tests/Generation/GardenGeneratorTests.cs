@@ -13,8 +13,8 @@ public class GardenGeneratorTests {
 
     [Fact]
     public void TheSameSeed_GivesTheSameGarden() {
-        var first = GardenGenerator.Generate(8, 123);
-        var second = GardenGenerator.Generate(8, 123);
+        var first = GardenGenerator.Generate(8, 123).Puzzle;
+        var second = GardenGenerator.Generate(8, 123).Puzzle;
 
         Assert.Equal(Beds(first), Beds(second));
         Assert.Equal(first.Solution, second.Solution);
@@ -26,9 +26,9 @@ public class GardenGeneratorTests {
         // 4×4: one reshaping move.
         // 5×5: one answer straight away (the same beds as BedGrowerTests).
         // 6×6: the first attempt gets stuck and the second one succeeds.
-        Assert.Equal(["1000", "1000", "1222", "1333"], Beds(GardenGenerator.Generate(4, 1)));
-        Assert.Equal(["20011", "22001", "22111", "43333", "43333"], Beds(GardenGenerator.Generate(5, 1)));
-        Assert.Equal(["022211", "222211", "222211", "222213", "444455", "444555"], Beds(GardenGenerator.Generate(6, 1)));
+        Assert.Equal(["1000", "1000", "1222", "1333"], Beds(GardenGenerator.Generate(4, 1).Puzzle));
+        Assert.Equal(["20011", "22001", "22111", "43333", "43333"], Beds(GardenGenerator.Generate(5, 1).Puzzle));
+        Assert.Equal(["022211", "222211", "222211", "222213", "444455", "444555"], Beds(GardenGenerator.Generate(6, 1).Puzzle));
     }
 
     [Theory]
@@ -42,7 +42,7 @@ public class GardenGeneratorTests {
     [MemberData(nameof(AllSizes))]
     public void EveryGarden_HasOneAnswer_ThatLogicAloneReaches(int size) {
         for (ulong seed = 0; seed < 100; seed++) {
-            var puzzle = GardenGenerator.Generate(size, seed);
+            var puzzle = GardenGenerator.Generate(size, seed).Puzzle;
             var result = LogicSolver.Solve(GardenFacts.Blank(puzzle));
 
             Assert.Equal(size, puzzle.Size);
@@ -54,10 +54,31 @@ public class GardenGeneratorTests {
 
     [Fact]
     public void Attempts_AreCounted() {
-        GardenGenerator.Generate(5, new SeededRandom(1), out int fiveAttempts);
-        GardenGenerator.Generate(6, new SeededRandom(1), out int sixAttempts);
+        Assert.Equal(1, GardenGenerator.Generate(5, 1).Attempts);
+        Assert.Equal(2, GardenGenerator.Generate(6, 1).Attempts); // The first attempt gets stuck reshaping.
+    }
 
-        Assert.Equal(1, fiveAttempts);
-        Assert.Equal(2, sixAttempts); // The first attempt gets stuck reshaping.
+    [Theory]
+    [InlineData(DifficultyGrade.Gentle)]
+    [InlineData(DifficultyGrade.Easy)]
+    [InlineData(DifficultyGrade.Medium)]
+    [InlineData(DifficultyGrade.Tricky)]
+    public void AskingForAGrade_GivesThatGrade(DifficultyGrade grade) {
+        for (ulong seed = 0; seed < 20; seed++) {
+            var garden = GardenGenerator.Generate(7, seed, easiest: grade, hardest: grade);
+
+            Assert.Equal(grade, garden.Grade);
+            Assert.Equal(grade, DifficultyGrader.Grade(LogicSolver.Solve(GardenFacts.Blank(garden.Puzzle))));
+        }
+    }
+
+    [Fact]
+    public void AnExpertGarden_CanBeAskedForAt10x10() {
+        Assert.Equal(DifficultyGrade.Expert, GardenGenerator.Generate(10, 1, easiest: DifficultyGrade.Expert).Grade);
+    }
+
+    [Fact]
+    public void AnEmptyGradeRange_Throws() {
+        Assert.Throws<ArgumentException>(() => GardenGenerator.Generate(5, 1, easiest: DifficultyGrade.Medium, hardest: DifficultyGrade.Easy));
     }
 }

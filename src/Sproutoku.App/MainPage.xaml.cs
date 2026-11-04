@@ -5,6 +5,8 @@ using Sproutoku.Core.Play;
 using System.Diagnostics;
 using Sproutoku.Core.Generation;
 using Cell = Sproutoku.Core.Puzzles.Cell;
+using Sproutoku.Core.Solving;
+
 
 #if ANDROID || IOS
 using Sproutoku.App.Feedback;
@@ -88,16 +90,6 @@ public partial class MainPage : ContentPage {
 
     private void UpdatePlantingList() {
         PlantingCountLabel.Text = $"{_session.Board.CountOf(CellState.Planted)} of {_session.Board.Size} grown";
-    }
-
-    // Rough feedback.
-    private void ShowTapOutcome(TapOutcome outcome) {
-        InfoLabel.Text = outcome switch {
-            TapOutcome.Grew when _session.Board.IsSolved => "Garden complete",
-            TapOutcome.Grew => "It grew",
-            TapOutcome.Wilted => "Wrong spot: it wilted",
-            _ => InfoLabel.Text,
-        };
     }
 
     // A complete progress reset. Asks first, because it can't be undone.
@@ -279,22 +271,30 @@ public partial class MainPage : ContentPage {
         if (index < 0) return;
 
         int size = index + 5;
+
+        string[] grades = ["Any grade", .. Enum.GetNames<DifficultyGrade>()];
+        string gradeChoice = await DisplayActionSheetAsync("Difficulty", "Cancel", null, grades);
+
+        int gradeIndex = Array.IndexOf(grades, gradeChoice);
+        if (gradeIndex < 0) return;
+
+        var (easiest, hardest) = gradeIndex == 0
+            ? (DifficultyGrade.Gentle, DifficultyGrade.Expert)
+            : ((DifficultyGrade)(gradeIndex - 1), (DifficultyGrade)(gradeIndex - 1));
+
         ulong seed = (ulong)Random.Shared.Next();
         InfoLabel.Text = $"Growing a {size} × {size} garden…";
 
-        // Off the main thread, so the screen doesn't freeze while it works (the real version is #42).
+        // Off the main thread, so the screen doesn't freeze while it works.
         try {
             var timer = Stopwatch.StartNew();
-            var (puzzle, attempts) = await Task.Run(() => {
-                var garden = GardenGenerator.Generate(size, new SeededRandom(seed), out int tries);
-                return (garden, tries);
-            });
+            var garden = await Task.Run(() => GardenGenerator.Generate(size, new SeededRandom(seed), easiest, hardest));
             timer.Stop();
 
-            Debug.WriteLine($"Generated {size}×{size}: seed {seed}, {attempts} attempts, {timer.ElapsedMilliseconds} ms");
+            Debug.WriteLine($"Generated {size}×{size} {garden.Grade}: seed {seed}, {garden.Attempts} attempts, {timer.ElapsedMilliseconds} ms");
 
-            _session.PlayExtraGarden(puzzle);
-            ShowGarden($"Seed {seed} · {attempts} {(attempts == 1 ? "try" : "tries")} · {timer.ElapsedMilliseconds} ms");
+            _session.PlayExtraGarden(garden.Puzzle);
+            ShowGarden($"{garden.Grade} · seed {seed} · {garden.Attempts} {(garden.Attempts == 1 ? "try" : "tries")} · {timer.ElapsedMilliseconds} ms");
         }
         catch (InvalidOperationException ex) {
             Debug.WriteLine($"Couldn't generate a {size}×{size} garden from seed {seed}: {ex.Message}");
@@ -407,7 +407,6 @@ public partial class MainPage : ContentPage {
 #endif
 
         _garden.Board = _session.Board;
-        ShowTapOutcome(result.Outcome);
         UpdatePlantingList();
         UpdateSunMeter(animate: true);
         GardenView.Invalidate();

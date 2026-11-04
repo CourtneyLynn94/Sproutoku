@@ -33,12 +33,13 @@ public static class LogicSolver {
         return NextStep(new SolverGrid(facts));
     }
 
-    // Cheapest first.
+    // Cheapest first: a one-bed group is simpler than spotting a plant that would starve an area, which is simpler than a group of two or more beds.
     private static LogicStep? NextStep(SolverGrid grid) =>
         PlantRulesOut(grid)
         ?? OnlyCellLeft(grid)
-        ?? GroupsFillLines(grid)
-        ?? WouldStarve(grid);
+        ?? GroupsFillLines(grid, smallest: 1, largest: 1)
+        ?? WouldStarve(grid)
+        ?? GroupsFillLines(grid, smallest: 2, largest: grid.Size);
 
     // A plant rules out its row, column, bed and the touching cells: the first plant that still has something to rule out.
     private static LogicStep? PlantRulesOut(SolverGrid grid) {
@@ -76,14 +77,14 @@ public static class LogicSolver {
     // Smallest groups first, so the simplest reasoning is found first.
     // Only up to half the open beds: a bigger group is the same deduction as the smaller group
     // left over, seen the other way round (beds fill lines versus lines fill beds).
-    private static LogicStep? GroupsFillLines(SolverGrid grid) {
+    private static LogicStep? GroupsFillLines(SolverGrid grid, int smallest, int largest) {
         int openBeds = grid.AllCells()
             .Where(cell => grid[cell] == Known.Unknown)
             .Select(grid.RegionAt)
             .Distinct()
             .Count();
 
-        for (int k = 1; k <= openBeds / 2; k++) {
+        for (int k = smallest; k <= Math.Min(largest, openBeds / 2); k++) {
             foreach (var lineKind in LineKinds) {
                 var step = BedsFillLines(grid, lineKind, k) ?? LinesFillBeds(grid, lineKind, k);
                 if (step is not null) return step;
