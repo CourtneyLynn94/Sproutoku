@@ -193,31 +193,37 @@ public class GameSessionTests {
     [Fact]
     public void MarkingDrag_LeavesMarksAndLockedCellsAlone() {
         var session = NewGame();
-        DoubleTap(session, new Cell(1, 1)); // planted (a solution cell)
-        DoubleTap(session, new Cell(1, 0)); // wilted
-        SingleTap(session, new Cell(1, 3)); // ✕
+        var plant = session.Board.Puzzle.Solution[0];
 
-        Drag(session, new Cell(1, 2), new Cell(1, 1), new Cell(1, 0), new Cell(1, 3), new Cell(1, 4));
+        // A row has one plant, so every other cell in the plant's row is wrong.
+        var others = RowOf(session, plant.Row).Where(cell => cell != plant).ToList();
+        DoubleTap(session, plant);      // planted
+        DoubleTap(session, others[0]);  // wilted
+        SingleTap(session, others[1]);  // ✕
 
-        Assert.Equal(CellState.Marked, session.Board[new Cell(1, 2)]);
-        Assert.Equal(CellState.Planted, session.Board[new Cell(1, 1)]);
-        Assert.Equal(CellState.Wilted, session.Board[new Cell(1, 0)]);
-        Assert.Equal(CellState.Marked, session.Board[new Cell(1, 3)]);
-        Assert.Equal(CellState.Marked, session.Board[new Cell(1, 4)]);
+        // Starts on an empty cell, so it marks; then crosses the plant, the wilted cell, the ✕ and the rest of the row.
+        Drag(session, [others[2], plant, others[0], others[1], .. others.Skip(3)]);
+
+        Assert.Equal(CellState.Planted, session.Board[plant]);
+        Assert.Equal(CellState.Wilted, session.Board[others[0]]);
+        Assert.Equal(CellState.Marked, session.Board[others[1]]);
+        Assert.All(others.Skip(2), cell => Assert.Equal(CellState.Marked, session.Board[cell]));
     }
 
     [Fact]
     public void Drag_StartingOnALockedCell_TakesItsModeFromTheFirstEmptyOrMarkedCell() {
         var session = NewGame();
-        DoubleTap(session, new Cell(0, 3)); // planted
-        SingleTap(session, new Cell(0, 4)); // ✕
+        var plant = session.Board.Puzzle.Solution[0];
+        var others = RowOf(session, plant.Row).Where(cell => cell != plant).ToList();
+        DoubleTap(session, plant);      // planted
+        SingleTap(session, others[0]);  // ✕
 
         // Starts on the plant, then reaches the ✕ first, so it clears.
-        Drag(session, new Cell(0, 3), new Cell(0, 4), new Cell(0, 2));
+        Drag(session, plant, others[0], others[1]);
 
-        Assert.Equal(CellState.Planted, session.Board[new Cell(0, 3)]);
-        Assert.Equal(CellState.Empty, session.Board[new Cell(0, 4)]);
-        Assert.Equal(CellState.Empty, session.Board[new Cell(0, 2)]);
+        Assert.Equal(CellState.Planted, session.Board[plant]);
+        Assert.Equal(CellState.Empty, session.Board[others[0]]);
+        Assert.Equal(CellState.Empty, session.Board[others[1]]);
     }
 
     [Fact]
