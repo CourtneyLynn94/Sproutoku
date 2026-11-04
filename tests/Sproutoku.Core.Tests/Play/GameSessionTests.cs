@@ -436,6 +436,20 @@ public class GameSessionTests {
         Assert.False(session.GoToLevel(0));
         Assert.Equal(1, session.Level);
     }
+
+    [Fact]
+    public void GoToLevel_WithAGrownGarden_StartsItFresh_AndEndsAnExtraGarden() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        var garden = GardenLevels.ForLevel(5);
+
+        session.GoToLevel(garden);
+
+        Assert.Equal(5, session.Level);
+        Assert.False(session.IsExtraGarden);
+        Assert.Same(garden.Puzzle, session.Board.Puzzle);
+        Assert.Equal(garden.Recipe.Suns, session.Board.SunsLeft);
+    }
     #endregion
 
     #region Endless levels

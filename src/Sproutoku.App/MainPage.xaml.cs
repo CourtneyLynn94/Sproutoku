@@ -231,7 +231,7 @@ public partial class MainPage : ContentPage {
     private async void OnJournalClicked(object? sender, EventArgs e) {
         List<string> options = ["How to play"];
 #if DEBUG
-        options.Add("Generated garden (dev)");
+        options.Add("Go to level (dev)");
         options.Add("Skip to next garden (dev)");
         options.Add(_garden.ShowSolution ? "Hide solution (dev)" : "Show solution (dev)");
 #endif
@@ -246,8 +246,8 @@ public partial class MainPage : ContentPage {
                 await ConfirmResetAsync();
                 break;
 #if DEBUG
-            case "Generated garden (dev)":
-                await PlayGeneratedGardenAsync();
+            case "Go to level (dev)":
+                await GoToLevelAsync();
                 break;
             case "Skip to next garden (dev)":
                 if (_session.GoToLevel(_session.Level + 1)) {
@@ -264,43 +264,39 @@ public partial class MainPage : ContentPage {
     }
 
 #if DEBUG
-    // Dev: plays a newly generated garden with a random seed. The level's progress waits untouched.
-    private async Task PlayGeneratedGardenAsync() {
-        string[] sizes = ["5 × 5", "6 × 6", "7 × 7", "8 × 8", "9 × 9", "10 × 10"];
-        string choice = await DisplayActionSheetAsync("Garden size", "Cancel", null, sizes);
+    // Dev: jumps straight to any level by number. The garden is grown off the main thread, since big or Super hard ones can take a moment.
+    private async Task GoToLevelAsync() {
+        string? answer = await DisplayPromptAsync(
+            "Go to level",
+            $"You're on Garden {_session.Level}. Which level?",
+            accept: "Go",
+            cancel: "Cancel",
+            placeholder: "Level number",
+            maxLength: 7,
+            keyboard: Keyboard.Numeric);
 
-        int index = Array.IndexOf(sizes, choice);
-        if (index < 0) return;
+        if (answer is null) return; // Cancel
 
-        int size = index + 5;
+        if (!int.TryParse(answer, out int level) || level < 1) {
+            InfoLabel.Text = $"\"{answer}\" isn't a level number.";
+            return;
+        }
 
-        string[] grades = ["Any grade", .. Enum.GetNames<DifficultyGrade>()];
-        string gradeChoice = await DisplayActionSheetAsync("Difficulty", "Cancel", null, grades);
+        InfoLabel.Text = $"Growing Garden {level}…";
 
-        int gradeIndex = Array.IndexOf(grades, gradeChoice);
-        if (gradeIndex < 0) return;
-
-        var (easiest, hardest) = gradeIndex == 0
-            ? (DifficultyGrade.Gentle, DifficultyGrade.Expert)
-            : ((DifficultyGrade)(gradeIndex - 1), (DifficultyGrade)(gradeIndex - 1));
-
-        ulong seed = (ulong)Random.Shared.Next();
-        InfoLabel.Text = $"Growing a {size} × {size} garden…";
-
-        // Off the main thread, so the screen doesn't freeze while it works.
         try {
             var timer = Stopwatch.StartNew();
-            var garden = await Task.Run(() => GardenGenerator.Generate(size, new SeededRandom(seed), easiest, hardest));
+            var levelGarden = await Task.Run(() => GardenLevels.ForLevel(level));
             timer.Stop();
 
-            Debug.WriteLine($"Generated {size}×{size} {garden.Grade}: seed {seed}, {garden.Attempts} attempts, {timer.ElapsedMilliseconds} ms");
+            Debug.WriteLine($"Garden {level}: {levelGarden.Recipe}, grown in {timer.ElapsedMilliseconds} ms");
 
-            _session.PlayExtraGarden(garden.Puzzle);
-            ShowGarden($"{garden.Grade} · seed {seed} · {garden.Attempts} {(garden.Attempts == 1 ? "try" : "tries")} · {timer.ElapsedMilliseconds} ms");
+            _session.GoToLevel(levelGarden);
+            ShowGarden($"{GardenInfo()} · {timer.ElapsedMilliseconds} ms");
         }
         catch (InvalidOperationException ex) {
-            Debug.WriteLine($"Couldn't generate a {size}×{size} garden from seed {seed}: {ex.Message}");
-            InfoLabel.Text = $"Couldn't grow a garden from seed {seed}. Try again.";
+            Debug.WriteLine($"Couldn't grow Garden {level}: {ex.Message}");
+            InfoLabel.Text = $"Couldn't grow Garden {level}.";
         }
     }
 #endif

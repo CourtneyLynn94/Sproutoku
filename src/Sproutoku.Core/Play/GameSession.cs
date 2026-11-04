@@ -109,9 +109,18 @@ public sealed class GameSession {
             return false;
         }
 
-        _levelBoard = null;
-        StartLevel(level);
+        GoToLevel(GardenLevels.ForLevel(level));
         return true;
+    }
+
+    /// <summary>
+    /// Jumps to a level whose garden is already grown, for example off the main thread so the screen doesn't freeze.
+    /// </summary>
+    public void GoToLevel(LevelGarden levelGarden) {
+        ArgumentNullException.ThrowIfNull(levelGarden);
+
+        _levelBoard = null;
+        SetGarden(levelGarden, levelGarden.Start());
     }
 
     /// <summary>
@@ -126,10 +135,7 @@ public sealed class GameSession {
     }
 
     // A level's garden, fresh.
-    private void StartLevel(int level) {
-        var levelGarden = GardenLevels.ForLevel(level);
-        SetGarden(levelGarden, levelGarden.Start());
-    }
+    private void StartLevel(int level) => GoToLevel(GardenLevels.ForLevel(level));
 
     // A new garden forgets the last tap, so a tap on the old garden can't pair up with one on the new one.
     private void SetGarden(LevelGarden levelGarden, Board board) {
