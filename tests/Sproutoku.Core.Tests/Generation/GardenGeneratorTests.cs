@@ -81,4 +81,10 @@ public class GardenGeneratorTests {
     public void AnEmptyGradeRange_Throws() {
         Assert.Throws<ArgumentException>(() => GardenGenerator.Generate(5, 1, easiest: DifficultyGrade.Medium, hardest: DifficultyGrade.Easy));
     }
+
+    [Fact]
+    public void TryGenerate_GivesNull_WhenNoGardenTurnsUp() {
+        // Expert needs three beds sharing lines, with three more beds still open: impossible with only 5 beds.
+        Assert.Null(GardenGenerator.TryGenerate(5, new SeededRandom(1), DifficultyGrade.Expert, DifficultyGrade.Expert));
+    }
 }

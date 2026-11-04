@@ -5,7 +5,7 @@ namespace Sproutoku.Core.Saving;
 
 /// <summary>
 /// Everything needed to put the player back where they left off: the level and that garden's board.
-/// The garden itself isn't saved; the level number finds it again.
+/// The garden itself isn't saved; the level number builds it again.
 /// </summary>
 public sealed record GameSave(int Version, int Level, int StartingSuns, int SunsLeft, string Cells) {
     /// <summary>
@@ -39,32 +39,30 @@ public sealed record GameSave(int Version, int Level, int StartingSuns, int Suns
 
     /// <summary>
     /// Where to pick up. Without a usable save, Garden 1 from the start.
-    /// A failed garden starts fresh (Try again was the only choice), and a solved one moves on to the next garden, or starts again if it's the last.
-    /// If the saved board no longer fits its garden (for example after an update changed that garden), the player keeps their level and that garden starts fresh.
+    /// A failed garden starts fresh (Try again was the only choice), and a solved one moves on to the next level.
+    /// If the saved board no longer fits its garden (for example after an update changed it), the player keeps their level and it starts fresh.
     /// </summary>
-    public static (int Level, Board Board) Resume(GameSave? save) {
-        if (save is not null && GardenLevels.ForLevel(save.Level) is { } puzzle) {
-            if (Board.TryRestore(puzzle, save.Cells, save.StartingSuns, save.SunsLeft) is not { } board) {
-                // Keep the garden's own sun count (e.g. a one-sun garden); fall back to the default if the save's is invalid.
-                int suns = Board.IsValidSunCount(save.StartingSuns) ? save.StartingSuns : Board.DefaultSuns;
-                return (save.Level, Board.Start(puzzle, suns));
-            }
-
-            if (board.IsOutOfSun) {
-                return (save.Level, board.Restart());
-            }
-
-            if (board.IsSolved) {
-                // Move on, or replay the last garden until more arrive (S43).
-                return GardenLevels.ForLevel(save.Level + 1) is { } next
-                    ? (save.Level + 1, Board.Start(next))
-                    : (save.Level, board.Restart());
-            }
-
-            return (save.Level, board);
+    public static (LevelGarden Garden, Board Board) Resume(GameSave? save) {
+        if (save is null || save.Level < 1) {
+            var first = GardenLevels.ForLevel(1);
+            return (first, first.Start());
         }
 
-        // No save, or a level that doesn't exist. Level 1 always exists, so the ! is safe.
-        return (1, Board.Start(GardenLevels.ForLevel(1)!));
+        var garden = GardenLevels.ForLevel(save.Level);
+
+        if (Board.TryRestore(garden.Puzzle, save.Cells, save.StartingSuns, save.SunsLeft) is not { } board) {
+            return (garden, garden.Start());
+        }
+
+        if (board.IsOutOfSun) {
+            return (garden, board.Restart());
+        }
+
+        if (board.IsSolved) {
+            var next = GardenLevels.ForLevel(save.Level + 1);
+            return (next, next.Start());
+        }
+
+        return (garden, board);
     }
 }

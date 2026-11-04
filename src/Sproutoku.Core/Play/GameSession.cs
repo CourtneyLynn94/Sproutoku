@@ -21,16 +21,26 @@ public sealed class GameSession {
     // The level's board, set aside while an extra garden is played. Null when playing the level itself.
     private Board? _levelBoard;
 
-    private GameSession(int level, Board board, DoubleTapDetector doubleTap) {
-        Level = level;
+    private GameSession(LevelGarden levelGarden, Board board, DoubleTapDetector doubleTap) {
+        LevelGarden = levelGarden;
         Board = board;
         _doubleTap = doubleTap;
     }
 
     /// <summary>
+    /// The level being played: its number, seed, recipe and garden. An extra garden doesn't change it.
+    /// </summary>
+    public LevelGarden LevelGarden { get; private set; }
+
+    /// <summary>
     /// The level being played; 1 is the first garden.
     /// </summary>
-    public int Level { get; private set; }
+    public int Level => LevelGarden.Level;
+
+    /// <summary>
+    /// The level's seed, shown in debug builds.
+    /// </summary>
+    public ulong Seed => LevelGarden.Seed;
 
     /// <summary>
     /// The current garden as the player sees it.
@@ -43,22 +53,16 @@ public sealed class GameSession {
     public bool IsExtraGarden => _levelBoard is not null;
 
     /// <summary>
-    /// True if there is a garden after this one. After an extra garden, that's the level it set aside.
+    /// True when this garden may start over: only after running out of sun (Try again). There's always a next garden, so a solved one moves on.
     /// </summary>
-    public bool HasNextLevel => IsExtraGarden || GardenLevels.ForLevel(Level + 1) is not null;
-
-    /// <summary>
-    /// True when this garden may start over:
-    /// after running out of sun (Try again), or after solving the last garden there is (Play it again). Never mid-garden.
-    /// </summary>
-    public bool CanRestart => Board.IsOutOfSun || (Board.IsSolved && !HasNextLevel);
+    public bool CanRestart => Board.IsOutOfSun;
 
     /// <summary>
     /// Picks up from a save, or starts at Garden 1 when there's no usable save.
     /// </summary>
     public static GameSession Resume(GameSave? save, DoubleTapDetector? doubleTap = null) {
-        var (level, board) = GameSave.Resume(save);
-        return new GameSession(level, board, doubleTap ?? new DoubleTapDetector());
+        var (levelGarden, board) = GameSave.Resume(save);
+        return new GameSession(levelGarden, board, doubleTap ?? new DoubleTapDetector());
     }
 
     /// <summary>
@@ -68,7 +72,7 @@ public sealed class GameSession {
 
     /// <summary>
     /// Moves on once this garden is solved: back to the level after an extra garden, otherwise to the next level.
-    /// A garden can never be advanced past twice. Returns false when it can't move on.
+    /// A garden can never be advanced past twice. Returns false mid-garden.
     /// </summary>
     public bool TryAdvance() {
         if (!Board.IsSolved) {
@@ -77,42 +81,36 @@ public sealed class GameSession {
 
         if (_levelBoard is { } levelBoard) {
             _levelBoard = null;
-            SetGarden(Level, levelBoard);
+            SetGarden(LevelGarden, levelBoard);
             return true;
         }
 
-        if (GardenLevels.ForLevel(Level + 1) is not { } next) {
-            return false;
-        }
-
-        SetGarden(Level + 1, Board.Start(next));
+        StartLevel(Level + 1);
         return true;
     }
 
     /// <summary>
-    /// Starts this garden again (Try again, Play it again).
-    /// Returns false mid-garden.
+    /// Starts this garden again after running out of sun. Returns false otherwise.
     /// </summary>
     public bool TryRestart() {
         if (!CanRestart) {
             return false;
         }
 
-        SetGarden(Level, Board.Restart());
+        SetGarden(LevelGarden, Board.Restart());
         return true;
     }
 
     /// <summary>
-    /// Jumps to a level's garden, fresh: Garden 1 after a progress reset, or the dev skip.
-    /// Returns false when there's no garden for that level.
+    /// Jumps to a level's garden, fresh: Garden 1 after a progress reset, or the dev skip. Returns false below level 1.
     /// </summary>
     public bool GoToLevel(int level) {
-        if (GardenLevels.ForLevel(level) is not { } puzzle) {
+        if (level < 1) {
             return false;
         }
 
         _levelBoard = null;
-        SetGarden(level, Board.Start(puzzle));
+        StartLevel(level);
         return true;
     }
 
@@ -124,12 +122,18 @@ public sealed class GameSession {
         ArgumentNullException.ThrowIfNull(puzzle);
 
         _levelBoard ??= Board;
-        SetGarden(Level, Board.Start(puzzle));
+        SetGarden(LevelGarden, Board.Start(puzzle));
+    }
+
+    // A level's garden, fresh.
+    private void StartLevel(int level) {
+        var levelGarden = GardenLevels.ForLevel(level);
+        SetGarden(levelGarden, levelGarden.Start());
     }
 
     // A new garden forgets the last tap, so a tap on the old garden can't pair up with one on the new one.
-    private void SetGarden(int level, Board board) {
-        Level = level;
+    private void SetGarden(LevelGarden levelGarden, Board board) {
+        LevelGarden = levelGarden;
         Board = board;
         _doubleTap.Reset();
         _boardBeforeTap = null;

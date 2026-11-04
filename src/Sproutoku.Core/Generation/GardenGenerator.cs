@@ -14,6 +14,11 @@ public sealed record GeneratedGarden(Puzzle Puzzle, DifficultyGrade Grade, int S
 /// </summary>
 public static class GardenGenerator {
     /// <summary>
+    /// Part of every release level's seed. Bump it when a change to the generator or the level plan changes the gardens it makes.
+    /// </summary>
+    public const int Version = 1;
+
+    /// <summary>
     /// Attempts before giving up. Real gardens need about 1 to 40, so this is never reached in practice.
     /// </summary>
     public const int MaxAttempts = 1000;
@@ -23,8 +28,16 @@ public static class GardenGenerator {
 
     /// <summary>
     /// A garden whose grade is between <paramref name="easiest"/> and <paramref name="hardest"/>, inclusive.
+    /// Throws if none turns up in <see cref="MaxAttempts"/> attempts.
     /// </summary>
-    public static GeneratedGarden Generate(int size, SeededRandom random, DifficultyGrade easiest = DifficultyGrade.Gentle, DifficultyGrade hardest = DifficultyGrade.Expert) {
+    public static GeneratedGarden Generate(int size, SeededRandom random, DifficultyGrade easiest = DifficultyGrade.Gentle, DifficultyGrade hardest = DifficultyGrade.Expert)
+        => TryGenerate(size, random, easiest, hardest)
+           ?? throw new InvalidOperationException($"No {size}×{size} garden from {easiest} to {hardest} found in {MaxAttempts} attempts.");
+
+    /// <summary>
+    /// Like <see cref="Generate(int, SeededRandom, DifficultyGrade, DifficultyGrade)"/>, but returns null instead of throwing, so a level can move on to a backup seed.
+    /// </summary>
+    public static GeneratedGarden? TryGenerate(int size, SeededRandom random, DifficultyGrade easiest = DifficultyGrade.Gentle, DifficultyGrade hardest = DifficultyGrade.Expert) {
         ArgumentNullException.ThrowIfNull(random);
         if (easiest > hardest) {
             throw new ArgumentException($"{easiest} is harder than {hardest}.", nameof(easiest));
@@ -47,6 +60,6 @@ public static class GardenGenerator {
             return new GeneratedGarden(Puzzle.Create(beds, plants), grade, solve.Steps.Count, attempt);
         }
 
-        throw new InvalidOperationException($"No {size}×{size} garden from {easiest} to {hardest} found in {MaxAttempts} attempts.");
+        return null;
     }
 }

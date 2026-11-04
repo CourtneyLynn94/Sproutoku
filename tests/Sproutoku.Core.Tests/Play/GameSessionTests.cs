@@ -388,7 +388,7 @@ public class GameSessionTests {
         Assert.True(session.TryAdvance());
         Assert.False(session.TryAdvance());
         Assert.Equal(2, session.Level);
-        Assert.Same(GardenLevels.ForLevel(2), session.Board.Puzzle);
+        Assert.Equal(TestGardens.BedRows(GardenLevels.ForLevel(2).Puzzle), TestGardens.BedRows(session.Board.Puzzle));
         Assert.False(session.Board.IsSolved);
     }
 
@@ -424,25 +424,46 @@ public class GameSessionTests {
     }
 
     [Fact]
-    public void TryRestart_AfterSolvingTheLastGarden_PlaysItAgain() {
-        int lastLevel = StarterGardens.All.Count;
+    public void GoToLevel_BelowOne_DoesNothing() {
         var session = NewGame();
-        session.GoToLevel(lastLevel);
+
+        Assert.False(session.GoToLevel(0));
+        Assert.Equal(1, session.Level);
+    }
+    #endregion
+
+    #region Endless levels
+    [Fact]
+    public void SolvingAGarden_AlwaysMovesOn() {
+        var session = NewGame();
+        session.GoToLevel(30);
         Solve(session);
 
-        Assert.False(session.HasNextLevel);
-        Assert.False(session.TryAdvance());
-        Assert.True(session.TryRestart());
-        Assert.Equal(lastLevel, session.Level);
-        Assert.False(session.Board.IsSolved);
+        Assert.False(session.CanRestart);
+        Assert.True(session.TryAdvance());
+        Assert.Equal(31, session.Level);
+        Assert.Equal(session.LevelGarden.Recipe.Size, session.Board.Size);
     }
 
     [Fact]
-    public void GoToLevel_WithoutAGarden_DoesNothing() {
+    public void AOneSunLevel_StartsWithOneSun() {
         var session = NewGame();
+        session.GoToLevel(18);
 
-        Assert.False(session.GoToLevel(99));
-        Assert.Equal(1, session.Level);
+        Assert.Equal(1, session.Board.StartingSuns);
+    }
+
+    [Fact]
+    public void ALevel_ResumesAsTheSameGarden() {
+        var session = NewGame();
+        session.GoToLevel(12);
+        SingleTap(session, WrongCells(session.Board.Puzzle).First());
+
+        var resumed = GameSession.Resume(session.ToSave());
+
+        Assert.Equal(12, resumed.Level);
+        Assert.Equal(TestGardens.BedRows(session.Board.Puzzle), TestGardens.BedRows(resumed.Board.Puzzle));
+        Assert.Equal(session.Board.CellsToText(), resumed.Board.CellsToText());
     }
     #endregion
 
@@ -473,7 +494,6 @@ public class GameSessionTests {
         session.PlayExtraGarden(ExtraGarden());
         Solve(session);
 
-        Assert.True(session.HasNextLevel);
         Assert.True(session.TryAdvance());
         Assert.False(session.IsExtraGarden);
         Assert.Equal(1, session.Level);
@@ -515,17 +535,6 @@ public class GameSessionTests {
         Assert.True(session.GoToLevel(2));
         Assert.False(session.IsExtraGarden);
         Assert.Equal(2, session.Level);
-    }
-
-    [Fact]
-    public void OnTheLastLevel_AnExtraGarden_StillHasSomewhereToGo() {
-        var session = NewGame();
-        Assert.True(session.GoToLevel(StarterGardens.All.Count));
-        Assert.False(session.HasNextLevel); // Really the last level.
-        session.PlayExtraGarden(ExtraGarden());
-
-        Assert.True(session.HasNextLevel);
-        Assert.False(session.CanRestart);
     }
     #endregion
 }

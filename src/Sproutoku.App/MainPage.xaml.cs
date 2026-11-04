@@ -4,9 +4,8 @@ using Sproutoku.App.Saving;
 using Sproutoku.Core.Play;
 using System.Diagnostics;
 using Sproutoku.Core.Generation;
-using Cell = Sproutoku.Core.Puzzles.Cell;
 using Sproutoku.Core.Solving;
-
+using Cell = Sproutoku.Core.Puzzles.Cell;
 
 #if ANDROID || IOS
 using Sproutoku.App.Feedback;
@@ -63,7 +62,7 @@ public partial class MainPage : ContentPage {
         // Pick up where the player left off, or start at Garden 1.
         var save = _gameStorage.Load();
         _session = GameSession.Resume(save);
-        ShowGarden(save is null ? StarterInfo() : "Welcome back");
+        ShowGarden(save is null ? GardenInfo() : "Welcome back");
     }
 
     // Draws the session's garden from scratch (new garden, Try again, reset) and saves.
@@ -84,7 +83,20 @@ public partial class MainPage : ContentPage {
         SaveProgress();
     }
 
-    private string StarterInfo() => $"Starter garden, {_session.Board.Size} × {_session.Board.Size}";
+    // The info line for a level: size, plus Hard, Super hard and One sun until the real tags exist. Debug adds the grade and seed.
+    private string GardenInfo() {
+        var recipe = _session.LevelGarden.Recipe;
+        List<string> parts = [$"{recipe.Size} × {recipe.Size}"];
+
+        if (recipe.Tier == GardenTier.Hard) parts.Add("Hard");
+        if (recipe.Tier == GardenTier.SuperHard) parts.Add("Super hard");
+        if (recipe.IsOneSun) parts.Add("One sun");
+#if DEBUG
+        parts.Add(_session.LevelGarden.Garden.Grade.ToString());
+        parts.Add($"seed {_session.Seed}");
+#endif
+        return string.Join(" · ", parts);
+    }
 
     private void SaveProgress() => _gameStorage.Save(_session.ToSave());
 
@@ -104,7 +116,7 @@ public partial class MainPage : ContentPage {
 
         _gameStorage.ResetProgress();
         _session.GoToLevel(1);
-        ShowGarden(StarterInfo());
+        ShowGarden(GardenInfo());
     }
 
     // Rough end-of-garden screens until the real sheets are designed.
@@ -134,23 +146,13 @@ public partial class MainPage : ContentPage {
                 $"Mistakes: {board.Mistakes}\n" +
                 $"Beds: {board.Size}";
 
-            if (_session.HasNextLevel) {
-                await DisplayAlertAsync("Garden complete", stats, extra ? $"Back to Garden {_session.Level}" : "Next garden");
-                if (_session.TryAdvance()) {
-                    ShowGarden(extra ? "Back to your garden" : StarterInfo());
+            await DisplayAlertAsync("Garden complete", stats, extra ? $"Back to Garden {_session.Level}" : "Next garden");
+            if (_session.TryAdvance()) {
+                ShowGarden(extra ? "Back to your garden" : GardenInfo());
 
-                    // A level finished before the test garden started gets its end screen again.
-                    if (_session.Board.IsFinished) {
-                        ShowEndOfGarden();
-                    }
-                }
-            } else {
-                await DisplayAlertAsync(
-                    "Garden complete",
-                    stats + "\n\nYou've grown every garden for now. More are coming soon.",
-                    "Play it again");
-                if (_session.TryRestart()) {
-                    ShowGarden("A fresh start");
+                // A level finished before the test garden started gets its end screen again.
+                if (_session.Board.IsFinished) {
+                    ShowEndOfGarden();
                 }
             }
 
@@ -249,7 +251,7 @@ public partial class MainPage : ContentPage {
                 break;
             case "Skip to next garden (dev)":
                 if (_session.GoToLevel(_session.Level + 1)) {
-                    ShowGarden(StarterInfo());
+                    ShowGarden(GardenInfo());
                 }
                 break;
             case "Show solution (dev)":
