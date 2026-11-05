@@ -7,6 +7,17 @@
 		<SelfContained>true</SelfContained>
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 	</PropertyGroup>
+
+	<!-- Android Release builds are signed with the permanent release key, so updates install over the old app.
+	     The keystore lives outside the repo; SPROUTOKU_KEYSTORE points to it, and the password comes from SPROUTOKU_KEY_PASSWORD,
+	     which scripts/publish-android.ps1 asks for. Without SPROUTOKU_KEYSTORE (CI, other machines) the build uses the debug key as before. -->
+	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android' and '$(Configuration)' == 'Release' and '$(SPROUTOKU_KEYSTORE)' != ''">
+		<AndroidKeyStore>true</AndroidKeyStore>
+		<AndroidSigningKeyStore>$(SPROUTOKU_KEYSTORE)</AndroidSigningKeyStore>
+		<AndroidSigningKeyAlias>sproutoku</AndroidSigningKeyAlias>
+		<AndroidSigningStorePass>env:SPROUTOKU_KEY_PASSWORD</AndroidSigningStorePass>
+		<AndroidSigningKeyPass>env:SPROUTOKU_KEY_PASSWORD</AndroidSigningKeyPass>
+	</PropertyGroup>
 	
 	<PropertyGroup>
 		<TargetFrameworks>net10.0-android</TargetFrameworks>
@@ -43,9 +54,10 @@
 		<!-- App Identifier -->
 		<ApplicationId>com.courtneylynn94.sproutoku</ApplicationId>
 
-		<!-- Versions -->
-		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-		<ApplicationVersion>1</ApplicationVersion>
+		<!-- Versions. ApplicationVersion must go up for every release, or Android won't install it as an update.
+		     Rule: major × 10000 + minor × 100 + patch, so 0.3.0 is 300. -->
+		<ApplicationDisplayVersion>0.3.0</ApplicationDisplayVersion>
+		<ApplicationVersion>300</ApplicationVersion>
 
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
 		<WindowsPackageType>None</WindowsPackageType>
