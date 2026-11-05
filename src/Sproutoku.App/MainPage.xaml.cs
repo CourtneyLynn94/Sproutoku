@@ -30,7 +30,12 @@ public partial class MainPage : ContentPage {
     private readonly GameStorage _gameStorage = new();
 
     // The game itself: level, board and every rule. The page only shows it and passes input in.
-    private readonly GameSession _session;
+    // Null only for the moment the saved level is growing at startup.
+    private GameSession? _session;
+    private GameSession Session => _session ?? throw new InvalidOperationException("The game hasn't loaded yet.");
+
+    // Grows level gardens in the background, starting with the next one while the current one is played.
+    private readonly LevelPreparer _levels = new();
 
     // The press in progress:
     // the cell it started on (null if it started off the board), the last point it was seen at, and whether it has turned into a drag.
@@ -59,49 +64,79 @@ public partial class MainPage : ContentPage {
         HookUpKeyboard();
 #endif
 
-        // Pick up where the player left off, or start at Garden 1.
+        // The saved level may need growing, so load off the main thread with a gentle note meanwhile.
+        InfoLabel.Text = "Growing your garden…";
+        _ = LoadGameAsync();
+    }
+
+    // Picks up where the player left off, or starts at Garden 1.
+    private async Task LoadGameAsync() {
         var save = _gameStorage.Load();
-        _session = GameSession.Resume(save);
+        _session = await Task.Run(() => GameSession.Resume(save));
         ShowGarden(save is null ? GardenInfo() : "Welcome back");
     }
 
     // Draws the session's garden from scratch (new garden, Try again, reset) and saves.
     private void ShowGarden(string info) {
-        _garden.Board = _session.Board;
+        _garden.Board = Session.Board;
         _garden.HoverCell = null;
         _garden.FocusCell = null;
         _garden.ShowFocus = false;
 
-        BuildSunMeter(_session.Board.StartingSuns);
+        BuildSunMeter(Session.Board.StartingSuns);
         UpdateSunMeter(animate: false);
 
-        GardenSignLabel.Text = _session.IsExtraGarden ? "Test garden" : $"Garden {_session.Level}";
+        GardenSignLabel.Text = Session.IsExtraGarden ? "Test garden" : $"Garden {Session.Level}";
         InfoLabel.Text = info;
         UpdatePlantingList();
         GardenView.Invalidate();
 
         SaveProgress();
+
+        // Grow the next level while this one is played, and let go of levels already passed.
+        if (!Session.IsExtraGarden) {
+            _levels.Prepare(Session.Level + 1);
+            _levels.ForgetBelow(Session.Level);
+        }
+    }
+
+    // Jumps to a level, fresh. A level that isn't ready grows in the background with a gentle note meanwhile.
+    private async Task JumpToLevelAsync(int level) {
+        if (!_levels.IsReady(level)) {
+            InfoLabel.Text = $"Growing Garden {level}…";
+        }
+
+#if DEBUG
+        var timer = Stopwatch.StartNew();
+#endif
+        var levelGarden = await _levels.GetAsync(level);
+        Session.GoToLevel(levelGarden);
+#if DEBUG
+        ShowGarden($"{GardenInfo()} · {timer.ElapsedMilliseconds} ms");
+#else
+        ShowGarden(GardenInfo());
+#endif
     }
 
     // The info line for a level: size, plus Hard, Super hard and One sun until the real tags exist. Debug adds the grade and seed.
     private string GardenInfo() {
-        var recipe = _session.LevelGarden.Recipe;
+        var recipe = Session.LevelGarden.Recipe;
         List<string> parts = [$"{recipe.Size} × {recipe.Size}"];
 
         if (recipe.Tier == GardenTier.Hard) parts.Add("Hard");
         if (recipe.Tier == GardenTier.SuperHard) parts.Add("Super hard");
         if (recipe.IsOneSun) parts.Add("One sun");
 #if DEBUG
-        parts.Add(_session.LevelGarden.Garden.Grade.ToString());
-        parts.Add($"seed {_session.Seed}");
+        parts.Add(Session.LevelGarden.Garden.Grade.ToString());
+        parts.Add($"seed {Session.Seed}");
 #endif
         return string.Join(" · ", parts);
     }
 
-    private void SaveProgress() => _gameStorage.Save(_session.ToSave());
+    private void SaveProgress() => _gameStorage.Save(Session.ToSave());
 
     private void UpdatePlantingList() {
-        PlantingCountLabel.Text = $"{_session.Board.CountOf(CellState.Planted)} of {_session.Board.Size} grown";
+        PlantingCountLabel.Text = $"{Session.Board.CountOf(CellState.Planted)} of {Session.Board.Size} grown";
     }
 
     // A complete progress reset. Asks first, because it can't be undone.
@@ -115,14 +150,13 @@ public partial class MainPage : ContentPage {
         if (!erase) return;
 
         _gameStorage.ResetProgress();
-        _session.GoToLevel(1);
-        ShowGarden(GardenInfo());
+        await JumpToLevelAsync(1);
     }
 
     // Rough end-of-garden screens until the real sheets are designed.
     // The session decides whether moving on or starting over is allowed; the page only asks.
     private async void ShowEndOfGarden() {
-        var board = _session.Board;
+        var board = Session.Board;
 
         // Reset hovered cell state
         _garden.HoverCell = null;
@@ -132,28 +166,33 @@ public partial class MainPage : ContentPage {
         await Task.Delay(500);
 
         // The Journal still works during the wait. If a reset or skip changed the garden, this screen is stale.
-        if (!ReferenceEquals(_session.Board, board)) return;
+        if (!ReferenceEquals(Session.Board, board)) return;
 
 #if ANDROID || IOS
         _haptics.GardenEnded();
 #endif
 
         if (board.IsSolved) {
-            bool extra = _session.IsExtraGarden;
+            bool extra = Session.IsExtraGarden;
             string stats =
-                $"{(extra ? "Test garden" : $"Garden {_session.Level}")}\n" +
+                $"{(extra ? "Test garden" : $"Garden {Session.Level}")}\n" +
                 $"Suns left: {board.SunsLeft} of {board.StartingSuns}\n" +
                 $"Mistakes: {board.Mistakes}\n" +
                 $"Beds: {board.Size}";
 
-            await DisplayAlertAsync("Garden complete", stats, extra ? $"Back to Garden {_session.Level}" : "Next garden");
-            if (_session.TryAdvance()) {
-                ShowGarden(extra ? "Back to your garden" : GardenInfo());
+            await DisplayAlertAsync("Garden complete", stats, extra ? $"Back to Garden {Session.Level}" : "Next garden");
 
-                // A level finished before the test garden started gets its end screen again.
-                if (_session.Board.IsFinished) {
-                    ShowEndOfGarden();
+            if (extra) {
+                if (Session.TryAdvance()) {
+                    ShowGarden("Back to your garden");
+
+                    // A level finished before the test garden started gets its end screen again.
+                    if (Session.Board.IsFinished) {
+                        ShowEndOfGarden();
+                    }
                 }
+            } else {
+                await AdvanceAsync();
             }
 
             return;
@@ -163,8 +202,23 @@ public partial class MainPage : ContentPage {
         const string Message = "All your suns are spent. Give this garden a fresh start.";
 
         await DisplayAlertAsync(Title, Message, "Try again");
-        if (_session.TryRestart()) {
+        if (Session.TryRestart()) {
             ShowGarden("A fresh start");
+        }
+    }
+
+    // Moves on to the next level. It's usually grown already; if not, a gentle note shows while it finishes.
+    private async Task AdvanceAsync() {
+        int next = Session.Level + 1;
+        if (!_levels.IsReady(next)) {
+            InfoLabel.Text = "Growing your next garden…";
+        }
+
+        var levelGarden = await _levels.GetAsync(next);
+
+        // Refused if a reset or skip changed the level while it grew; that garden is simply not used.
+        if (Session.TryAdvance(levelGarden)) {
+            ShowGarden(GardenInfo());
         }
     }
 
@@ -229,6 +283,8 @@ public partial class MainPage : ContentPage {
     #region Event Interactions
     // Rough Garden journal.
     private async void OnJournalClicked(object? sender, EventArgs e) {
+        if (_session is null) return; // Still loading.
+
         List<string> options = ["How to play"];
 #if DEBUG
         options.Add("Go to level (dev)");
@@ -250,9 +306,7 @@ public partial class MainPage : ContentPage {
                 await GoToLevelAsync();
                 break;
             case "Skip to next garden (dev)":
-                if (_session.GoToLevel(_session.Level + 1)) {
-                    ShowGarden(GardenInfo());
-                }
+                await JumpToLevelAsync(Session.Level + 1);
                 break;
             case "Show solution (dev)":
             case "Hide solution (dev)":
@@ -268,7 +322,7 @@ public partial class MainPage : ContentPage {
     private async Task GoToLevelAsync() {
         string? answer = await DisplayPromptAsync(
             "Go to level",
-            $"You're on Garden {_session.Level}. Which level?",
+            $"You're on Garden {Session.Level}. Which level?",
             accept: "Go",
             cancel: "Cancel",
             placeholder: "Level number",
@@ -282,22 +336,7 @@ public partial class MainPage : ContentPage {
             return;
         }
 
-        InfoLabel.Text = $"Growing Garden {level}…";
-
-        try {
-            var timer = Stopwatch.StartNew();
-            var levelGarden = await Task.Run(() => GardenLevels.ForLevel(level));
-            timer.Stop();
-
-            Debug.WriteLine($"Garden {level}: {levelGarden.Recipe}, grown in {timer.ElapsedMilliseconds} ms");
-
-            _session.GoToLevel(levelGarden);
-            ShowGarden($"{GardenInfo()} · {timer.ElapsedMilliseconds} ms");
-        }
-        catch (InvalidOperationException ex) {
-            Debug.WriteLine($"Couldn't grow Garden {level}: {ex.Message}");
-            InfoLabel.Text = $"Couldn't grow Garden {level}.";
-        }
+        await JumpToLevelAsync(level);
     }
 #endif
 
@@ -335,7 +374,7 @@ public partial class MainPage : ContentPage {
             }
 
             _isDragging = true;
-            _session.BeginDrag();
+            Session.BeginDrag();
             changed |= DragOver(start);
         }
 
@@ -346,14 +385,14 @@ public partial class MainPage : ContentPage {
         _lastPoint = point;
 
         if (changed) {
-            _garden.Board = _session.Board;
+            _garden.Board = Session.Board;
             GardenView.Invalidate();
         }
     }
 
     // One cell of a drag, with a tick when it changes.
     private bool DragOver(Cell cell) {
-        if (!_session.DragOver(cell)) return false;
+        if (!Session.DragOver(cell)) return false;
 
 #if ANDROID || IOS
         _haptics.Mark();
@@ -386,7 +425,7 @@ public partial class MainPage : ContentPage {
     // Clears the press. A drag in progress ends and is saved once.
     private void FinishPress() {
         if (_isDragging) {
-            _session.EndDrag();
+            Session.EndDrag();
             SaveProgress();
         }
 
@@ -394,7 +433,7 @@ public partial class MainPage : ContentPage {
         _isDragging = false;
     }
 
-    private void OnCellTapped(Cell cell) => ShowResult(_session.Tap(cell, Environment.TickCount64));
+    private void OnCellTapped(Cell cell) => ShowResult(Session.Tap(cell, Environment.TickCount64));
 
     // Shows what a tap or key did, saves, and opens the end screen if the garden is over.
     private void ShowResult(TapResult result) {
@@ -404,7 +443,7 @@ public partial class MainPage : ContentPage {
         PlayHaptic(result.Outcome);
 #endif
 
-        _garden.Board = _session.Board;
+        _garden.Board = Session.Board;
         UpdatePlantingList();
         UpdateSunMeter(animate: true);
         GardenView.Invalidate();
@@ -418,7 +457,9 @@ public partial class MainPage : ContentPage {
 
 #if WINDOWS || MACCATALYST
     private void SetHover(Cell? cell) {
-        if (_session.Board.IsFinished || _garden.HoverCell == cell) return;
+        if (_session is null) return; // Still loading.
+
+        if (Session.Board.IsFinished || _garden.HoverCell == cell) return;
 
         _garden.HoverCell = cell;
         GardenView.Invalidate();
@@ -426,7 +467,9 @@ public partial class MainPage : ContentPage {
 
     // Arrows move the focus ring; Space or X toggles ✕; Enter plants.
     private void OnGardenKey(GardenKeyboardKey key) {
-        int size = _session.Board.Size;
+        if (_session is null) return; // Still loading.
+
+        int size = Session.Board.Size;
         var focus = _garden.FocusCell ?? new Cell(0, 0);
         _garden.ShowFocus = true;
 
@@ -444,10 +487,10 @@ public partial class MainPage : ContentPage {
                 focus = focus.MovedBy(0, 1, size);
                 break;
             case GardenKeyboardKey.Mark:
-                ShowResult(_session.ToggleMark(focus));
+                ShowResult(Session.ToggleMark(focus));
                 break;
             case GardenKeyboardKey.Plant:
-                ShowResult(_session.Plant(focus));
+                ShowResult(Session.Plant(focus));
                 break;
         }
 
@@ -523,7 +566,7 @@ public partial class MainPage : ContentPage {
     // Shows as many bright suns as the board has left.
     // The rightmost sun is spent first.
     private void UpdateSunMeter(bool animate) {
-        var board = _session.Board;
+        var board = Session.Board;
 
         for (int i = 0; i < _brightSuns.Count; i++) {
             var bright = _brightSuns[i];

@@ -90,6 +90,22 @@ public sealed class GameSession {
     }
 
     /// <summary>
+    /// Moves on to the next level using a garden grown ahead of time.
+    /// Same rule as <see cref="TryAdvance()"/>: only once this garden is solved, and only to the very next level.
+    /// Returns false otherwise, including during an extra garden and for a garden that arrives late, after a reset or skip changed the level.
+    /// </summary>
+    public bool TryAdvance(LevelGarden next) {
+        ArgumentNullException.ThrowIfNull(next);
+
+        if (!Board.IsSolved || IsExtraGarden || next.Level != Level + 1) {
+            return false;
+        }
+
+        GoToLevel(next);
+        return true;
+    }
+
+    /// <summary>
     /// Starts this garden again after running out of sun. Returns false otherwise.
     /// </summary>
     public bool TryRestart() {
