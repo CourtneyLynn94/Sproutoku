@@ -43,17 +43,26 @@ Run the same commands without `--verify-no-changes` to fix formatting automatica
 
 ## Build for release
 
-**Android** (installable APK):
+**Android** (signed APK that installs over earlier releases):
 ```powershell
-dotnet publish src/Sproutoku.App -f net10.0-android -c Release -p:AndroidPackageFormat=apk
+.\scripts\publish-android.ps1
 ```
-Output: `src/Sproutoku.App/bin/Release/net10.0-android/publish/` (use the `-Signed.apk`).
+It asks for the keystore password. Output: `src/Sproutoku.App/bin/Release/net10.0-android/publish/` (use the `-Signed.apk`).
 
 **Windows** (self-contained folder; zip it and run `Sproutoku.App.exe`):
 ```powershell
 dotnet publish src/Sproutoku.App -f net10.0-windows10.0.19041.0 -c Release
 ```
 Output: `src/Sproutoku.App/bin/Release/net10.0-windows10.0.19041.0/win-x64/publish/`
+
+### Signing releases
+
+Release APKs are signed with one permanent key, so each release installs as an update. **If the key is lost, players can't update and must reinstall.**
+
+- The keystore lives outside the repo; the `SPROUTOKU_KEYSTORE` environment variable holds its full path. The password is never stored in the repo.
+- The keystore and its password are backed up in a password manager and a second location.
+- Before each release, raise `ApplicationVersion` in `Sproutoku.App.csproj` (major × 10000 + minor × 100 + patch) and set `ApplicationDisplayVersion` to match.
+- Without `SPROUTOKU_KEYSTORE`, Release builds use the debug key (that's what CI does).
 
 ## Continuous integration
 
