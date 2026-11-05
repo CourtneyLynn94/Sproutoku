@@ -1,4 +1,4 @@
-using Sproutoku.Core.Play;
+using Sproutoku.Core.Boards;
 using Sproutoku.Core.Puzzles;
 
 namespace Sproutoku.Core.Solving;

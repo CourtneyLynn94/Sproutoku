@@ -1,5 +1,6 @@
+using Sproutoku.Core.Boards;
 using Sproutoku.Core.Generation;
-using Sproutoku.Core.Play;
+using Sproutoku.Core.Levels;
 using System.Text.Json;
 
 namespace Sproutoku.Core.Saving;

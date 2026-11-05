@@ -1,7 +1,7 @@
 using Sproutoku.Core.Generation;
 using Sproutoku.Core.Puzzles;
 using Sproutoku.Core.Solving;
-using Sproutoku.Core.Tests.Puzzles;
+using Sproutoku.Core.Tests.TestSupport;
 
 namespace Sproutoku.Core.Tests.Generation;
 

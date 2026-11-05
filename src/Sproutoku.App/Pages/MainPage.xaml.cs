@@ -3,15 +3,15 @@ using Sproutoku.App.Garden;
 using Sproutoku.App.Saving;
 using Sproutoku.Core.Play;
 using System.Diagnostics;
-using Sproutoku.Core.Generation;
-using Sproutoku.Core.Solving;
+using Sproutoku.Core.Boards;
+using Sproutoku.Core.Levels;
 using Cell = Sproutoku.Core.Puzzles.Cell;
 
 #if ANDROID || IOS
 using Sproutoku.App.Feedback;
 #endif
 
-namespace Sproutoku.App;
+namespace Sproutoku.App.Pages;
 
 public partial class MainPage : ContentPage {
     // At this width and up, the desktop layout puts the list, board and shelf side by side.

@@ -1,7 +1,8 @@
+using Sproutoku.Core.Levels;
 using Sproutoku.Core.Play;
-using Sproutoku.Core.Tests.Puzzles;
+using Sproutoku.Core.Tests.TestSupport;
 
-namespace Sproutoku.Core.Tests.Play;
+namespace Sproutoku.Core.Tests.Levels;
 
 public class LevelPreparerTests {
     // A real garden to copy, so fake growers can return something valid quickly.

@@ -1,8 +1,9 @@
+using Sproutoku.Core.Boards;
 using Sproutoku.Core.Generation;
-using Sproutoku.Core.Play;
+using Sproutoku.Core.Levels;
 using Sproutoku.Core.Puzzles;
 using Sproutoku.Core.Saving;
-using Sproutoku.Core.Tests.Puzzles;
+using Sproutoku.Core.Tests.TestSupport;
 
 namespace Sproutoku.Core.Tests.Saving;
 

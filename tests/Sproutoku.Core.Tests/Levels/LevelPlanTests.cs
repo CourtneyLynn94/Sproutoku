@@ -1,8 +1,9 @@
+using Sproutoku.Core.Boards;
 using Sproutoku.Core.Generation;
-using Sproutoku.Core.Play;
+using Sproutoku.Core.Levels;
 using static Sproutoku.Core.Solving.DifficultyGrade;
 
-namespace Sproutoku.Core.Tests.Play;
+namespace Sproutoku.Core.Tests.Levels;
 
 public class LevelPlanTests {
     // Recipes for levels 1–2,000, each from a seed made from its level number.

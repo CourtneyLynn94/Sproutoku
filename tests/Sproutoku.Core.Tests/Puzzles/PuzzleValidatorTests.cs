@@ -1,4 +1,5 @@
 using Sproutoku.Core.Puzzles;
+using Sproutoku.Core.Tests.TestSupport;
 
 namespace Sproutoku.Core.Tests.Puzzles;
 

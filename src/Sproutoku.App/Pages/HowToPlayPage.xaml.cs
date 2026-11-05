@@ -1,9 +1,9 @@
 using Sproutoku.App.Garden;
-using Sproutoku.Core.Play;
+using Sproutoku.Core.Boards;
 using Sproutoku.Core.Puzzles;
 using Cell = Sproutoku.Core.Puzzles.Cell;
 
-namespace Sproutoku.App;
+namespace Sproutoku.App.Pages;
 
 public partial class HowToPlayPage : ContentPage {
     public HowToPlayPage() {

@@ -1,6 +1,6 @@
 using Sproutoku.Core.Puzzles;
 
-namespace Sproutoku.Core.Tests.Puzzles;
+namespace Sproutoku.Core.Tests.TestSupport;
 
 /// <summary>
 /// Small gardens shared by the puzzle tests.

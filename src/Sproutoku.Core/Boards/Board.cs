@@ -1,7 +1,7 @@
 using Sproutoku.Core.Puzzles;
 using System.Text;
 
-namespace Sproutoku.Core.Play;
+namespace Sproutoku.Core.Boards;
 
 /// <summary>
 /// The player's progress on one garden, kept separate from the puzzle's answer key.

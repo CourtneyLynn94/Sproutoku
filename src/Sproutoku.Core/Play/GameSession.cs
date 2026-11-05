@@ -1,4 +1,6 @@
+using Sproutoku.Core.Boards;
 using Sproutoku.Core.Input;
+using Sproutoku.Core.Levels;
 using Sproutoku.Core.Puzzles;
 using Sproutoku.Core.Saving;
 

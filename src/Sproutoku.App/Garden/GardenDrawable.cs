@@ -1,5 +1,5 @@
+using Sproutoku.Core.Boards;
 using Sproutoku.Core.Input;
-using Sproutoku.Core.Play;
 using Sproutoku.Core.Puzzles;
 using Cell = Sproutoku.Core.Puzzles.Cell;
 

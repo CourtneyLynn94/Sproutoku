@@ -1,9 +1,9 @@
 using Sproutoku.Core.Generation;
-using Sproutoku.Core.Play;
+using Sproutoku.Core.Levels;
 using Sproutoku.Core.Solving;
-using Sproutoku.Core.Tests.Puzzles;
+using Sproutoku.Core.Tests.TestSupport;
 
-namespace Sproutoku.Core.Tests.Play;
+namespace Sproutoku.Core.Tests.Levels;
 
 public class GardenLevelsTests {
     [Theory]
