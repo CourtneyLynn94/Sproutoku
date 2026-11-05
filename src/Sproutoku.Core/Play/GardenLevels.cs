@@ -5,7 +5,8 @@ using Sproutoku.Core.Puzzles;
 namespace Sproutoku.Core.Play;
 
 /// <summary>
-/// A level's garden: the level, the seed it came from, its recipe from the level plan, and the generated garden.
+/// A level's garden: the level, the seed it came from, its recipe from the level plan, and the generated garden;
+/// and never looks like the first choices of the five levels before it.
 /// </summary>
 public sealed record LevelGarden(int Level, ulong Seed, LevelRecipe Recipe, GeneratedGarden Garden) {
     public Puzzle Puzzle => Garden.Puzzle;
@@ -39,6 +40,9 @@ public static class GardenLevels {
     // First choices already worked out. Each one is compared against the next five levels, so it's kept.
     private static readonly ConcurrentDictionary<int, LevelGarden> FirstChoices = new();
 
+    // Levels already chosen, so asking for one again (resuming, tests) doesn't grow it again.
+    private static readonly ConcurrentDictionary<int, LevelGarden> Chosen = new();
+
     /// <summary>
     /// A level's seed.
     /// </summary>
@@ -53,7 +57,10 @@ public static class GardenLevels {
     /// </summary>
     public static LevelGarden ForLevel(int level) {
         ArgumentOutOfRangeException.ThrowIfLessThan(level, 1);
+        return Chosen.GetOrAdd(level, Choose);
+    }
 
+    private static LevelGarden Choose(int level) {
         var neighbors = Enumerable.Range(Math.Max(1, level - LookAlikeNeighbors), Math.Min(LookAlikeNeighbors, level - 1))
             .Select(FirstChoiceFor)
             .ToList();

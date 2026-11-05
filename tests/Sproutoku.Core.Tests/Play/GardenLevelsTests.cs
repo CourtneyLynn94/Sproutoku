@@ -57,7 +57,7 @@ public class GardenLevelsTests {
     }
 
     [Fact]
-    public void NoLevel_LooksLikeTheFiveBeforeIt_AndSomeMovedToABackup() {
+    public void NoLevel_LooksLikeTheFirstChoicesOfTheFiveBeforeIt_AndSomeMovedToABackup() {
         int moved = 0;
 
         for (int level = 2; level <= 100; level++) {
