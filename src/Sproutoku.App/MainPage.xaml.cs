@@ -89,6 +89,7 @@ public partial class MainPage : ContentPage {
         GardenSignLabel.Text = Session.IsExtraGarden ? "Test garden" : $"Garden {Session.Level}";
         InfoLabel.Text = info;
         UpdatePlantingList();
+        UpdateToolShelf();
         GardenView.Invalidate();
 
         SaveProgress();
@@ -446,6 +447,7 @@ public partial class MainPage : ContentPage {
 
         _garden.Board = Session.Board;
         UpdatePlantingList();
+        UpdateToolShelf();
         UpdateSunMeter(animate: true);
         GardenView.Invalidate();
 
@@ -582,6 +584,25 @@ public partial class MainPage : ContentPage {
         }
 
         SemanticProperties.SetDescription(SunMeter, $"{board.SunsLeft} of {board.StartingSuns} suns left");
+    }
+    #endregion
+
+    #region Tool shelf
+    // Each tool's name and count; a tool works when there's one left and the garden isn't over.
+    // The Rake is an unlimited tool that arrives with #49.
+    private void UpdateToolShelf() {
+        ShowTool(SeedsButton, "Seeds", PowerUp.Seeds);
+        ShowTool(WormButton, "Worm", PowerUp.Worm);
+        ShowTool(WaterButton, "Water", PowerUp.Water);
+        RakeButton.IsEnabled = false;
+    }
+
+    private void ShowTool(Button button, string name, PowerUp powerUp) {
+        int left = Session.PowerUps[powerUp];
+
+        button.Text = $"{name}\n{left}";
+        button.IsEnabled = Session.CanUse(powerUp);
+        SemanticProperties.SetDescription(button, $"{name}, {left} left. {ToolTipProperties.GetText(button)}");
     }
     #endregion
 }

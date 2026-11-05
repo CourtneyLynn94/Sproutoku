@@ -21,9 +21,13 @@ public sealed class GameSession {
     // The level's board, set aside while an extra garden is played. Null when playing the level itself.
     private Board? _levelBoard;
 
-    private GameSession(LevelGarden levelGarden, Board board, DoubleTapDetector doubleTap) {
+    // The level's power-ups, set aside with its board while an extra garden is played.
+    private PowerUpSupply? _levelPowerUps;
+
+    private GameSession(LevelGarden levelGarden, Board board, PowerUpSupply powerUps, DoubleTapDetector doubleTap) {
         LevelGarden = levelGarden;
         Board = board;
+        PowerUps = powerUps;
         _doubleTap = doubleTap;
     }
 
@@ -48,6 +52,16 @@ public sealed class GameSession {
     public Board Board { get; private set; }
 
     /// <summary>
+    /// The power-ups left for this garden. A new garden and a fresh start (Try again) get the starting supply.
+    /// </summary>
+    public PowerUpSupply PowerUps { get; private set; }
+
+    /// <summary>
+    /// True if a power-up can be used now: there's one left and the garden isn't over.
+    /// </summary>
+    public bool CanUse(PowerUp powerUp) => PowerUps.Has(powerUp) && !Board.IsFinished;
+
+    /// <summary>
     /// True while playing a garden outside the levels. Finishing it returns to the level.
     /// </summary>
     public bool IsExtraGarden => _levelBoard is not null;
@@ -61,14 +75,14 @@ public sealed class GameSession {
     /// Picks up from a save, or starts at Garden 1 when there's no usable save.
     /// </summary>
     public static GameSession Resume(GameSave? save, DoubleTapDetector? doubleTap = null) {
-        var (levelGarden, board) = GameSave.Resume(save);
-        return new GameSession(levelGarden, board, doubleTap ?? new DoubleTapDetector());
+        var point = GameSave.Resume(save);
+        return new GameSession(point.Garden, point.Board, point.PowerUps, doubleTap ?? new DoubleTapDetector());
     }
 
     /// <summary>
-    /// What to store so this game can be resumed later. An extra garden is never saved; the level's board is.
+    /// What to store so this game can be resumed later. An extra garden is never saved; the level's board and power-ups are.
     /// </summary>
-    public GameSave ToSave() => GameSave.From(Level, _levelBoard ?? Board);
+    public GameSave ToSave() => GameSave.From(Level, _levelBoard ?? Board, _levelPowerUps ?? PowerUps);
 
     /// <summary>
     /// Moves on once this garden is solved: back to the level after an extra garden, otherwise to the next level.
@@ -80,8 +94,10 @@ public sealed class GameSession {
         }
 
         if (_levelBoard is { } levelBoard) {
+            var levelPowerUps = _levelPowerUps ?? PowerUpSupply.Starting;
             _levelBoard = null;
-            SetGarden(LevelGarden, levelBoard);
+            _levelPowerUps = null;
+            SetGarden(LevelGarden, levelBoard, levelPowerUps);
             return true;
         }
 
@@ -113,7 +129,7 @@ public sealed class GameSession {
             return false;
         }
 
-        SetGarden(LevelGarden, Board.Restart());
+        SetGarden(LevelGarden, Board.Restart(), PowerUpSupply.Starting);
         return true;
     }
 
@@ -136,7 +152,9 @@ public sealed class GameSession {
         ArgumentNullException.ThrowIfNull(levelGarden);
 
         _levelBoard = null;
-        SetGarden(levelGarden, levelGarden.Start());
+        _levelBoard = null;
+        _levelPowerUps = null;
+        SetGarden(levelGarden, levelGarden.Start(), PowerUpSupply.Starting);
     }
 
     /// <summary>
@@ -146,17 +164,22 @@ public sealed class GameSession {
     public void PlayExtraGarden(Puzzle puzzle) {
         ArgumentNullException.ThrowIfNull(puzzle);
 
-        _levelBoard ??= Board;
-        SetGarden(LevelGarden, Board.Start(puzzle));
+        if (_levelBoard is null) {
+            _levelBoard = Board;
+            _levelPowerUps = PowerUps;
+        }
+
+        SetGarden(LevelGarden, Board.Start(puzzle), PowerUpSupply.Starting);
     }
 
     // A level's garden, fresh.
     private void StartLevel(int level) => GoToLevel(GardenLevels.ForLevel(level));
 
     // A new garden forgets the last tap, so a tap on the old garden can't pair up with one on the new one.
-    private void SetGarden(LevelGarden levelGarden, Board board) {
+    private void SetGarden(LevelGarden levelGarden, Board board, PowerUpSupply powerUps) {
         LevelGarden = levelGarden;
         Board = board;
+        PowerUps = powerUps;
         _doubleTap.Reset();
         _boardBeforeTap = null;
         _dragMode = null;

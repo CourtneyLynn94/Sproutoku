@@ -69,23 +69,27 @@
                   ColumnSpacing="8"
                   VerticalOptions="Start">
                 <Button x:Name="SeedsButton"
-                        Text="Seeds"
                         IsEnabled="False"
-                        Padding="4" />
+                        Padding="4"
+                        LineBreakMode="WordWrap"
+                        ToolTipProperties.Text="Seeds: plants one correct seed for you." />
                 <Button x:Name="WormButton"
-                        Text="Worm"
                         IsEnabled="False"
-                        Padding="4" />
+                        Padding="4"
+                        LineBreakMode="WordWrap"
+                        ToolTipProperties.Text="Worm: shows where to look next, and explains why." />
                 <Button x:Name="WaterButton"
-                        Text="Water"
                         IsEnabled="False"
-                        Padding="4" />
+                        Padding="4"
+                        LineBreakMode="WordWrap"
+                        ToolTipProperties.Text="Water: reveals a few cells where nothing can grow." />
                 <BoxView x:Name="ShelfDivider"
                          Color="#CDBF9B" />
                 <Button x:Name="RakeButton"
                         Text="Rake"
                         IsEnabled="False"
-                        Padding="4" />
+                        Padding="4"
+                        ToolTipProperties.Text="Rake: clears all your ✕ marks. Coming soon." />
             </Grid>
         </Grid>
     </Grid>

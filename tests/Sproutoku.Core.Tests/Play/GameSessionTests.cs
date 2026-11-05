@@ -590,4 +590,66 @@ public class GameSessionTests {
         Assert.Equal(2, session.Level);
     }
     #endregion
+
+    #region Power-ups
+    // A game whose level has only one Worm left, as if one had been used.
+    private static GameSession GameWithOneWormLeft() =>
+        GameSession.Resume(NewGame().ToSave() with { PowerUps = new PowerUpSupply(0, 1, 0) });
+
+    [Fact]
+    public void ANewGame_HasTheStartingPowerUps() {
+        Assert.Equal(PowerUpSupply.Starting, NewGame().PowerUps);
+    }
+
+    [Fact]
+    public void APowerUp_CanBeUsed_OnlyWithOneLeft_AndBeforeTheGardenEnds() {
+        var session = NewGame();
+
+        Assert.True(session.CanUse(PowerUp.Worm));
+        Assert.False(session.CanUse(PowerUp.Seeds));
+
+        Solve(session);
+        Assert.False(session.CanUse(PowerUp.Worm));
+    }
+
+    [Fact]
+    public void PowerUps_AreSaved_AndResumed() {
+        var session = GameWithOneWormLeft();
+
+        Assert.Equal(1, session.PowerUps.Worm);
+        Assert.Equal(1, GameSession.Resume(session.ToSave()).PowerUps.Worm);
+    }
+
+    [Fact]
+    public void ANewGarden_RefillsThePowerUps() {
+        var session = GameWithOneWormLeft();
+
+        session.GoToLevel(2);
+
+        Assert.Equal(PowerUpSupply.Starting, session.PowerUps);
+    }
+
+    [Fact]
+    public void TryAgain_RefillsThePowerUps() {
+        var session = GameWithOneWormLeft();
+        Lose(session);
+
+        session.TryRestart();
+
+        Assert.Equal(PowerUpSupply.Starting, session.PowerUps);
+    }
+
+    [Fact]
+    public void AnExtraGarden_HasItsOwnPowerUps_AndTheLevelsWait() {
+        var session = GameWithOneWormLeft();
+
+        session.PlayExtraGarden(ExtraGarden());
+        Assert.Equal(PowerUpSupply.Starting, session.PowerUps);
+        Assert.Equal(1, session.ToSave().PowerUps?.Worm); // Saving keeps the level's supply.
+
+        Solve(session);
+        session.TryAdvance();
+        Assert.Equal(1, session.PowerUps.Worm);
+    }
+    #endregion
 }

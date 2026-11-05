@@ -159,4 +159,35 @@ public class GameSaveTests {
         Assert.Equal("", save.Cells);
         Assert.Null(save.GardenFingerprint);
     }
+
+    [Fact]
+    public void Resume_KeepsTheSavedPowerUps_ForARestoredBoard() {
+        var save = GameSave.From(2, Board.Start(Level2), new PowerUpSupply(0, 1, 0));
+
+        Assert.Equal(new PowerUpSupply(0, 1, 0), GameSave.Resume(save).PowerUps);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Resume_GivesTheStartingPowerUps_ForAMissingOrBrokenSupply(bool broken) {
+        var save = GameSave.From(2, Board.Start(Level2), broken ? new PowerUpSupply(0, -5, 0) : null);
+
+        Assert.Equal(PowerUpSupply.Starting, GameSave.Resume(save).PowerUps);
+    }
+
+    [Fact]
+    public void Resume_AFreshGarden_GetsTheStartingPowerUps() {
+        // The board doesn't fit, so the level starts fresh, and a fresh garden has a full supply.
+        var save = new GameSave(GameSave.CurrentVersion, 2, 3, 3, CellsThatDontFitLevel2(), PowerUps: new PowerUpSupply(0, 0, 0));
+
+        Assert.Equal(PowerUpSupply.Starting, GameSave.Resume(save).PowerUps);
+    }
+
+    [Fact]
+    public void Json_KeepsThePowerUps() {
+        var save = GameSave.From(2, Board.Start(Level2), new PowerUpSupply(0, 1, 0));
+
+        Assert.Equal(save, GameSave.FromJson(save.ToJson()));
+    }
 }
