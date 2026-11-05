@@ -1,3 +1,4 @@
+using Sproutoku.Core.Generation;
 using Sproutoku.Core.Play;
 using Sproutoku.Core.Puzzles;
 using Sproutoku.Core.Saving;
@@ -34,6 +35,7 @@ public class GameSaveTests {
         var loaded = GameSave.FromJson(save.ToJson());
 
         Assert.Equal(save, loaded);
+        Assert.Equal(GardenLikeness.Fingerprint(Level2), loaded?.GardenFingerprint);
     }
 
     [Theory]
@@ -133,5 +135,28 @@ public class GameSaveTests {
 
         Assert.Equal(2, garden.Level);
         Assert.Equal(garden.Recipe.Suns, board.StartingSuns);
+    }
+
+    [Fact]
+    public void Resume_SaveFromAChangedGarden_StartsTheLevelFresh() {
+        var board = Board.Start(Level2).ToggleMark(WrongCell(Level2));
+        var save = GameSave.From(2, board) with { GardenFingerprint = "a garden from before an update" };
+
+        var (garden, resumed) = GameSave.Resume(save);
+
+        Assert.Equal(2, garden.Level);
+        Assert.Equal(0, resumed.CountOf(CellState.Marked));
+    }
+
+    [Fact]
+    public void FromJson_Version2Save_KeepsItsLevel_ButDropsItsBoard() {
+        string json = $$"""{"Version":2,"Level":3,"StartingSuns":3,"SunsLeft":3,"Cells":"{{new string('x', 25)}}"}""";
+
+        var save = GameSave.FromJson(json);
+
+        Assert.NotNull(save);
+        Assert.Equal(3, save.Level);
+        Assert.Equal("", save.Cells);
+        Assert.Null(save.GardenFingerprint);
     }
 }

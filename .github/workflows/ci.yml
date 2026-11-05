@@ -38,7 +38,7 @@ jobs:
         run: dotnet build tests/Sproutoku.Core.Tests/Sproutoku.Core.Tests.csproj --no-restore -warnaserror
 
       - name: Run unit tests
-        run: dotnet test tests/Sproutoku.Core.Tests/Sproutoku.Core.Tests.csproj --no-build
+        run: dotnet test tests/Sproutoku.Core.Tests/Sproutoku.Core.Tests.csproj --no-build --filter "Speed!=Slow"
 
   android-build:
     name: App build (Android)

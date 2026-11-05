@@ -1,29 +1,31 @@
-using System.Text.Json;
+using Sproutoku.Core.Generation;
 using Sproutoku.Core.Play;
+using System.Text.Json;
 
 namespace Sproutoku.Core.Saving;
 
 /// <summary>
-/// Everything needed to put the player back where they left off: the level and that garden's board.
-/// The garden itself isn't saved; the level number builds it again.
+/// Everything needed to put the player back where they left off: the level, that garden's board, and the garden's fingerprint.
+/// The garden itself isn't saved; the level number builds it again, and the fingerprint checks it's still the same garden.
 /// </summary>
-public sealed record GameSave(int Version, int Level, int StartingSuns, int SunsLeft, string Cells) {
+public sealed record GameSave(int Version, int Level, int StartingSuns, int SunsLeft, string Cells, string? GardenFingerprint = null) {
     /// <summary>
-    /// Bump this when the save format or what a level number means changes.
-    /// 2: levels are generated from the level plan (#43). Version 1 saves keep their level but not their board; other versions are ignored.
+    /// Bump this when the save format changes.
+    /// 3: the save holds its garden's fingerprint, so a board only restores onto the garden it was played on.
+    /// Version 1 and 2 saves keep their level but not their board; other versions are ignored.
     /// </summary>
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public static GameSave From(int level, Board board) {
         ArgumentNullException.ThrowIfNull(board);
-        return new GameSave(CurrentVersion, level, board.StartingSuns, board.SunsLeft, board.CellsToText());
+        return new GameSave(CurrentVersion, level, board.StartingSuns, board.SunsLeft, board.CellsToText(), GardenLikeness.Fingerprint(board.Puzzle));
     }
 
     public string ToJson() => JsonSerializer.Serialize(this);
 
     /// <summary>
     /// Reads a save, or returns null if there is none, it can't be read, or it's a version this game doesn't know.
-    /// A version 1 save keeps its level but loses its board: before #43 a level number meant a different garden, so Resume starts that level fresh.
+    /// A version 1 or 2 save keeps its level but loses its board: previously a level number meant a different garden, so Resume starts that level fresh.
     /// </summary>
     public static GameSave? FromJson(string? json) {
         if (string.IsNullOrWhiteSpace(json)) {
@@ -34,7 +36,9 @@ public sealed record GameSave(int Version, int Level, int StartingSuns, int Suns
             var save = JsonSerializer.Deserialize<GameSave>(json);
             return save?.Version switch {
                 CurrentVersion => save,
-                1 => save with { Version = CurrentVersion, Cells = "" },
+                // Saves from before fingerprints can't show whether their garden changed since,
+                // so they keep their level but not their board, and Resume starts that level fresh.
+                1 or 2 => save with { Version = CurrentVersion, Cells = "", GardenFingerprint = null },
                 _ => null,
             };
         }
@@ -56,7 +60,8 @@ public sealed record GameSave(int Version, int Level, int StartingSuns, int Suns
 
         var garden = GardenLevels.ForLevel(save.Level);
 
-        if (Board.TryRestore(garden.Puzzle, save.Cells, save.StartingSuns, save.SunsLeft) is not { } board) {
+        // A board only restores onto the garden it was played on. If an update changed this level's garden, it starts fresh.
+        if (save.GardenFingerprint != garden.Fingerprint || Board.TryRestore(garden.Puzzle, save.Cells, save.StartingSuns, save.SunsLeft) is not { } board) {
             return (garden, garden.Start());
         }
 
