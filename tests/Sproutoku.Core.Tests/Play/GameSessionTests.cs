@@ -450,6 +450,39 @@ public class GameSessionTests {
         Assert.Same(garden.Puzzle, session.Board.Puzzle);
         Assert.Equal(garden.Recipe.Suns, session.Board.SunsLeft);
     }
+
+    [Fact]
+    public void TryAdvance_ToAPreparedGarden_MovesOnOnce() {
+        var session = NewGame();
+        var next = GardenLevels.ForLevel(2);
+        Solve(session);
+
+        Assert.True(session.TryAdvance(next));
+        Assert.Equal(2, session.Level);
+        Assert.Same(next.Puzzle, session.Board.Puzzle);
+        Assert.False(session.TryAdvance(next)); // Level 2 is unsolved, and it isn't the next level any more.
+    }
+
+    [Fact]
+    public void TryAdvance_ToAPreparedGarden_RefusesAnUnsolvedGarden_OrTheWrongLevel() {
+        var session = NewGame();
+
+        Assert.False(session.TryAdvance(GardenLevels.ForLevel(2))); // Mid-garden.
+
+        Solve(session);
+        Assert.False(session.TryAdvance(GardenLevels.ForLevel(3))); // Not the next level.
+        Assert.Equal(1, session.Level);
+    }
+
+    [Fact]
+    public void TryAdvance_ToAPreparedGarden_DoesNothing_DuringAnExtraGarden() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        Solve(session);
+
+        Assert.False(session.TryAdvance(GardenLevels.ForLevel(2)));
+        Assert.True(session.IsExtraGarden);
+    }
     #endregion
 
     #region Endless levels
