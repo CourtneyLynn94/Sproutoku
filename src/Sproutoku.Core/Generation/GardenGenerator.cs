@@ -4,9 +4,9 @@ using Sproutoku.Core.Solving;
 namespace Sproutoku.Core.Generation;
 
 /// <summary>
-/// A generated garden with its difficulty grade, how many logic steps it takes, and how many attempts it took to make (for the dev view).
+/// A generated garden with its difficulty grade, how many logic steps it takes, how many attempts it took to make, and its bed style (for the dev view).
 /// </summary>
-public sealed record GeneratedGarden(Puzzle Puzzle, DifficultyGrade Grade, int Steps, int Attempts);
+public sealed record GeneratedGarden(Puzzle Puzzle, DifficultyGrade Grade, int Steps, int Attempts, BedStyle Style);
 
 /// <summary>
 /// Makes a new garden from a seed: plants, beds, then reshaping until there's exactly one answer that logic alone can reach.
@@ -15,8 +15,9 @@ public sealed record GeneratedGarden(Puzzle Puzzle, DifficultyGrade Grade, int S
 public static class GardenGenerator {
     /// <summary>
     /// Part of every release level's seed. Bump it when a change to the generator or the level plan changes the gardens it makes.
+    /// 2: bed styles (#51)
     /// </summary>
-    public const int Version = 1;
+    public const int Version = 2;
 
     /// <summary>
     /// Attempts before giving up. Real gardens need about 1 to 40, so this is never reached in practice.
@@ -46,7 +47,8 @@ public static class GardenGenerator {
         // A failed attempt keeps drawing from the same random sequence, so the next one starts fresh but is still set by the seed.
         for (int attempt = 1; attempt <= MaxAttempts; attempt++) {
             var plants = PlantPlacer.Place(size, random);
-            var beds = BedGrower.Grow(plants, random);
+            var style = BedGrower.PickStyle(random);
+            var beds = BedGrower.Grow(plants, random, style);
 
             if (!BedReshaper.TryMakeUnique(beds, plants, random, maxMoves: size * size)) continue;
 
@@ -57,7 +59,7 @@ public static class GardenGenerator {
             var grade = DifficultyGrader.Grade(solve);
             if (grade < easiest || grade > hardest) continue;
 
-            return new GeneratedGarden(Puzzle.Create(beds, plants), grade, solve.Steps.Count, attempt);
+            return new GeneratedGarden(Puzzle.Create(beds, plants), grade, solve.Steps.Count, attempt, style);
         }
 
         return null;

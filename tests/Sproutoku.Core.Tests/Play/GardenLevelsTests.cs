@@ -1,3 +1,4 @@
+using Sproutoku.Core.Generation;
 using Sproutoku.Core.Play;
 using Sproutoku.Core.Solving;
 using Sproutoku.Core.Tests.Puzzles;
@@ -53,5 +54,45 @@ public class GardenLevelsTests {
     public void LevelsBelowOne_Throw(int level) {
         Assert.Throws<ArgumentOutOfRangeException>(() => GardenLevels.ForLevel(level));
         Assert.Throws<ArgumentOutOfRangeException>(() => GardenLevels.SeedFor(level));
+    }
+
+    [Fact]
+    public void NoLevel_LooksLikeTheFirstChoicesOfTheFiveBeforeIt_AndSomeMovedToABackup() {
+        int moved = 0;
+
+        for (int level = 2; level <= 100; level++) {
+            var garden = GardenLevels.ForLevel(level);
+            for (int earlier = Math.Max(1, level - GardenLevels.LookAlikeNeighbors); earlier < level; earlier++) {
+                Assert.False(
+                    GardenLikeness.LookAlike(garden.Puzzle, GardenLevels.FirstChoiceFor(earlier).Puzzle),
+                    $"Level {level} looks like level {earlier}.");
+            }
+
+            if (garden.Fingerprint != GardenLevels.FirstChoiceFor(level).Fingerprint) moved++;
+        }
+
+        // The check really is at work: some first choices looked like a neighbor and were replaced.
+        Assert.True(moved > 0);
+    }
+
+    [Fact]
+    public void TheFirst200Levels_AreAllDifferentGardens() {
+        AssertAllDifferent(200);
+    }
+
+    [Fact]
+    [Trait("Speed", "Slow")]
+    public void TheFirst2000Levels_AreAllDifferentGardens() {
+        // Slow (it grows 2,000 gardens), so CI skips it. Run it by hand before a release.
+        AssertAllDifferent(2000);
+    }
+
+    private static void AssertAllDifferent(int levels) {
+        var seen = new Dictionary<string, int>();
+        for (int level = 1; level <= levels; level++) {
+            string fingerprint = GardenLevels.ForLevel(level).Fingerprint;
+            Assert.False(seen.TryGetValue(fingerprint, out int earlier), $"Level {level} repeats level {earlier}.");
+            seen[fingerprint] = level;
+        }
     }
 }

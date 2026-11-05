@@ -128,6 +128,7 @@ public partial class MainPage : ContentPage {
         if (recipe.IsOneSun) parts.Add("One sun");
 #if DEBUG
         parts.Add(Session.LevelGarden.Garden.Grade.ToString());
+        parts.Add(Session.LevelGarden.Garden.Style.ToString());
         parts.Add($"seed {Session.Seed}");
 #endif
         return string.Join(" · ", parts);

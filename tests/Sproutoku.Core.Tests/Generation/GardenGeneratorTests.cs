@@ -23,12 +23,11 @@ public class GardenGeneratorTests {
     [Fact]
     public void Gardens_ArePinnedForKnownSeeds() {
         // Worked out with a reference script. If these change, every generated level changes.
-        // 4×4: one reshaping move.
-        // 5×5: one answer straight away (the same beds as BedGrowerTests).
-        // 6×6: the first attempt gets stuck and the second one succeeds.
-        Assert.Equal(["1000", "1000", "1222", "1333"], Beds(GardenGenerator.Generate(4, 1).Puzzle));
-        Assert.Equal(["20011", "22001", "22111", "43333", "43333"], Beds(GardenGenerator.Generate(5, 1).Puzzle));
-        Assert.Equal(["022211", "222211", "222211", "222213", "444455", "444555"], Beds(GardenGenerator.Generate(6, 1).Puzzle));
+        // 4×4 grows in the Even style; 5×5 and 6×6 in Sprawling. All three succeed on the first attempt.
+        Assert.Equal(["1000", "1112", "1322", "3322"], Beds(GardenGenerator.Generate(4, 1).Puzzle));
+        Assert.Equal(["40011", "40311", "42331", "43331", "44331"], Beds(GardenGenerator.Generate(5, 1).Puzzle));
+        Assert.Equal(["000011", "000112", "034442", "033342", "053444", "053444"], Beds(GardenGenerator.Generate(6, 1).Puzzle));
+        Assert.Equal(BedStyle.Even, GardenGenerator.Generate(4, 1).Style);
     }
 
     [Theory]
@@ -55,7 +54,7 @@ public class GardenGeneratorTests {
     [Fact]
     public void Attempts_AreCounted() {
         Assert.Equal(1, GardenGenerator.Generate(5, 1).Attempts);
-        Assert.Equal(2, GardenGenerator.Generate(6, 1).Attempts); // The first attempt gets stuck reshaping.
+        Assert.Equal(3, GardenGenerator.Generate(6, 7).Attempts);
     }
 
     [Theory]
