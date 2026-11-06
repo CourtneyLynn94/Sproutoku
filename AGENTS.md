@@ -5,7 +5,9 @@ Grow one plant in every bed (region); each row and column has exactly one plant;
 plants never touch, not even diagonally. Gardens are N×N with N beds.
 
 ## Architecture
-- `Sproutoku.Core`: all game rules, no MAUI references. `Board` is immutable: every change returns a new Board.
+- `Sproutoku.Core`: all game rules, no MAUI references, in feature folders (folder = namespace):
+  `Puzzles` (what a garden is), `Boards` (what the player sees; `Board` is immutable), `Play` (`GameSession`),
+  `Levels`, `PowerUps`, `Generation`, `Solving`, `Input`, `Saving`. Tests mirror these folders.
 - `GameSession` (Core) owns the level, board, tap meaning, progression, restarting and saving.
 - `Sproutoku.App`: MAUI UI only. Pages pass input to `GameSession` and show the results.
 - Saves: `GameSave` (Core, JSON) and `GameStorage` (App, MAUI Preferences).
