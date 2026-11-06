@@ -39,7 +39,7 @@ public static class WormHelper {
                 ? step.Reasons.ToList() // The plant itself.
                 : step.Areas.SelectMany(each => CellsOf(board.Puzzle, each)).Distinct().ToList();
 
-            return new WormHint(step, Describe(step, wrongMarks), area, targets, wrongMarks);
+            return new WormHint(step, Describe(board.Puzzle, step, targets, wrongMarks), area, targets, wrongMarks);
         }
 
         return null;
@@ -52,7 +52,7 @@ public static class WormHelper {
             .ToList();
 
     // What the worm says: where to look, then why, in one go.
-    private static string Describe(LogicStep step, List<Cell> wrongMarks) {
+    private static string Describe(Puzzle puzzle, LogicStep step, List<Cell> targets, List<Cell> wrongMarks) {
         const string MarkThem = "mark the circled cells with ✕.";
 
         var beds = step.Areas.Where(area => area.Kind == AreaKind.Bed).ToList();
@@ -98,10 +98,11 @@ public static class WormHelper {
             }
 
             default: {
-                // WouldStarve: the area that would be left with nowhere to grow.
+                // WouldStarve: the area that would be left with nowhere to grow, and the rules that would do it.
                 string area = Name(step.Areas[0]);
-                return $"Look at {area}. A plant in any circled cell would rule out every open cell left in {area}, leaving it nowhere to grow. "
-                    + "So none of those cells can hold a plant: mark them with ✕.";
+                return $"Look at {area}. A plant in any circled cell would rule out every open cell left in {area}, "
+                    + $"because each of them {WhyRuledOut(puzzle, targets, step.Reasons)}. "
+                    + $"{Capitalized(area)} would have nowhere left to grow, so none of the circled cells can hold a plant: mark them with ✕.";
             }
         }
     }
@@ -139,4 +140,37 @@ public static class WormHelper {
             ? $"{kind} {numbers[0]}"
             : $"{kind}s {string.Join(", ", numbers.Take(numbers.Count - 1))} and {numbers[^1]}";
     }
+
+    // Which rules would let a plant in a circled cell rule out the area's open cells, in plain words.
+    // Only the rules that actually apply are listed.
+    private static string WhyRuledOut(Puzzle puzzle, IReadOnlyList<Cell> circled, IReadOnlyList<Cell> openCells) {
+        bool sharesBed = false, sharesLine = false, touches = false;
+
+        foreach (var target in circled) {
+            foreach (var cell in openCells) {
+                if (puzzle.RegionAt(cell) == puzzle.RegionAt(target)) {
+                    sharesBed = true;
+                } else if (cell.Row == target.Row || cell.Column == target.Column) {
+                    sharesLine = true;
+                } else {
+                    touches = true; // The solver only rules a cell out if one of the three applies, so this one does.
+                }
+            }
+        }
+
+        // The first rule names "that cell"; the rest say "its" or "it".
+        var rules = new List<(string First, string Later)>();
+        if (sharesBed) rules.Add(("shares that cell's bed", "shares its bed"));
+        if (sharesLine) rules.Add(("is in that cell's row or column", "is in its row or column"));
+        if (touches) rules.Add(("touches that cell", "touches it"));
+
+        var words = rules.Select((rule, index) => index == 0 ? rule.First : rule.Later).ToList();
+        return words.Count switch {
+            1 => words[0],
+            2 => $"{words[0]} or {words[1]}",
+            _ => $"{words[0]}, {words[1]} or {words[2]}",
+        };
+    }
+
+    private static string Capitalized(string text) => char.ToUpperInvariant(text[0]) + text[1..];
 }

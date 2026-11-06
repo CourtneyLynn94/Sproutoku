@@ -113,4 +113,17 @@ public class WormHelperTests {
 
         Assert.Equal(0, board.Mistakes);
     }
+
+    [Fact]
+    public void AWouldStarveHint_SaysWhichRulesDoIt() {
+        // With the first two steps marked, the next one: a plant at (1,0) or (1,1) would starve bed 0, whose open cells are (0,0) and (0,1).
+        // Each is in the same column as one of them and touches the other diagonally; none shares their bed.
+        var hint = WormHelper.HintFor(MarkedAt(new(0, 2), new(0, 3), new(0, 4), new(2, 0), new(2, 1), new(2, 2)));
+
+        Assert.NotNull(hint);
+        Assert.Equal(Technique.WouldStarve, hint.Step.Technique);
+        Assert.Equal([new Cell(1, 0), new Cell(1, 1)], hint.Targets);
+        Assert.Contains("because each of them is in that cell's row or column or touches it", hint.Message);
+        Assert.Contains("This bed would have nowhere left to grow", hint.Message);
+    }
 }
