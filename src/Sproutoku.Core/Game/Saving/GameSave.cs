@@ -1,5 +1,6 @@
 using Sproutoku.Core.Game.Boards;
 using Sproutoku.Core.Game.Levels;
+using Sproutoku.Core.Game.PowerUps;
 using Sproutoku.Core.Gardens.Generation;
 using System.Text.Json;
 

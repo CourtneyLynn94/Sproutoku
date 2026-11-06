@@ -1,4 +1,4 @@
-namespace Sproutoku.Core.Play;
+namespace Sproutoku.Core.Game.PowerUps;
 
 /// <summary>
 /// The counted power-ups. The Garden rake isn't one: it's an unlimited tool.

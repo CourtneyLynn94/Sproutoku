@@ -1,6 +1,4 @@
-using Sproutoku.Core.Play;
-
-namespace Sproutoku.Core.Tests.Play;
+namespace Sproutoku.Core.Tests.Game.PowerUps;
 
 public class PowerUpSupplyTests {
     [Fact]

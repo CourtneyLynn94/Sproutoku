@@ -4,6 +4,7 @@ using Microsoft.Maui.Graphics;
 using Sproutoku.Core.Game.Session;
 using Sproutoku.Core.Game.Levels;
 using Sproutoku.Core.Game.Boards;
+using Sproutoku.Core.Game.PowerUps;
 using Sproutoku.App.Controls.Garden;
 using Sproutoku.App.Services;
 using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;

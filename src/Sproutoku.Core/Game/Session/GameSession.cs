@@ -1,6 +1,7 @@
 using Sproutoku.Core.Game.Boards;
 using Sproutoku.Core.Game.Input;
 using Sproutoku.Core.Game.Levels;
+using Sproutoku.Core.Game.PowerUps;
 using Sproutoku.Core.Game.Saving;
 using Sproutoku.Core.Gardens.Puzzles;
 
