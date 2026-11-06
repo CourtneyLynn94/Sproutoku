@@ -1,9 +1,6 @@
-using Sproutoku.Core.Boards;
-using Sproutoku.Core.Puzzles;
-using Sproutoku.Core.Solving;
-using Sproutoku.Core.Tests.TestSupport;
+using Sproutoku.Core.Gardens.Solving;
 
-namespace Sproutoku.Core.Tests.Solving;
+namespace Sproutoku.Core.Tests.Gardens.Solving;
 
 public class GardenFactsTests {
     [Fact]

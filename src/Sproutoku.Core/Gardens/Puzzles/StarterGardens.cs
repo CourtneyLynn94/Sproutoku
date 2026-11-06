@@ -1,4 +1,4 @@
-namespace Sproutoku.Core.Puzzles;
+namespace Sproutoku.Core.Gardens.Puzzles;
 
 /// <summary>
 /// Hand-made gardens to play before the generator exists, easiest first. 

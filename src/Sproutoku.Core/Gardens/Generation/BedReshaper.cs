@@ -1,7 +1,7 @@
-using Sproutoku.Core.Puzzles;
-using Sproutoku.Core.Solving;
+using Sproutoku.Core.Gardens.Puzzles;
+using Sproutoku.Core.Gardens.Solving;
 
-namespace Sproutoku.Core.Generation;
+namespace Sproutoku.Core.Gardens.Generation;
 
 /// <summary>
 /// The third step of making a garden: reshapes beds until the planned plants are the only answer.

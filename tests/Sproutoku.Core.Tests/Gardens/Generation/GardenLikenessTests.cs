@@ -1,8 +1,6 @@
-using Sproutoku.Core.Generation;
-using Sproutoku.Core.Puzzles;
-using Sproutoku.Core.Tests.TestSupport;
+using Sproutoku.Core.Gardens.Generation;
 
-namespace Sproutoku.Core.Tests.Generation;
+namespace Sproutoku.Core.Tests.Gardens.Generation;
 
 public class GardenLikenessTests {
     private static Puzzle Garden() => Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());

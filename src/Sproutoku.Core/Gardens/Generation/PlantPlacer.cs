@@ -1,6 +1,6 @@
-using Sproutoku.Core.Puzzles;
+using Sproutoku.Core.Gardens.Puzzles;
 
-namespace Sproutoku.Core.Generation;
+namespace Sproutoku.Core.Gardens.Generation;
 
 /// <summary>
 /// The first step of making a garden: where its plants go, before any beds exist.

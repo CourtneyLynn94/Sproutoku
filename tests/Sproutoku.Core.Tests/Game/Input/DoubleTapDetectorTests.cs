@@ -1,7 +1,6 @@
-using Sproutoku.Core.Input;
-using Sproutoku.Core.Puzzles;
+using Sproutoku.Core.Game.Input;
 
-namespace Sproutoku.Core.Tests.Input;
+namespace Sproutoku.Core.Tests.Game.Input;
 
 public class DoubleTapDetectorTests {
     private static readonly Cell A = new(1, 1);

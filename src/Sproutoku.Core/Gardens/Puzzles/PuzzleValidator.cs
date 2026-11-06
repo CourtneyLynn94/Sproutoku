@@ -1,4 +1,4 @@
-namespace Sproutoku.Core.Puzzles;
+namespace Sproutoku.Core.Gardens.Puzzles;
 
 /// <summary>
 /// Checks raw puzzle data against Sproutoku's rules. 

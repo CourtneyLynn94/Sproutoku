@@ -1,8 +1,7 @@
-using Sproutoku.Core.Generation;
-using Sproutoku.Core.Puzzles;
-using Sproutoku.Core.Solving;
+using Sproutoku.Core.Gardens.Generation;
+using Sproutoku.Core.Gardens.Solving;
 
-namespace Sproutoku.Core.Tests.Generation;
+namespace Sproutoku.Core.Tests.Gardens.Generation;
 
 public class GardenGeneratorTests {
     public static TheoryData<int> AllSizes => [4, 5, 6, 7, 8, 9, 10];

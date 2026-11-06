@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace Sproutoku.Core.Levels;
+namespace Sproutoku.Core.Game.Levels;
 
 /// <summary>
 /// Grows level gardens on a background thread and keeps them until they're needed,

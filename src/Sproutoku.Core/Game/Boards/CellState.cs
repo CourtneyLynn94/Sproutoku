@@ -1,4 +1,4 @@
-namespace Sproutoku.Core.Boards;
+namespace Sproutoku.Core.Game.Boards;
 
 /// <summary>
 /// What the player currently sees in a cell. Empty must stay first: new boards start as all zeros.

@@ -1,4 +1,4 @@
-using Sproutoku.App.Garden;
+using Sproutoku.App.Controls.Garden;
 using VirtualKey = global::Windows.System.VirtualKey;
 using WinControl = Microsoft.UI.Xaml.Controls.Control;
 using WinFocusState = Microsoft.UI.Xaml.FocusState;

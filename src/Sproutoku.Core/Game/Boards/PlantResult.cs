@@ -1,4 +1,4 @@
-namespace Sproutoku.Core.Boards;
+namespace Sproutoku.Core.Game.Boards;
 
 public enum PlantOutcome {
     Ignored,

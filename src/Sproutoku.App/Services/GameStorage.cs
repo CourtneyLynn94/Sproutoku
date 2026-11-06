@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using Sproutoku.Core.Saving;
+using Sproutoku.Core.Game.Saving;
 
-namespace Sproutoku.App.Saving;
+namespace Sproutoku.App.Services;
 
 /// <summary>
 /// Keeps what the player has earned by playing: the current garden and level now, power-ups and collections later.

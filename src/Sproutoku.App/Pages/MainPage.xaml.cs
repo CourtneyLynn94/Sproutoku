@@ -1,15 +1,12 @@
-using Microsoft.Maui.Controls.Shapes;
-using Sproutoku.App.Garden;
-using Sproutoku.App.Saving;
-using Sproutoku.Core.Play;
 using System.Diagnostics;
-using Sproutoku.Core.Boards;
-using Sproutoku.Core.Levels;
-using Cell = Sproutoku.Core.Puzzles.Cell;
-
-#if ANDROID || IOS
-using Sproutoku.App.Feedback;
-#endif
+using Microsoft.Maui.Controls.Shapes;
+using Microsoft.Maui.Graphics;
+using Sproutoku.Core.Game.Session;
+using Sproutoku.Core.Game.Levels;
+using Sproutoku.Core.Game.Boards;
+using Sproutoku.App.Controls.Garden;
+using Sproutoku.App.Services;
+using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;
 
 namespace Sproutoku.App.Pages;
 

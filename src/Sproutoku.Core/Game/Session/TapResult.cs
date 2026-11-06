@@ -1,4 +1,4 @@
-namespace Sproutoku.Core.Play;
+namespace Sproutoku.Core.Game.Session;
 
 public enum TapOutcome {
     /// <summary>

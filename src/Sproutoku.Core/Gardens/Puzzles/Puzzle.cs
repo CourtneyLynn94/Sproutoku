@@ -1,4 +1,4 @@
-namespace Sproutoku.Core.Puzzles;
+namespace Sproutoku.Core.Gardens.Puzzles;
 
 /// <summary>
 /// A garden: an N×N grid split into N regions, and the one correct plant for each region.

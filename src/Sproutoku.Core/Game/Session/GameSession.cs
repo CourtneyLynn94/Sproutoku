@@ -1,10 +1,10 @@
-using Sproutoku.Core.Boards;
-using Sproutoku.Core.Input;
-using Sproutoku.Core.Levels;
-using Sproutoku.Core.Puzzles;
-using Sproutoku.Core.Saving;
+using Sproutoku.Core.Game.Boards;
+using Sproutoku.Core.Game.Input;
+using Sproutoku.Core.Game.Levels;
+using Sproutoku.Core.Game.Saving;
+using Sproutoku.Core.Gardens.Puzzles;
 
-namespace Sproutoku.Core.Play;
+namespace Sproutoku.Core.Game.Session;
 
 /// <summary>
 /// One player's game: the level being played, its board, and the rules for moving between gardens.

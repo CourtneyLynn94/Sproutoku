@@ -1,7 +1,7 @@
-using Sproutoku.Core.Puzzles;
+using Sproutoku.Core.Gardens.Puzzles;
 using System.Numerics;
 
-namespace Sproutoku.Core.Solving;
+namespace Sproutoku.Core.Gardens.Solving;
 
 /// <summary>
 /// Solves a garden the way a player would: one deduction at a time, using only the facts it's given.

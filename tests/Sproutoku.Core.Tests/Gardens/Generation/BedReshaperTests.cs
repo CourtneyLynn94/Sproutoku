@@ -1,9 +1,7 @@
-using Sproutoku.Core.Generation;
-using Sproutoku.Core.Puzzles;
-using Sproutoku.Core.Solving;
-using Sproutoku.Core.Tests.TestSupport;
+using Sproutoku.Core.Gardens.Generation;
+using Sproutoku.Core.Gardens.Solving;
 
-namespace Sproutoku.Core.Tests.Generation;
+namespace Sproutoku.Core.Tests.Gardens.Generation;
 
 public class BedReshaperTests {
     // Two answers: these plants, and (0,1) (1,3) (2,0) (3,2).

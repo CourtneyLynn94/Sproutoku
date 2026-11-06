@@ -1,10 +1,10 @@
 using System.Diagnostics;
-using Sproutoku.Core.Boards;
-using Sproutoku.Core.Generation;
-using Sproutoku.Core.Solving;
-using static Sproutoku.Core.Solving.DifficultyGrade;
+using Sproutoku.Core.Game.Boards;
+using Sproutoku.Core.Gardens.Generation;
+using Sproutoku.Core.Gardens.Solving;
+using static Sproutoku.Core.Gardens.Solving.DifficultyGrade;
 
-namespace Sproutoku.Core.Levels;
+namespace Sproutoku.Core.Game.Levels;
 
 public enum GardenTier {
     Normal,

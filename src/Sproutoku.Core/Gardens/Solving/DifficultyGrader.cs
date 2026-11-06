@@ -1,4 +1,4 @@
-namespace Sproutoku.Core.Solving;
+namespace Sproutoku.Core.Gardens.Solving;
 
 /// <summary>
 /// How hard a garden is, from the hardest deduction it needs. Easiest first, so grades compare with &lt; and &gt;.

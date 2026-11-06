@@ -1,6 +1,6 @@
-using Sproutoku.Core.Generation;
+using Sproutoku.Core.Gardens.Generation;
 
-namespace Sproutoku.Core.Tests.Generation;
+namespace Sproutoku.Core.Tests.Gardens.Generation;
 
 public class SeededRandomTests {
     [Fact]

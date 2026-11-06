@@ -1,7 +1,7 @@
 using System.Text;
-using Sproutoku.Core.Puzzles;
+using Sproutoku.Core.Gardens.Puzzles;
 
-namespace Sproutoku.Core.Generation;
+namespace Sproutoku.Core.Gardens.Generation;
 
 /// <summary>
 /// Tells gardens apart: a fingerprint for exact copies, and a shared-borders score for look-alikes.

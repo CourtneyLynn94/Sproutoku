@@ -1,4 +1,4 @@
-namespace Sproutoku.Core.Puzzles;
+namespace Sproutoku.Core.Gardens.Puzzles;
 
 /// <summary>
 /// The kinds of problem the validator can find.

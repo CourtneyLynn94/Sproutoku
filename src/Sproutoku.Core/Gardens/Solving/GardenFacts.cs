@@ -1,7 +1,7 @@
-using Sproutoku.Core.Boards;
-using Sproutoku.Core.Puzzles;
+using Sproutoku.Core.Game.Boards;
+using Sproutoku.Core.Gardens.Puzzles;
 
-namespace Sproutoku.Core.Solving;
+namespace Sproutoku.Core.Gardens.Solving;
 
 /// <summary>
 /// What the solver knows about one cell.

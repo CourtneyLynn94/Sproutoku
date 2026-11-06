@@ -1,6 +1,6 @@
-using Sproutoku.Core.Puzzles;
+using Sproutoku.Core.Gardens.Puzzles;
 
-namespace Sproutoku.Core.Input;
+namespace Sproutoku.Core.Game.Input;
 
 /// <summary>
 /// Decides whether a tap completes a double tap: the same cell, soon enough after the last tap.

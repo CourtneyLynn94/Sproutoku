@@ -1,10 +1,6 @@
-using Sproutoku.Core.Boards;
-using Sproutoku.Core.Levels;
-using Sproutoku.Core.Play;
-using Sproutoku.Core.Puzzles;
-using Sproutoku.Core.Tests.TestSupport;
+using Sproutoku.Core.Game.Levels;
 
-namespace Sproutoku.Core.Tests.Play;
+namespace Sproutoku.Core.Tests.Game.Session;
 
 public class GameSessionTests {
     // Taps on one cell this far apart are two single taps; this close together, a double tap.

@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Maui.Devices;
 
-namespace Sproutoku.App.Feedback;
+namespace Sproutoku.App.Services;
 
 /// <summary>
 /// Vibrations for marks, plants, mistakes and the end of a garden, each with its own rhythm.

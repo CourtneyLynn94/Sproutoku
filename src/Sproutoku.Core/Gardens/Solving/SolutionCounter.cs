@@ -1,6 +1,6 @@
-using Sproutoku.Core.Puzzles;
+using Sproutoku.Core.Gardens.Puzzles;
 
-namespace Sproutoku.Core.Solving;
+namespace Sproutoku.Core.Gardens.Solving;
 
 public enum SolutionCount {
     None,

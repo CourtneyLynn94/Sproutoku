@@ -1,8 +1,4 @@
-using Sproutoku.Core.Boards;
-using Sproutoku.Core.Puzzles;
-using Sproutoku.Core.Tests.TestSupport;
-
-namespace Sproutoku.Core.Tests.Boards;
+namespace Sproutoku.Core.Tests.Game.Boards;
 
 public class BoardTests {
     // TestGardens' 5×5. Its solution: (0,0) (1,2) (2,4) (3,1) (4,3).

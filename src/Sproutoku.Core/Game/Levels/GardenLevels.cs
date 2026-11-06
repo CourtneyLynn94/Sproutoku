@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
-using Sproutoku.Core.Boards;
-using Sproutoku.Core.Generation;
-using Sproutoku.Core.Puzzles;
+using Sproutoku.Core.Game.Boards;
+using Sproutoku.Core.Gardens.Generation;
+using Sproutoku.Core.Gardens.Puzzles;
 
-namespace Sproutoku.Core.Levels;
+namespace Sproutoku.Core.Game.Levels;
 
 /// <summary>
 /// A level's garden: the level, the seed it came from, its recipe from the level plan, and the generated garden;

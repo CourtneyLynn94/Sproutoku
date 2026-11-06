@@ -1,4 +1,4 @@
-namespace Sproutoku.Core.Generation;
+namespace Sproutoku.Core.Gardens.Generation;
 
 /// <summary>
 /// How a garden's beds grow. Each generator attempt picks one, so gardens vary in look.

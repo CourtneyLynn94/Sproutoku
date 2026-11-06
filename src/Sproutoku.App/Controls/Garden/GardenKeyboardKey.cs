@@ -1,4 +1,4 @@
-namespace Sproutoku.App.Garden;
+namespace Sproutoku.App.Controls.Garden;
 
 /// <summary>
 /// The garden's keyboard actions, whichever keys a platform uses for them.

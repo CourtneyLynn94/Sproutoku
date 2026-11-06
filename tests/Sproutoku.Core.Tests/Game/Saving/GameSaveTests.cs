@@ -1,11 +1,8 @@
-using Sproutoku.Core.Boards;
-using Sproutoku.Core.Generation;
-using Sproutoku.Core.Levels;
-using Sproutoku.Core.Puzzles;
-using Sproutoku.Core.Saving;
-using Sproutoku.Core.Tests.TestSupport;
+using Sproutoku.Core.Game.Levels;
+using Sproutoku.Core.Game.Saving;
+using Sproutoku.Core.Gardens.Generation;
 
-namespace Sproutoku.Core.Tests.Saving;
+namespace Sproutoku.Core.Tests.Game.Saving;
 
 public class GameSaveTests {
     private static readonly Puzzle Level1 = GardenLevels.ForLevel(1).Puzzle;

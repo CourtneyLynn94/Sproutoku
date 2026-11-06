@@ -1,7 +1,7 @@
-using Sproutoku.App.Garden;
-using Sproutoku.Core.Boards;
-using Sproutoku.Core.Puzzles;
-using Cell = Sproutoku.Core.Puzzles.Cell;
+using Sproutoku.App.Controls.Garden;
+using Sproutoku.Core.Game.Boards;
+using Sproutoku.Core.Gardens.Puzzles;
+using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;
 
 namespace Sproutoku.App.Pages;
 

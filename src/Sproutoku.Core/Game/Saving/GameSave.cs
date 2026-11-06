@@ -1,9 +1,9 @@
-using Sproutoku.Core.Boards;
-using Sproutoku.Core.Generation;
-using Sproutoku.Core.Levels;
+using Sproutoku.Core.Game.Boards;
+using Sproutoku.Core.Game.Levels;
+using Sproutoku.Core.Gardens.Generation;
 using System.Text.Json;
 
-namespace Sproutoku.Core.Saving;
+namespace Sproutoku.Core.Game.Saving;
 
 /// <summary>
 /// Everything needed to put the player back where they left off: the level, that garden's board, and the garden's fingerprint.

@@ -1,4 +1,4 @@
-namespace Sproutoku.Core.Puzzles;
+namespace Sproutoku.Core.Gardens.Puzzles;
 
 /// <summary>
 /// A position in the grid. Row 0 is the top row and column 0 the left column.

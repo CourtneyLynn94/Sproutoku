@@ -1,6 +1,6 @@
-using Sproutoku.Core.Generation;
+using Sproutoku.Core.Gardens.Generation;
 
-namespace Sproutoku.Core.Tests.Generation;
+namespace Sproutoku.Core.Tests.Gardens.Generation;
 
 public class PlantPlacerTests {
     public static TheoryData<int> AllSizes => [4, 5, 6, 7, 8, 9, 10];

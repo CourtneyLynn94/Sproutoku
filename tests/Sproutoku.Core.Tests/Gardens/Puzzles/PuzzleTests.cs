@@ -1,7 +1,4 @@
-using Sproutoku.Core.Puzzles;
-using Sproutoku.Core.Tests.TestSupport;
-
-namespace Sproutoku.Core.Tests.Puzzles;
+namespace Sproutoku.Core.Tests.Gardens.Puzzles;
 
 public class PuzzleTests {
     [Fact]

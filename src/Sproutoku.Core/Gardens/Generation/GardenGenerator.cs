@@ -1,7 +1,7 @@
-using Sproutoku.Core.Puzzles;
-using Sproutoku.Core.Solving;
+using Sproutoku.Core.Gardens.Puzzles;
+using Sproutoku.Core.Gardens.Solving;
 
-namespace Sproutoku.Core.Generation;
+namespace Sproutoku.Core.Gardens.Generation;
 
 /// <summary>
 /// A generated garden with its difficulty grade, how many logic steps it takes, how many attempts it took to make, and its bed style (for the dev view).

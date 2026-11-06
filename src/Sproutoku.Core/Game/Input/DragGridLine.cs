@@ -1,6 +1,6 @@
-using Sproutoku.Core.Puzzles;
+using Sproutoku.Core.Gardens.Puzzles;
 
-namespace Sproutoku.Core.Input;
+namespace Sproutoku.Core.Game.Input;
 
 /// <summary>
 /// Finds the cells a straight line passes through, for drags (S27).

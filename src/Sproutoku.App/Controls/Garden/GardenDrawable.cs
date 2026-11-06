@@ -1,9 +1,9 @@
-using Sproutoku.Core.Boards;
-using Sproutoku.Core.Input;
-using Sproutoku.Core.Puzzles;
-using Cell = Sproutoku.Core.Puzzles.Cell;
+using Sproutoku.Core.Game.Boards;
+using Sproutoku.Core.Game.Input;
+using Sproutoku.Core.Gardens.Puzzles;
+using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;
 
-namespace Sproutoku.App.Garden;
+namespace Sproutoku.App.Controls.Garden;
 
 /// <summary>
 /// Draws a board: region colors, cell lines, region borders, ✕ marks and plants.

@@ -1,4 +1,4 @@
-namespace Sproutoku.Core.Generation;
+namespace Sproutoku.Core.Gardens.Generation;
 
 /// <summary>
 /// Random numbers that are the same for a given seed on every device and every .NET version,
