@@ -1,0 +1,88 @@
+using Sproutoku.Core.Gardens.Generation;
+using Sproutoku.Core.Gardens.Solving;
+
+namespace Sproutoku.Core.Tests.Gardens.Generation;
+
+public class GardenGeneratorTests {
+    public static TheoryData<int> AllSizes => [4, 5, 6, 7, 8, 9, 10];
+
+    private static string[] Beds(Puzzle puzzle) => Enumerable.Range(0, puzzle.Size)
+        .Select(row => string.Concat(Enumerable.Range(0, puzzle.Size).Select(column => puzzle.RegionAt(new Cell(row, column)))))
+        .ToArray();
+
+    [Fact]
+    public void TheSameSeed_GivesTheSameGarden() {
+        var first = GardenGenerator.Generate(8, 123).Puzzle;
+        var second = GardenGenerator.Generate(8, 123).Puzzle;
+
+        Assert.Equal(Beds(first), Beds(second));
+        Assert.Equal(first.Solution, second.Solution);
+    }
+
+    [Fact]
+    public void Gardens_ArePinnedForKnownSeeds() {
+        // Worked out with a reference script. If these change, every generated level changes.
+        // 4×4 grows in the Even style; 5×5 and 6×6 in Sprawling. All three succeed on the first attempt.
+        Assert.Equal(["1000", "1112", "1322", "3322"], Beds(GardenGenerator.Generate(4, 1).Puzzle));
+        Assert.Equal(["40011", "40311", "42331", "43331", "44331"], Beds(GardenGenerator.Generate(5, 1).Puzzle));
+        Assert.Equal(["000011", "000112", "034442", "033342", "053444", "053444"], Beds(GardenGenerator.Generate(6, 1).Puzzle));
+        Assert.Equal(BedStyle.Even, GardenGenerator.Generate(4, 1).Style);
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(11)]
+    public void SizesOutsideTheGame_Throw(int size) {
+        Assert.Throws<ArgumentOutOfRangeException>(() => GardenGenerator.Generate(size, 1));
+    }
+
+    [Theory]
+    [MemberData(nameof(AllSizes))]
+    public void EveryGarden_HasOneAnswer_ThatLogicAloneReaches(int size) {
+        for (ulong seed = 0; seed < 100; seed++) {
+            var puzzle = GardenGenerator.Generate(size, seed).Puzzle;
+            var result = LogicSolver.Solve(GardenFacts.Blank(puzzle));
+
+            Assert.Equal(size, puzzle.Size);
+            Assert.True(SolutionCounter.Count(puzzle) == SolutionCount.One, $"Seed {seed} has more than one answer.");
+            Assert.True(result.IsSolved, $"Seed {seed} needs a guess.");
+            Assert.Equal(puzzle.Solution.ToHashSet(), result.Plants.ToHashSet());
+        }
+    }
+
+    [Fact]
+    public void Attempts_AreCounted() {
+        Assert.Equal(1, GardenGenerator.Generate(5, 1).Attempts);
+        Assert.Equal(3, GardenGenerator.Generate(6, 7).Attempts);
+    }
+
+    [Theory]
+    [InlineData(DifficultyGrade.Gentle)]
+    [InlineData(DifficultyGrade.Easy)]
+    [InlineData(DifficultyGrade.Medium)]
+    [InlineData(DifficultyGrade.Tricky)]
+    public void AskingForAGrade_GivesThatGrade(DifficultyGrade grade) {
+        for (ulong seed = 0; seed < 20; seed++) {
+            var garden = GardenGenerator.Generate(7, seed, easiest: grade, hardest: grade);
+
+            Assert.Equal(grade, garden.Grade);
+            Assert.Equal(grade, DifficultyGrader.Grade(LogicSolver.Solve(GardenFacts.Blank(garden.Puzzle))));
+        }
+    }
+
+    [Fact]
+    public void AnExpertGarden_CanBeAskedForAt10x10() {
+        Assert.Equal(DifficultyGrade.Expert, GardenGenerator.Generate(10, 1, easiest: DifficultyGrade.Expert).Grade);
+    }
+
+    [Fact]
+    public void AnEmptyGradeRange_Throws() {
+        Assert.Throws<ArgumentException>(() => GardenGenerator.Generate(5, 1, easiest: DifficultyGrade.Medium, hardest: DifficultyGrade.Easy));
+    }
+
+    [Fact]
+    public void TryGenerate_GivesNull_WhenNoGardenTurnsUp() {
+        // Expert needs three beds sharing lines, with three more beds still open: impossible with only 5 beds.
+        Assert.Null(GardenGenerator.TryGenerate(5, new SeededRandom(1), DifficultyGrade.Expert, DifficultyGrade.Expert));
+    }
+}

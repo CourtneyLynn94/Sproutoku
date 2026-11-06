@@ -1,10 +1,10 @@
-using Sproutoku.App.Garden;
+using Sproutoku.App.Controls.Garden;
 using VirtualKey = global::Windows.System.VirtualKey;
 using WinControl = Microsoft.UI.Xaml.Controls.Control;
 using WinFocusState = Microsoft.UI.Xaml.FocusState;
 using WinKeyEventArgs = Microsoft.UI.Xaml.Input.KeyRoutedEventArgs;
 
-namespace Sproutoku.App;
+namespace Sproutoku.App.Pages;
 
 // Keyboard play on Windows. The garden is a single drawn view, so its Windows control listens for keys itself.
 public partial class MainPage {
