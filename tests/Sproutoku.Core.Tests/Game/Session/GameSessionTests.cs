@@ -649,5 +649,44 @@ public class GameSessionTests {
         session.TryAdvance();
         Assert.Equal(1, session.PowerUps.Worm);
     }
+
+    #region Worm helper
+    [Fact]
+    public void UseWorm_GivesAHint_AndSpendsOneWorm() {
+        var session = NewGame();
+
+        Assert.NotNull(session.UseWorm());
+        Assert.Equal(PowerUpSupply.Starting.Worm - 1, session.PowerUps.Worm);
+    }
+
+    [Fact]
+    public void UseWorm_WithNoneLeft_GivesNothing() {
+        var session = NewGame();
+        session.UseWorm();
+        session.UseWorm();
+
+        Assert.Null(session.UseWorm());
+        Assert.Equal(0, session.PowerUps.Worm);
+    }
+
+    [Fact]
+    public void UseWorm_OnAFinishedGarden_GivesNothing_AndSpendsNothing() {
+        var session = NewGame();
+        Solve(session);
+
+        Assert.Null(session.UseWorm());
+        Assert.Equal(PowerUpSupply.Starting.Worm, session.PowerUps.Worm);
+    }
+
+    [Fact]
+    public void UseWorm_LeavesTheBoardAsItWas() {
+        var session = NewGame();
+        var before = session.Board;
+
+        session.UseWorm();
+
+        Assert.Same(before, session.Board);
+    }
+    #endregion
     #endregion
 }

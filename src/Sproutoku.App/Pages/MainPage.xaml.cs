@@ -76,6 +76,8 @@ public partial class MainPage : ContentPage {
 
     // Draws the session's garden from scratch (new garden, Try again, reset) and saves.
     private void ShowGarden(string info) {
+        CloseWormHint();
+
         _garden.Board = Session.Board;
         _garden.HoverCell = null;
         _garden.FocusCell = null;
@@ -233,6 +235,7 @@ public partial class MainPage : ContentPage {
             GameArea.RowDefinitions = Rows(GridLength.Star);
             GameArea.ColumnDefinitions = Columns(new GridLength(240), GridLength.Star, new GridLength(200));
             Place(PlantingList, row: 0, column: 0);
+            Place(WormNote, row: 0, column: 0);
             Place(BoardArea, row: 0, column: 1);
             Place(ToolShelf, row: 0, column: 2);
         } else {
@@ -240,6 +243,7 @@ public partial class MainPage : ContentPage {
             GameArea.ColumnDefinitions = Columns(GridLength.Star);
             Place(BoardArea, row: 0, column: 0);
             Place(PlantingList, row: 1, column: 0);
+            Place(WormNote, row: 1, column: 0);
             Place(ToolShelf, row: 2, column: 0);
         }
 
@@ -452,6 +456,7 @@ public partial class MainPage : ContentPage {
         SaveProgress();
 
         if (result.EndedGarden) {
+            CloseWormHint();
             ShowEndOfGarden();
         }
     }
@@ -601,6 +606,72 @@ public partial class MainPage : ContentPage {
         button.Text = $"{name}\n{left}";
         button.IsEnabled = Session.CanUse(powerUp);
         SemanticProperties.SetDescription(button, $"{name}, {left} left. {ToolTipProperties.GetText(button)}");
+    }
+    #endregion
+
+    #region Worm
+    // The hint on show, or null. It stays open while the player acts on it, and closes with Thanks or a new garden.
+    private WormHint? _wormHint;
+
+    private void OnWormClicked(object? sender, EventArgs e) {
+        if (_session is null) return; // Still loading.
+
+        var hint = Session.UseWorm();
+        if (hint is null) {
+            InfoLabel.Text = "Your worm has nothing new to show.";
+            return;
+        }
+
+        ShowWormHint(hint);
+        UpdateToolShelf();
+        SaveProgress(); // The spent Worm is saved, so reopening the app doesn't refill it.
+    }
+
+    // Opens the note with "where to look" and lights up that area.
+    private void ShowWormHint(WormHint hint) {
+        _wormHint = hint;
+
+        WormLookLabel.Text = hint.LookHere;
+        WormWhyLabel.Text = hint.Explanation;
+        WormWhyLabel.IsVisible = false;
+        WormWhyButton.IsVisible = true;
+
+        PlantingList.IsVisible = false;
+        WormNote.IsVisible = true;
+
+        _garden.HintArea = hint.Area;
+        _garden.HintTargets = null;
+        GardenView.Invalidate();
+
+        SemanticScreenReader.Announce(hint.LookHere);
+    }
+
+    // Shows the reasoning and rings the cells the step changes.
+    private void OnWormWhyClicked(object? sender, EventArgs e) {
+        if (_wormHint is null) return;
+
+        WormWhyLabel.IsVisible = true;
+        WormWhyButton.IsVisible = false;
+
+        _garden.HintTargets = _wormHint.Targets;
+        GardenView.Invalidate();
+
+        SemanticScreenReader.Announce(_wormHint.Explanation);
+    }
+
+    private void OnWormCloseClicked(object? sender, EventArgs e) => CloseWormHint();
+
+    // Puts the planting list back and clears the highlights.
+    private void CloseWormHint() {
+        if (_wormHint is null) return;
+
+        _wormHint = null;
+        WormNote.IsVisible = false;
+        PlantingList.IsVisible = true;
+
+        _garden.HintArea = null;
+        _garden.HintTargets = null;
+        GardenView.Invalidate();
     }
     #endregion
 }

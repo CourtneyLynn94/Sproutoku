@@ -30,6 +30,8 @@ public sealed class GardenDrawable : IDrawable {
     private static readonly Color Wilt = Color.FromArgb("#8E3F45");
 
     private static readonly Color Cream = Color.FromArgb("#FBF7EA");
+    private static readonly Color HintGlow = Color.FromArgb("#FFF3B0").WithAlpha(0.6f);
+    private static readonly Color HintRing = Color.FromArgb("#2F6F8F");
 
     // Worked out on each draw; used to turn a point into a cell.
     private PointF _origin;
@@ -63,6 +65,16 @@ public sealed class GardenDrawable : IDrawable {
     /// </summary>
     public bool ShowSolution { get; set; }
 
+    /// <summary>
+    /// The worm's "look here": the bed, row or column to look at, or null.
+    /// </summary>
+    public IReadOnlyCollection<Cell>? HintArea { get; set; }
+
+    /// <summary>
+    /// The cells the worm's step plants or rules out, ringed once the player asks why, or null.
+    /// </summary>
+    public IReadOnlyCollection<Cell>? HintTargets { get; set; }
+
     public void Draw(ICanvas canvas, RectF dirtyRect) {
         if (Board is null) return;
 
@@ -84,7 +96,18 @@ public sealed class GardenDrawable : IDrawable {
                     canvas.FillRectangle(rect);
                 }
 
+                // The worm's "look here" glow.
+                if (HintArea?.Contains(cell) == true) {
+                    canvas.FillColor = HintGlow;
+                    canvas.FillRectangle(rect);
+                }
+
                 DrawContent(canvas, rect, Board[cell]);
+
+                // The worm's targets, once the player asks why.
+                if (HintTargets?.Contains(cell) == true) {
+                    DrawHintTarget(canvas, rect);
+                }
 
                 // Developer view:
                 if (ShowSolution && Board.Puzzle.IsSolutionCell(cell) && Board[cell] != CellState.Planted) {
@@ -172,6 +195,15 @@ public sealed class GardenDrawable : IDrawable {
     private static void DrawCross(ICanvas canvas, RectF area) {
         canvas.DrawLine(area.Left, area.Top, area.Right, area.Bottom);
         canvas.DrawLine(area.Right, area.Top, area.Left, area.Bottom);
+    }
+
+    // A dashed ring inside a cell the worm's step plants or rules out.
+    private static void DrawHintTarget(ICanvas canvas, RectF rect) {
+        canvas.StrokeColor = HintRing;
+        canvas.StrokeSize = Math.Max(2, rect.Width * 0.07f);
+        canvas.StrokeDashPattern = [4, 3];
+        canvas.DrawEllipse(rect.Inflate(-rect.Width * 0.18f, -rect.Height * 0.18f));
+        canvas.StrokeDashPattern = null;
     }
 
     // Cell focus is ink inside cream, drawn on top so it shows on every region color.

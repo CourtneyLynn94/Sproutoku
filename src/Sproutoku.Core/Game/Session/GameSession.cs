@@ -272,6 +272,22 @@ public sealed class GameSession {
     public void EndDrag() {
         _dragMode = null;
     }
+
+    /// <summary>
+    /// Asks the worm for a hint and spends one Worm.
+    /// Returns null and spends nothing if there's no Worm left, the garden is over, or there's nothing left to work out.
+    /// The board doesn't change: the player acts on the hint themselves.
+    /// </summary>
+    public WormHint? UseWorm() {
+        if (!CanUse(PowerUp.Worm)) return null;
+
+        var hint = WormHelper.HintFor(Board);
+        if (hint is null) return null;
+
+        PowerUps = PowerUps.Spend(PowerUp.Worm);
+        ForgetLastTap();
+        return hint;
+    }
     #endregion
 
     #region Keyboard Actions
