@@ -60,9 +60,14 @@ public sealed class GameSession {
     public PowerUpSupply PowerUps { get; private set; }
 
     /// <summary>
-    /// True if a power-up can be used now: there's one left and the garden isn't over.
+    /// For testing (a debug Journal option): Tools are never spent. Not saved.
     /// </summary>
-    public bool CanUse(PowerUp powerUp) => PowerUps.Has(powerUp) && !Board.IsFinished;
+    public bool UnlimitedTools { get; set; }
+
+    /// <summary>
+    /// True if a power-up can be used now: there's one left (or Tools are unlimited) and the garden isn't over.
+    /// </summary>
+    public bool CanUse(PowerUp powerUp) => !Board.IsFinished && (PowerUps.Has(powerUp) || UnlimitedTools);
 
     /// <summary>
     /// True while playing a garden outside the levels. Finishing it returns to the level.
@@ -284,7 +289,9 @@ public sealed class GameSession {
         var hint = WormHelper.HintFor(Board);
         if (hint is null) return null;
 
-        PowerUps = PowerUps.Spend(PowerUp.Worm);
+        if (!UnlimitedTools) {
+            PowerUps = PowerUps.Spend(PowerUp.Worm);
+        }
         ForgetLastTap();
         return hint;
     }

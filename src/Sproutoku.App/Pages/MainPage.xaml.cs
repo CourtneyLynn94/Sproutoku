@@ -293,6 +293,7 @@ public partial class MainPage : ContentPage {
 #if DEBUG
         options.Add("Go to level (dev)");
         options.Add("Skip to next garden (dev)");
+        options.Add(Session.UnlimitedTools ? "Normal tools (dev)" : "Unlimited tools (dev)");
         options.Add(_garden.ShowSolution ? "Hide solution (dev)" : "Show solution (dev)");
 #endif
 
@@ -311,6 +312,11 @@ public partial class MainPage : ContentPage {
                 break;
             case "Skip to next garden (dev)":
                 await JumpToLevelAsync(Session.Level + 1);
+                break;
+            case "Unlimited tools (dev)":
+            case "Normal tools (dev)":
+                Session.UnlimitedTools = !Session.UnlimitedTools;
+                UpdateToolShelf();
                 break;
             case "Show solution (dev)":
             case "Hide solution (dev)":
@@ -389,6 +395,7 @@ public partial class MainPage : ContentPage {
         _lastPoint = point;
 
         if (changed) {
+            CloseWormHint();
             _garden.Board = Session.Board;
             GardenView.Invalidate();
         }
@@ -442,6 +449,7 @@ public partial class MainPage : ContentPage {
     // Shows what a tap or key did, saves, and opens the end screen if the garden is over.
     private void ShowResult(TapResult result) {
         if (result.Outcome == TapOutcome.Ignored) return;
+        CloseWormHint();
 
 #if ANDROID || IOS
         PlayHaptic(result.Outcome);
@@ -456,7 +464,6 @@ public partial class MainPage : ContentPage {
         SaveProgress();
 
         if (result.EndedGarden) {
-            CloseWormHint();
             ShowEndOfGarden();
         }
     }
@@ -603,14 +610,14 @@ public partial class MainPage : ContentPage {
     private void ShowTool(Button button, string name, PowerUp powerUp) {
         int left = Session.PowerUps[powerUp];
 
-        button.Text = $"{name}\n{left}";
+        button.Text = $"{name}\n{(Session.UnlimitedTools ? "∞" : left)}";
         button.IsEnabled = Session.CanUse(powerUp);
         SemanticProperties.SetDescription(button, $"{name}, {left} left. {ToolTipProperties.GetText(button)}");
     }
     #endregion
 
     #region Worm
-    // The hint on show, or null. It stays open while the player acts on it, and closes with Thanks or a new garden.
+    // The hint on show, or null. It closes with Got it, or as soon as the player changes a cell.
     private WormHint? _wormHint;
 
     private void OnWormClicked(object? sender, EventArgs e) {
@@ -627,41 +634,25 @@ public partial class MainPage : ContentPage {
         SaveProgress(); // The spent Worm is saved, so reopening the app doesn't refill it.
     }
 
-    // Opens the note with "where to look" and lights up that area.
+    // Opens the note and focuses the board on the step.
     private void ShowWormHint(WormHint hint) {
         _wormHint = hint;
 
-        WormLookLabel.Text = hint.LookHere;
-        WormWhyLabel.Text = hint.Explanation;
-        WormWhyLabel.IsVisible = false;
-        WormWhyButton.IsVisible = true;
-
+        WormMessageLabel.Text = hint.Message;
         PlantingList.IsVisible = false;
         WormNote.IsVisible = true;
 
         _garden.HintArea = hint.Area;
-        _garden.HintTargets = null;
+        _garden.HintTargets = hint.Targets;
+        _garden.HintMistakes = hint.WrongMarks;
         GardenView.Invalidate();
 
-        SemanticScreenReader.Announce(hint.LookHere);
-    }
-
-    // Shows the reasoning and rings the cells the step changes.
-    private void OnWormWhyClicked(object? sender, EventArgs e) {
-        if (_wormHint is null) return;
-
-        WormWhyLabel.IsVisible = true;
-        WormWhyButton.IsVisible = false;
-
-        _garden.HintTargets = _wormHint.Targets;
-        GardenView.Invalidate();
-
-        SemanticScreenReader.Announce(_wormHint.Explanation);
+        SemanticScreenReader.Announce(hint.Message);
     }
 
     private void OnWormCloseClicked(object? sender, EventArgs e) => CloseWormHint();
 
-    // Puts the planting list back and clears the highlights.
+    // Puts the planting list back and clears the board's focus.
     private void CloseWormHint() {
         if (_wormHint is null) return;
 
@@ -671,6 +662,7 @@ public partial class MainPage : ContentPage {
 
         _garden.HintArea = null;
         _garden.HintTargets = null;
+        _garden.HintMistakes = null;
         GardenView.Invalidate();
     }
     #endregion

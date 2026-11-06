@@ -4,23 +4,23 @@ using Sproutoku.Core.Gardens.Solving;
 namespace Sproutoku.Core.Tests.Game.PowerUps;
 
 public class WormHelperTests {
+    // Rows 00111 / 11111 / 33122 / 33344 / 33444; its logic steps were worked out with a reference copy of the solver.
     private static readonly Puzzle Garden = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
 
     private static Board MarkedAt(params Cell[] cells) =>
         cells.Aggregate(Board.Start(Garden), (board, cell) => board.ToggleMark(cell));
 
     [Fact]
-    public void OnAFreshGarden_TheWormPointsToTheFirstStep() {
+    public void OnAFreshGarden_TheWormGivesTheFirstStep() {
         var hint = WormHelper.HintFor(Board.Start(Garden));
 
         // Bed 0 only has cells in row 1, so the rest of row 1 can't hold a plant.
         Assert.NotNull(hint);
-        Assert.Equal(WormHintKind.NextStep, hint.Kind);
         Assert.Equal(Technique.BedsFillLines, hint.Step.Technique);
         Assert.Equal([new Cell(0, 0), new Cell(0, 1), new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], hint.Area);
         Assert.Equal([new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], hint.Targets);
-        Assert.Contains("row 1", hint.LookHere);
-        Assert.Contains("row 1", hint.Explanation);
+        Assert.Empty(hint.WrongMarks);
+        Assert.StartsWith("Look at this bed and row 1.", hint.Message);
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class WormHelperTests {
         // The next step: bed 2 only has cells in row 3.
         Assert.NotNull(hint);
         Assert.Equal([new Cell(2, 0), new Cell(2, 1), new Cell(2, 2)], hint.Targets);
-        Assert.Contains("row 3", hint.LookHere);
+        Assert.Contains("row 3", hint.Message);
     }
 
     [Fact]
@@ -42,14 +42,32 @@ public class WormHelperTests {
     }
 
     [Fact]
-    public void AWrongMark_IsPointedOutFirst() {
-        // (0,0) is where bed 0's plant grows, and there's a newer step waiting too.
+    public void AWrongMark_TheStepDoesntTouch_IsLeftAlone() {
+        // (0,0) holds bed 0's plant, but the first step only rules out the rest of row 1.
         var hint = WormHelper.HintFor(MarkedAt(new Cell(0, 0)));
 
         Assert.NotNull(hint);
-        Assert.Equal(WormHintKind.WrongMark, hint.Kind);
-        Assert.Equal([new Cell(0, 0)], hint.Targets);
-        Assert.Contains("row 1, column 1", hint.LookHere);
+        Assert.Equal([new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], hint.Targets);
+        Assert.Empty(hint.WrongMarks);
+    }
+
+    [Fact]
+    public void AWrongMark_TheStepProvesWrong_IsCalledOutInTheHint() {
+        // The first four steps are all marked, and there's a ✕ on (2,4): the fifth step proves bed 2's plant grows there.
+        var board = MarkedAt(
+            new(0, 2), new(0, 3), new(0, 4),
+            new(2, 0), new(2, 1), new(2, 2),
+            new(1, 0), new(1, 1),
+            new(2, 3),
+            new(2, 4));
+
+        var hint = WormHelper.HintFor(board);
+
+        Assert.NotNull(hint);
+        Assert.Equal(Technique.OnlyCellLeft, hint.Step.Technique);
+        Assert.Equal([new Cell(2, 4)], hint.Targets);
+        Assert.Equal([new Cell(2, 4)], hint.WrongMarks);
+        Assert.Contains("Your ✕ there is a mistake", hint.Message);
     }
 
     [Fact]
@@ -78,7 +96,7 @@ public class WormHelperTests {
     [InlineData(25)]
     [InlineData(40)]
     public void FollowingEveryHint_GrowsTheWholeGarden(int level) {
-        // A player who only ever does what the worm says always finishes, and never runs out of hints.
+        // A player who only ever does what the worm says always finishes, never runs out of hints, and never makes a mistake.
         var puzzle = GardenLevels.ForLevel(level).Puzzle;
         var board = Board.Start(puzzle);
 
@@ -89,9 +107,7 @@ public class WormHelperTests {
             Assert.NotNull(hint);
 
             foreach (var cell in hint.Targets) {
-                board = hint.Step.Plants.Contains(cell) && hint.Kind == WormHintKind.NextStep
-                    ? board.TryPlant(cell).Board
-                    : board.ToggleMark(cell);
+                board = hint.Step.Plants.Contains(cell) ? board.TryPlant(cell).Board : board.ToggleMark(cell);
             }
         }
 

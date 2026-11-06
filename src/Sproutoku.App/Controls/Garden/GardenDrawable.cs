@@ -30,7 +30,8 @@ public sealed class GardenDrawable : IDrawable {
     private static readonly Color Wilt = Color.FromArgb("#8E3F45");
 
     private static readonly Color Cream = Color.FromArgb("#FBF7EA");
-    private static readonly Color HintGlow = Color.FromArgb("#FFF3B0").WithAlpha(0.6f);
+    private static readonly Color HintScrim = Color.FromArgb("#2E241B").WithAlpha(0.55f);
+    private static readonly Color HintOutline = Color.FromArgb("#FFF3B0");
     private static readonly Color HintRing = Color.FromArgb("#2F6F8F");
 
     // Worked out on each draw; used to turn a point into a cell.
@@ -66,14 +67,19 @@ public sealed class GardenDrawable : IDrawable {
     public bool ShowSolution { get; set; }
 
     /// <summary>
-    /// The worm's "look here": the bed, row or column to look at, or null.
+    /// The worm's area to look at: outlined, while the rest of the board is dimmed. Null when there's no hint.
     /// </summary>
     public IReadOnlyCollection<Cell>? HintArea { get; set; }
 
     /// <summary>
-    /// The cells the worm's step plants or rules out, ringed once the player asks why, or null.
+    /// The cells the worm's step plants or rules out: ringed, and never dimmed.
     /// </summary>
     public IReadOnlyCollection<Cell>? HintTargets { get; set; }
+
+    /// <summary>
+    /// ✕ marks the worm's step shows are mistakes: ringed in red.
+    /// </summary>
+    public IReadOnlyCollection<Cell>? HintMistakes { get; set; }
 
     public void Draw(ICanvas canvas, RectF dirtyRect) {
         if (Board is null) return;
@@ -96,17 +102,18 @@ public sealed class GardenDrawable : IDrawable {
                     canvas.FillRectangle(rect);
                 }
 
-                // The worm's "look here" glow.
-                if (HintArea?.Contains(cell) == true) {
-                    canvas.FillColor = HintGlow;
+                DrawContent(canvas, rect, Board[cell]);
+
+                // The worm's focus: everything outside its area and targets is dimmed.
+                if (HintArea is not null && !HintArea.Contains(cell) && HintTargets?.Contains(cell) != true) {
+                    canvas.FillColor = HintScrim;
                     canvas.FillRectangle(rect);
                 }
 
-                DrawContent(canvas, rect, Board[cell]);
-
-                // The worm's targets, once the player asks why.
-                if (HintTargets?.Contains(cell) == true) {
-                    DrawHintTarget(canvas, rect);
+                if (HintMistakes?.Contains(cell) == true) {
+                    DrawHintRing(canvas, rect, Wilt);
+                } else if (HintTargets?.Contains(cell) == true) {
+                    DrawHintRing(canvas, rect, HintRing);
                 }
 
                 // Developer view:
@@ -129,6 +136,10 @@ public sealed class GardenDrawable : IDrawable {
         canvas.StrokeColor = Ink;
         canvas.StrokeSize = 3;
         canvas.DrawRectangle(_origin.X, _origin.Y, side, side);
+
+        if (HintArea is not null) {
+            DrawHintOutline(canvas, HintArea);
+        }
     }
 
     /// <summary>
@@ -197,13 +208,35 @@ public sealed class GardenDrawable : IDrawable {
         canvas.DrawLine(area.Right, area.Top, area.Left, area.Bottom);
     }
 
-    // A dashed ring inside a cell the worm's step plants or rules out.
-    private static void DrawHintTarget(ICanvas canvas, RectF rect) {
-        canvas.StrokeColor = HintRing;
+    // A dashed ring inside a cell the worm points at.
+    private static void DrawHintRing(ICanvas canvas, RectF rect, Color color) {
+        canvas.StrokeColor = color;
         canvas.StrokeSize = Math.Max(2, rect.Width * 0.07f);
         canvas.StrokeDashPattern = [4, 3];
         canvas.DrawEllipse(rect.Inflate(-rect.Width * 0.18f, -rect.Height * 0.18f));
         canvas.StrokeDashPattern = null;
+    }
+
+    // A thick outline around the worm's area: drawn on every side where the area meets a cell outside it.
+    // A dark line under a light one, so it shows on every bed color and on the dimmed cells.
+    private void DrawHintOutline(ICanvas canvas, IReadOnlyCollection<Cell> area) {
+        var inArea = area.ToHashSet();
+        canvas.StrokeLineCap = LineCap.Round;
+
+        foreach (var (color, width) in new[] { (Ink, 8f), (HintOutline, 4f) }) {
+            canvas.StrokeColor = color;
+            canvas.StrokeSize = width;
+
+            foreach (var cell in inArea) {
+                var rect = CellRect(cell);
+                if (!inArea.Contains(new Cell(cell.Row - 1, cell.Column))) canvas.DrawLine(rect.Left, rect.Top, rect.Right, rect.Top);
+                if (!inArea.Contains(new Cell(cell.Row + 1, cell.Column))) canvas.DrawLine(rect.Left, rect.Bottom, rect.Right, rect.Bottom);
+                if (!inArea.Contains(new Cell(cell.Row, cell.Column - 1))) canvas.DrawLine(rect.Left, rect.Top, rect.Left, rect.Bottom);
+                if (!inArea.Contains(new Cell(cell.Row, cell.Column + 1))) canvas.DrawLine(rect.Right, rect.Top, rect.Right, rect.Bottom);
+            }
+        }
+
+        canvas.StrokeLineCap = LineCap.Square;
     }
 
     // Cell focus is ink inside cream, drawn on top so it shows on every region color.

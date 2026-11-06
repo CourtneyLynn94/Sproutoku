@@ -75,18 +75,11 @@
                     <Label Text="Your worm says"
                            FontAttributes="Bold"
                            TextColor="#2E241B" />
-                    <Label x:Name="WormLookLabel"
+                    <Label x:Name="WormMessageLabel"
                            TextColor="#2E241B" />
-                    <Label x:Name="WormWhyLabel"
-                           IsVisible="False"
-                           TextColor="#2E241B" />
-                    <HorizontalStackLayout Spacing="8">
-                        <Button x:Name="WormWhyButton"
-                                Text="Tell me why"
-                                Clicked="OnWormWhyClicked" />
-                        <Button Text="Thanks"
-                                Clicked="OnWormCloseClicked" />
-                    </HorizontalStackLayout>
+                    <Button Text="Got it"
+                            HorizontalOptions="Start"
+                            Clicked="OnWormCloseClicked" />
                 </VerticalStackLayout>
             </Border>
 
@@ -105,7 +98,7 @@
                         Padding="4"
                         LineBreakMode="WordWrap"
                         Clicked="OnWormClicked"
-                        ToolTipProperties.Text="Worm: shows where to look next, and explains why." />
+                        ToolTipProperties.Text="Worm: shows the next step and why." />
                 <Button x:Name="WaterButton"
                         IsEnabled="False"
                         Padding="4"

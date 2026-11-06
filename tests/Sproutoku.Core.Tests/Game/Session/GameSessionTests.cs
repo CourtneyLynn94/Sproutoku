@@ -650,6 +650,19 @@ public class GameSessionTests {
         Assert.Equal(1, session.PowerUps.Worm);
     }
 
+    [Fact]
+    public void UnlimitedTools_NeverRunOut_OrSpend() {
+        var session = NewGame();
+        session.UnlimitedTools = true;
+
+        for (int i = 0; i < 5; i++) {
+            Assert.NotNull(session.UseWorm());
+        }
+
+        Assert.Equal(PowerUpSupply.Starting.Worm, session.PowerUps.Worm);
+        Assert.Equal(PowerUpSupply.Starting.Worm, session.ToSave().PowerUps?.Worm);
+    }
+
     #region Worm helper
     [Fact]
     public void UseWorm_GivesAHint_AndSpendsOneWorm() {
