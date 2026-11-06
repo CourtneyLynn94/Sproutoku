@@ -5,9 +5,11 @@ Grow one plant in every bed (region); each row and column has exactly one plant;
 plants never touch, not even diagonally. Gardens are N×N with N beds.
 
 ## Architecture
-- `Sproutoku.Core`: all game rules, no MAUI references, in feature folders (folder = namespace):
-  `Puzzles` (what a garden is), `Boards` (what the player sees; `Board` is immutable), `Play` (`GameSession`),
-  `Levels`, `PowerUps`, `Generation`, `Solving`, `Input`, `Saving`. Tests mirror these folders.
+- `Sproutoku.Core`: all game rules, no MAUI references. Folder = namespace, in two groups:
+  `Gardens` (`Puzzles`: what a garden is; `Solving`; `Generation`) and
+  `Game` (`Session`: `GameSession`; `Boards`: what the player sees, `Board` is immutable; `Levels`; `PowerUps`; `Input`; `Saving`).
+  Tests mirror these folders.
+- `Sproutoku.App`: `Pages/`, `Controls/` (reusable views; logic moves out of pages into controls), `Services/` (haptics, storage).
 - `GameSession` (Core) owns the level, board, tap meaning, progression, restarting and saving.
 - `Sproutoku.App`: MAUI UI only. Pages pass input to `GameSession` and show the results.
 - Saves: `GameSave` (Core, JSON) and `GameStorage` (App, MAUI Preferences).
@@ -28,7 +30,8 @@ plants never touch, not even diagonally. Gardens are N×N with N beds.
 - The game never places ✕ marks automatically (no auto rule-outs after a plant).
 - "Reset all progress" clears only the `sproutoku.progress` Preferences container. Settings are kept on purpose.
 - Dialogs, buttons and colors are placeholder UI until the real design is built.
-- There are only three handmade starter gardens until the generator is built; levels will be endless later.
+- Levels are endless and generated from each level's seed; level N is the same garden for every player.
+- Power-ups: every garden starts with 2 Worms and no Seeds or Water until rewards exist. The Rake is an unlimited tool.
 
 ## Please do flag
 - Game rules or state changes in App code that belong in `Sproutoku.Core`.
