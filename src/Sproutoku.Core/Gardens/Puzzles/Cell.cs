@@ -33,5 +33,20 @@ public readonly record struct Cell(int Row, int Column) {
     public Cell MovedBy(int rows, int columns, int size) =>
         new(Math.Clamp(Row + rows, 0, size - 1), Math.Clamp(Column + columns, 0, size - 1));
 
+    /// <summary>
+    /// The cell's name on the board's labels, column letter then row number: (row 4, column 1) is "B5".
+    /// </summary>
+    public string Label => $"{ColumnLabel(Column)}{RowLabel(Row)}";
+
+    /// <summary>
+    /// Columns are lettered A, B, C… from the left.
+    /// </summary>
+    public static string ColumnLabel(int column) => ((char)('A' + column)).ToString();
+
+    /// <summary>
+    /// Rows are numbered 1, 2, 3… from the top. Players count from 1.
+    /// </summary>
+    public static string RowLabel(int row) => (row + 1).ToString();
+
     public override string ToString() => $"(row {Row}, column {Column})";
 }

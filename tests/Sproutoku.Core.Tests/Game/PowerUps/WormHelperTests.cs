@@ -46,7 +46,7 @@ public class WormHelperTests {
         // A plant at (1,0) or (1,1) would block Soil's open cells (0,0) and (0,1): same column, or touching diagonally.
         Assert.NotNull(hint);
         Assert.Equal(Technique.WouldStarve, hint.Step.Technique);
-        Assert.Equal($"A plant here would block all of {BedNames.For(0)}'s open cells (same row or column, or touching). Rule these out.", hint.Message);
+        Assert.Equal($"A plant on A2 or B2 would block all of {BedNames.For(0)}'s open cells (same row or column, or touching). Rule them out.", hint.Message);
         Assert.Equal([new Cell(1, 0), new Cell(1, 1)], hint.RuleOuts);
         Assert.Equal([new Cell(0, 0), new Cell(0, 1), new Cell(1, 0), new Cell(1, 1)], hint.Focus);
     }
@@ -58,7 +58,7 @@ public class WormHelperTests {
         var hint = WormHelper.HintFor(MarkedAt(new Cell(0, 1)));
 
         Assert.NotNull(hint);
-        Assert.Equal($"{BedNames.For(0)} has only one cell left for a plant.", hint.Message);
+        Assert.Equal($"{BedNames.For(0)} has only one cell left for a plant: A1.", hint.Message);
         Assert.Equal([new Cell(0, 0)], hint.Plants);
         Assert.Contains(new Cell(0, 1), hint.Focus); // The whole bed is lit, including the ✕.
     }
@@ -84,7 +84,7 @@ public class WormHelperTests {
         var hint = WormHelper.HintFor(board);
 
         Assert.NotNull(hint);
-        Assert.Equal($"{BedNames.For(2)} has only one cell left for a plant. Your ✕ there is a mistake.", hint.Message);
+        Assert.Equal($"{BedNames.For(2)} has only one cell left for a plant: E3. Your ✕ there is a mistake.", hint.Message);
         Assert.Equal([new Cell(2, 4)], hint.Plants);
         Assert.Equal([new Cell(2, 4)], hint.WrongMarks);
     }
@@ -94,7 +94,7 @@ public class WormHelperTests {
         var hint = WormHelper.HintFor(Board.Start(Garden).TryPlant(new Cell(0, 0)).Board);
 
         Assert.NotNull(hint);
-        Assert.Equal("This plant's row, column, bed and neighbors can't hold another plant. Rule them out.", hint.Message);
+        Assert.Equal("No other plant can share a row, column or bed with the plant on A1, or touch it. Rule those cells out.", hint.Message);
         Assert.Equal(
             [new(0, 1), new(0, 2), new(0, 3), new(0, 4), new(1, 0), new(1, 1), new(2, 0), new(3, 0), new(4, 0)],
             hint.RuleOuts);

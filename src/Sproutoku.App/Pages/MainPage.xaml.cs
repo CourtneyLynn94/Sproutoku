@@ -76,7 +76,7 @@ public partial class MainPage : ContentPage {
 
     // Draws the session's garden from scratch (new garden, Try again, reset) and saves.
     private void ShowGarden(string info) {
-        CloseWormHint();
+        UpdateWormNote();
 
         _garden.Board = Session.Board;
         _garden.HoverCell = null;
@@ -352,6 +352,15 @@ public partial class MainPage : ContentPage {
 
     // Finger or mouse down: remember where the press started. Nothing changes until it lifts or moves.
     private void OnPress(object? sender, TouchEventArgs e) {
+        // While a hint is focused, a press on the garden only unfocuses it: no tap, no drag.
+        if (_session?.IsHintFocused == true) {
+            Session.UnfocusHint();
+            UpdateWormNote();
+            _pressedCell = null;
+            _isDragging = false;
+            return;
+        }
+
         _pressedCell = _garden.CellAt(e.Touches[0]);
         _lastPoint = e.Touches[0];
         _isDragging = false;
@@ -395,6 +404,7 @@ public partial class MainPage : ContentPage {
         _lastPoint = point;
 
         if (changed) {
+            UpdateWormNote();
             _garden.Board = Session.Board;
             GardenView.Invalidate();
         }
@@ -448,7 +458,7 @@ public partial class MainPage : ContentPage {
     // Shows what a tap or key did, saves, and opens the end screen if the garden is over.
     private void ShowResult(TapResult result) {
         if (result.Outcome == TapOutcome.Ignored) return;
-        CloseWormHint();
+        UpdateWormNote();
 
 #if ANDROID || IOS
         PlayHaptic(result.Outcome);
@@ -480,6 +490,13 @@ public partial class MainPage : ContentPage {
     // Arrows move the focus ring; Space or X toggles ✕; Enter plants.
     private void OnGardenKey(GardenKeyboardKey key) {
         if (_session is null) return; // Still loading.
+
+        // While a hint is focused, a key only unfocuses it, so Enter can't plant by accident.
+        if (Session.IsHintFocused) {
+            Session.UnfocusHint();
+            UpdateWormNote();
+            return;
+        }
 
         int size = Session.Board.Size;
         var focus = _garden.FocusCell ?? new Cell(0, 0);
@@ -616,9 +633,6 @@ public partial class MainPage : ContentPage {
     #endregion
 
     #region Worm
-    // The hint on show, or null. It closes with Got it, or as soon as the player changes a cell.
-    private WormHint? _wormHint;
-
     private void OnWormClicked(object? sender, EventArgs e) {
         if (_session is null) return; // Still loading.
 
@@ -628,46 +642,54 @@ public partial class MainPage : ContentPage {
             return;
         }
 
-        ShowWormHint(hint);
+        UpdateWormNote();
         UpdateToolShelf();
         SaveProgress(); // The spent Worm is saved, so reopening the app doesn't refill it.
-    }
-
-    // Opens the note and focuses the board on the step.
-    private void ShowWormHint(WormHint hint) {
-        _wormHint = hint;
-
-        WormMessageLabel.Text = hint.Message;
-        PlantingList.IsVisible = false;
-        WormNote.IsVisible = true;
-
-        _garden.HintFocus = hint.Focus;
-        _garden.HintPlants = hint.Plants;
-        _garden.HintRuleOuts = hint.RuleOuts;
-        _garden.HintMistakes = hint.WrongMarks;
-        GardenView.Invalidate();
-
         SemanticScreenReader.Announce(hint.Message);
     }
 
-    // Makes the hint's changes. ShowResult then closes the note, saves, and handles the end of the garden.
-    private void OnWormApplyClicked(object? sender, EventArgs e) {
-        if (_wormHint is null) return;
-        ShowResult(Session.ApplyHint());
+    // Makes what's left of the hint. ShowResult then updates the note, saves, and handles the end of the garden.
+    private void OnWormApplyClicked(object? sender, EventArgs e) => ShowResult(Session.ApplyHint());
+
+    private void OnWormHideClicked(object? sender, EventArgs e) {
+        Session.UnfocusHint();
+        UpdateWormNote();
     }
 
-    // Puts the planting list back and clears the board's focus.
-    private void CloseWormHint() {
-        if (_wormHint is null) return;
+    private void OnWormShowClicked(object? sender, EventArgs e) {
+        Session.FocusHint();
+        UpdateWormNote();
+    }
 
-        _wormHint = null;
-        WormNote.IsVisible = false;
-        PlantingList.IsVisible = true;
+    private void OnWormCloseClicked(object? sender, EventArgs e) {
+        Session.CloseHint();
+        UpdateWormNote();
+    }
 
-        _garden.HintFocus = null;
-        _garden.HintPlants = null;
-        _garden.HintRuleOuts = null;
-        _garden.HintMistakes = null;
+    // Matches the note and the board to the session's hint.
+    // Focused: the board is dimmed with preview marks and labels; the note offers Apply and Hide.
+    // Unfocused: the board is back to normal; the note offers Show and Close.
+    // No hint: the planting list is back.
+    private void UpdateWormNote() {
+        var hint = Session.OpenHint;
+        bool open = hint is not null;
+        bool focused = open && Session.IsHintFocused;
+
+        WormNote.IsVisible = open;
+        PlantingList.IsVisible = !open;
+        WormMessageLabel.Text = hint?.Message;
+
+        WormTipLabel.IsVisible = focused;
+        WormApplyButton.IsVisible = focused;
+        WormHideButton.IsVisible = focused;
+        WormShowButton.IsVisible = open && !focused;
+        WormCloseButton.IsVisible = open && !focused;
+
+        var shown = focused ? hint : null; // The board only shows a focused hint.
+        _garden.HintFocus = shown?.Focus;
+        _garden.HintPlants = shown?.Plants;
+        _garden.HintRuleOuts = shown?.RuleOuts;
+        _garden.HintMistakes = shown?.WrongMarks;
         GardenView.Invalidate();
     }
     #endregion

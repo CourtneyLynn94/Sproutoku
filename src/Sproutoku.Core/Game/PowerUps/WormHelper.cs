@@ -17,13 +17,32 @@ public sealed record WormHint(
     IReadOnlyList<Cell> Focus,
     IReadOnlyList<Cell> Plants,
     IReadOnlyList<Cell> RuleOuts,
-    IReadOnlyList<Cell> WrongMarks);
+    IReadOnlyList<Cell> WrongMarks) {
+
+    /// <summary>
+    /// What's still left of this hint on the board: plants not yet grown and rule-outs not yet marked.
+    /// Null once the player has done all of it, or the garden is over. The message stays as it was.
+    /// </summary>
+    public WormHint? LeftToDo(Board board) {
+        if (board.IsFinished) return null;
+
+        var plants = Plants.Where(cell => board[cell] != CellState.Planted).ToList();
+        var ruleOuts = RuleOuts.Where(cell => board[cell] == CellState.Empty).ToList();
+        if (plants.Count == 0 && ruleOuts.Count == 0) return null;
+
+        var wrongMarks = plants.Where(cell => board[cell] == CellState.Marked).ToList();
+        return this with { Plants = plants, RuleOuts = ruleOuts, WrongMarks = wrongMarks };
+    }
+}
 
 /// <summary>
 /// The Worm's thinking. It only uses what the player can see: the bed shapes and the board's facts.
 /// It never peeks at the answer and never trusts ✕ marks; a ✕ the next step proves wrong is called out in that hint.
 /// </summary>
 public static class WormHelper {
+    // A "would starve" hint names its cells up to this many; past that, the preview marks show them.
+    private const int MaxCellsNamed = 4;
+
     /// <summary>
     /// The next step for this board, or null if the garden is over or there's nothing left to work out.
     /// </summary>
@@ -74,20 +93,21 @@ public static class WormHelper {
         return facts;
     }
 
-    // One short line per kind of step.
+    // One short line per kind of step. Cells and lines use the board's labels: columns A, B, C…, rows 1, 2, 3…, cells like B5.
     private static string Describe(Puzzle puzzle, LogicStep step, List<Cell> ruleOuts, List<Cell> wrongMarks) {
         var beds = step.Areas.Where(area => area.Kind == AreaKind.Bed).ToList();
         var lines = step.Areas.Where(area => area.Kind != AreaKind.Bed).ToList();
 
         switch (step.Technique) {
             case Technique.PlantRulesOut:
-                return "This plant's row, column, bed and neighbors can't hold another plant. Rule them out.";
+                return $"No other plant can share a row, column or bed with the plant on {step.Reasons[0].Label}, or touch it. Rule those cells out.";
 
             case Technique.OnlyCellLeft: {
                 var area = step.Areas[0];
+                string cell = step.Plants[0].Label;
                 string message = area.Kind == AreaKind.Bed
-                    ? $"{Name(area)} has only one cell left for a plant."
-                    : $"Only one cell left in {Name(area)} for a plant.";
+                    ? $"{Name(area)} has only one cell left for a plant: {cell}."
+                    : $"Only one cell left in {Name(area)} for a plant: {cell}.";
                 return wrongMarks.Count > 0 ? $"{message} Your ✕ there is a mistake." : message;
             }
 
@@ -102,7 +122,10 @@ public static class WormHelper {
             default: {
                 // WouldStarve: the area that would be left with nowhere to grow, and the rules that would do it.
                 string area = Name(step.Areas[0]);
-                return $"A plant here would block all of {area}'s open cells ({WhyBlocked(puzzle, ruleOuts, step.Reasons)}). Rule these out.";
+                string where = ruleOuts.Count <= MaxCellsNamed
+                    ? $"on {Join(ruleOuts.Select(cell => cell.Label), "or")}"
+                    : "on any of these cells";
+                return $"A plant {where} would block all of {area}'s open cells ({WhyBlocked(puzzle, ruleOuts, step.Reasons)}). Rule {(ruleOuts.Count == 1 ? "it" : "them")} out.";
             }
         }
     }
@@ -146,26 +169,28 @@ public static class WormHelper {
         }
     }
 
-    // "Sand", "row 3", "column 10". Players count from 1.
+    // "Sand", "row 3", "column B".
     private static string Name(Area area) => area.Kind switch {
-        AreaKind.Row => $"row {area.Index + 1}",
-        AreaKind.Column => $"column {area.Index + 1}",
+        AreaKind.Row => $"row {Cell.RowLabel(area.Index)}",
+        AreaKind.Column => $"column {Cell.ColumnLabel(area.Index)}",
         _ => BedNames.For(area.Index),
     };
 
     // "Sand", "Sand and Moss", "Sand, Moss and Clay" (or "or").
-    private static string Beds(List<Area> beds, string joiner) {
-        var names = beds.Select(Name).ToList();
-        return names.Count == 1 ? names[0] : $"{string.Join(", ", names.Take(names.Count - 1))} {joiner} {names[^1]}";
+    private static string Beds(List<Area> beds, string joiner) => Join(beds.Select(Name), joiner);
+
+    // "row 3", "rows 2 and 4", "columns A, C and E".
+    private static string Lines(List<Area> lines) {
+        bool rows = lines[0].Kind == AreaKind.Row;
+        string labels = Join(lines.Select(line => rows ? Cell.RowLabel(line.Index) : Cell.ColumnLabel(line.Index)), "and");
+        string kind = rows ? "row" : "column";
+
+        return lines.Count == 1 ? $"{kind} {labels}" : $"{kind}s {labels}";
     }
 
-    // "row 3", "rows 2 and 4", "columns 1, 3 and 5".
-    private static string Lines(List<Area> lines) {
-        string kind = lines[0].Kind == AreaKind.Row ? "row" : "column";
-        var numbers = lines.Select(line => (line.Index + 1).ToString()).ToList();
-
-        return numbers.Count == 1
-            ? $"{kind} {numbers[0]}"
-            : $"{kind}s {string.Join(", ", numbers.Take(numbers.Count - 1))} and {numbers[^1]}";
+    // "A", "A and B", "A, B and C" (or "or").
+    private static string Join(IEnumerable<string> names, string joiner) {
+        var list = names.ToList();
+        return list.Count == 1 ? list[0] : $"{string.Join(", ", list.Take(list.Count - 1))} {joiner} {list[^1]}";
     }
 }

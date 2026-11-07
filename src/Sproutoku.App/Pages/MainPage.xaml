@@ -77,9 +77,23 @@
                            TextColor="#2E241B" />
                     <Label x:Name="WormMessageLabel"
                            TextColor="#2E241B" />
-                    <Button Text="Apply"
-                            HorizontalOptions="Start"
-                            Clicked="OnWormApplyClicked" />
+                    <Label x:Name="WormTipLabel"
+                           Text="Tap the garden to keep playing."
+                           TextColor="#6B5B49" />
+                    <HorizontalStackLayout Spacing="8">
+                        <Button x:Name="WormApplyButton"
+                                Text="Apply"
+                                Clicked="OnWormApplyClicked" />
+                        <Button x:Name="WormHideButton"
+                                Text="Hide"
+                                Clicked="OnWormHideClicked" />
+                        <Button x:Name="WormShowButton"
+                                Text="Show"
+                                Clicked="OnWormShowClicked" />
+                        <Button x:Name="WormCloseButton"
+                                Text="Close"
+                                Clicked="OnWormCloseClicked" />
+                    </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Border>
 
