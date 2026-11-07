@@ -233,7 +233,7 @@ public partial class MainPage : ContentPage {
 
         if (wide) {
             GameArea.RowDefinitions = Rows(GridLength.Star);
-            GameArea.ColumnDefinitions = Columns(new GridLength(240), GridLength.Star, new GridLength(200));
+            GameArea.ColumnDefinitions = Columns(new GridLength(220), GridLength.Star, new GridLength(220));
             Place(PlantingList, row: 0, column: 0);
             Place(WormNote, row: 0, column: 0);
             Place(BoardArea, row: 0, column: 1);
@@ -679,7 +679,6 @@ public partial class MainPage : ContentPage {
         PlantingList.IsVisible = !open;
         WormMessageLabel.Text = hint?.Message;
 
-        WormTipLabel.IsVisible = focused;
         WormApplyButton.IsVisible = focused;
         WormHideButton.IsVisible = focused;
         WormShowButton.IsVisible = open && !focused;

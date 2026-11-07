@@ -11,9 +11,13 @@ namespace Sproutoku.App.Controls.Garden;
 public sealed class GardenDrawable : IDrawable {
     private const float MaxBoardSize = 520;
 
-    // Room above and left of the board for the column letters and row numbers, as a share of the board's side.
-    // Always kept, so the board doesn't jump when a hint opens.
-    private const float LabelShare = 0.07f;
+    // The column letters (above the board) and row numbers (left of it) are one fixed size on every garden,
+    // the same as the worm's message text.
+    private const float LabelFontSize = 14;
+
+    // Room for the labels. The same room is left on every side, so the board stays centered,
+    // and it's always there, so the board doesn't jump when a hint opens.
+    private const float LabelBand = 20;
 
     // Growing-medium colors, one per bed, in the same order as BedNames.
     private static readonly Color[] RegionColors = [
@@ -92,13 +96,9 @@ public sealed class GardenDrawable : IDrawable {
         if (Board is null) return;
 
         int size = Board.Size;
-        float space = Math.Min(Math.Min(dirtyRect.Width, dirtyRect.Height), MaxBoardSize);
-        float side = space / (1 + LabelShare);
-        float band = side * LabelShare;
+        float side = Math.Min(Math.Min(dirtyRect.Width, dirtyRect.Height) - (2 * LabelBand), MaxBoardSize);
         _cellSize = side / size;
-
-        // The board and its label band are centered together, so the board sits a little right of and below the middle.
-        _origin = new PointF(dirtyRect.Center.X - (space / 2) + band, dirtyRect.Center.Y - (space / 2) + band);
+        _origin = new PointF(dirtyRect.Center.X - (side / 2), dirtyRect.Center.Y - (side / 2));
 
         for (int row = 0; row < size; row++) {
             for (int column = 0; column < size; column++) {
@@ -153,7 +153,7 @@ public sealed class GardenDrawable : IDrawable {
         canvas.DrawRectangle(_origin.X, _origin.Y, side, side);
 
         if (HintFocus is not null) {
-            DrawLabels(canvas, size, band, HintFocus);
+            DrawLabels(canvas, size, HintFocus);
         }
     }
 
@@ -277,22 +277,22 @@ public sealed class GardenDrawable : IDrawable {
 
     // Column letters above the board and row numbers to its left, while the worm's focus is on.
     // The rows and columns the step is about are dark; the rest are faded.
-    private void DrawLabels(ICanvas canvas, int size, float band, IReadOnlyCollection<Cell> focus) {
+    private void DrawLabels(ICanvas canvas, int size, IReadOnlyCollection<Cell> focus) {
         var rows = focus.Select(cell => cell.Row).ToHashSet();
         var columns = focus.Select(cell => cell.Column).ToHashSet();
 
-        canvas.Font = Microsoft.Maui.Graphics.Font.DefaultBold;
-        canvas.FontSize = Math.Min(band * 0.7f, _cellSize * 0.45f);
+        canvas.Font = Microsoft.Maui.Graphics.Font.Default;
+        canvas.FontSize = LabelFontSize;
 
         for (int i = 0; i < size; i++) {
             float offset = i * _cellSize;
 
             canvas.FontColor = columns.Contains(i) ? Ink : Ink.WithAlpha(0.4f);
-            canvas.DrawString(Cell.ColumnLabel(i), _origin.X + offset, _origin.Y - band, _cellSize, band,
+            canvas.DrawString(Cell.ColumnLabel(i), _origin.X + offset, _origin.Y - LabelBand, _cellSize, LabelBand,
                 HorizontalAlignment.Center, VerticalAlignment.Center);
 
             canvas.FontColor = rows.Contains(i) ? Ink : Ink.WithAlpha(0.4f);
-            canvas.DrawString(Cell.RowLabel(i), _origin.X - band, _origin.Y + offset, band, _cellSize,
+            canvas.DrawString(Cell.RowLabel(i), _origin.X - LabelBand, _origin.Y + offset, LabelBand, _cellSize,
                 HorizontalAlignment.Center, VerticalAlignment.Center);
         }
     }

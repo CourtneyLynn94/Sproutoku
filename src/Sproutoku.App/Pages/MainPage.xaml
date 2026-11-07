@@ -77,9 +77,6 @@
                            TextColor="#2E241B" />
                     <Label x:Name="WormMessageLabel"
                            TextColor="#2E241B" />
-                    <Label x:Name="WormTipLabel"
-                           Text="Tap the garden to keep playing."
-                           TextColor="#6B5B49" />
                     <HorizontalStackLayout Spacing="8">
                         <Button x:Name="WormApplyButton"
                                 Text="Apply"
