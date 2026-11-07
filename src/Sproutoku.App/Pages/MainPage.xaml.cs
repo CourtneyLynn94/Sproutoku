@@ -395,7 +395,6 @@ public partial class MainPage : ContentPage {
         _lastPoint = point;
 
         if (changed) {
-            CloseWormHint();
             _garden.Board = Session.Board;
             GardenView.Invalidate();
         }
@@ -642,15 +641,20 @@ public partial class MainPage : ContentPage {
         PlantingList.IsVisible = false;
         WormNote.IsVisible = true;
 
-        _garden.HintArea = hint.Area;
-        _garden.HintTargets = hint.Targets;
+        _garden.HintFocus = hint.Focus;
+        _garden.HintPlants = hint.Plants;
+        _garden.HintRuleOuts = hint.RuleOuts;
         _garden.HintMistakes = hint.WrongMarks;
         GardenView.Invalidate();
 
         SemanticScreenReader.Announce(hint.Message);
     }
 
-    private void OnWormCloseClicked(object? sender, EventArgs e) => CloseWormHint();
+    // Makes the hint's changes. ShowResult then closes the note, saves, and handles the end of the garden.
+    private void OnWormApplyClicked(object? sender, EventArgs e) {
+        if (_wormHint is null) return;
+        ShowResult(Session.ApplyHint());
+    }
 
     // Puts the planting list back and clears the board's focus.
     private void CloseWormHint() {
@@ -660,8 +664,9 @@ public partial class MainPage : ContentPage {
         WormNote.IsVisible = false;
         PlantingList.IsVisible = true;
 
-        _garden.HintArea = null;
-        _garden.HintTargets = null;
+        _garden.HintFocus = null;
+        _garden.HintPlants = null;
+        _garden.HintRuleOuts = null;
         _garden.HintMistakes = null;
         GardenView.Invalidate();
     }

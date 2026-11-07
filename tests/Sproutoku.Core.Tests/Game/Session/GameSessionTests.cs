@@ -650,19 +650,6 @@ public class GameSessionTests {
         Assert.Equal(1, session.PowerUps.Worm);
     }
 
-    [Fact]
-    public void UnlimitedTools_NeverRunOut_OrSpend() {
-        var session = NewGame();
-        session.UnlimitedTools = true;
-
-        for (int i = 0; i < 5; i++) {
-            Assert.NotNull(session.UseWorm());
-        }
-
-        Assert.Equal(PowerUpSupply.Starting.Worm, session.PowerUps.Worm);
-        Assert.Equal(PowerUpSupply.Starting.Worm, session.ToSave().PowerUps?.Worm);
-    }
-
     #region Worm helper
     [Fact]
     public void UseWorm_GivesAHint_AndSpendsOneWorm() {
@@ -676,7 +663,9 @@ public class GameSessionTests {
     public void UseWorm_WithNoneLeft_GivesNothing() {
         var session = NewGame();
         session.UseWorm();
+        session.ApplyHint();
         session.UseWorm();
+        session.ApplyHint();
 
         Assert.Null(session.UseWorm());
         Assert.Equal(0, session.PowerUps.Worm);
@@ -699,6 +688,113 @@ public class GameSessionTests {
         session.UseWorm();
 
         Assert.Same(before, session.Board);
+    }
+
+    [Fact]
+    public void UnlimitedWorms_NeverRunOut_OrSpend() {
+        var session = NewGame();
+        session.UnlimitedTools = true;
+
+        for (int i = 0; i < 5; i++) {
+            Assert.NotNull(session.UseWorm());
+            session.ApplyHint();
+        }
+
+        Assert.Equal(PowerUpSupply.Starting.Worm, session.PowerUps.Worm);
+        Assert.Equal(PowerUpSupply.Starting.Worm, session.ToSave().PowerUps?.Worm);
+    }
+
+    [Fact]
+    public void WhileAHintIsOpen_TheBoardIgnoresTapsDragsAndKeys() {
+        var session = NewGame();
+        var cell = WrongCells(session.Board.Puzzle).First();
+        Assert.NotNull(session.UseWorm());
+
+        Assert.Equal(TapOutcome.Ignored, SingleTap(session, cell).Outcome);
+        Assert.Equal(TapOutcome.Ignored, session.ToggleMark(cell).Outcome);
+        Assert.Equal(TapOutcome.Ignored, session.Plant(cell).Outcome);
+        session.BeginDrag();
+        Assert.False(session.DragOver(cell));
+        session.EndDrag();
+        Assert.Equal(CellState.Empty, session.Board[cell]);
+    }
+
+    [Fact]
+    public void ApplyHint_MarksTheRuleOuts_AndClosesTheHint() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        var hint = session.UseWorm();
+        Assert.NotNull(hint);
+        Assert.NotEmpty(hint.RuleOuts);
+
+        var result = session.ApplyHint();
+
+        Assert.Equal(TapOutcome.MarkToggled, result.Outcome);
+        Assert.All(hint.RuleOuts, cell => Assert.Equal(CellState.Marked, session.Board[cell]));
+        Assert.Null(session.OpenHint);
+        Assert.Equal(TapOutcome.Ignored, session.ApplyHint().Outcome); // Nothing left to apply.
+    }
+
+    [Fact]
+    public void ApplyHint_GrowsAPlant_RightOverAWrongMark() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+
+        // The first four steps marked, plus a wrong ✕ on (2,4), where Sand's plant grows.
+        Cell[] marks = [new(0, 2), new(0, 3), new(0, 4), new(2, 0), new(2, 1), new(2, 2), new(1, 0), new(1, 1), new(2, 3), new(2, 4)];
+        foreach (var cell in marks) {
+            session.ToggleMark(cell);
+        }
+
+        var hint = session.UseWorm();
+        Assert.NotNull(hint);
+        Assert.Equal([new Cell(2, 4)], hint.WrongMarks);
+
+        var result = session.ApplyHint();
+
+        Assert.Equal(TapOutcome.Grew, result.Outcome);
+        Assert.Equal(CellState.Planted, session.Board[new Cell(2, 4)]);
+        Assert.Equal(0, session.Board.Mistakes);
+    }
+
+    [Fact]
+    public void AskingAgain_WithAHintOpen_GivesTheSameHint_ForFree() {
+        var session = NewGame();
+        var first = session.UseWorm();
+
+        Assert.Same(first, session.UseWorm());
+        Assert.Equal(PowerUpSupply.Starting.Worm - 1, session.PowerUps.Worm);
+    }
+
+    [Fact]
+    public void ANewGarden_ClosesTheOpenHint() {
+        var session = NewGame();
+        session.UseWorm();
+
+        session.GoToLevel(2);
+
+        Assert.Null(session.OpenHint);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(25)]
+    [InlineData(40)]
+    public void ApplyingEveryHint_GrowsTheWholeGarden_WithoutAMistake(int level) {
+        var session = NewGame();
+        session.GoToLevel(level);
+        session.UnlimitedTools = true;
+        TapResult? last = null;
+
+        for (int hints = 0; !session.Board.IsSolved; hints++) {
+            Assert.True(hints < 500, "The worm went round in circles.");
+            Assert.NotNull(session.UseWorm());
+            last = session.ApplyHint();
+        }
+
+        Assert.NotNull(last);
+        Assert.True(last.EndedGarden);
+        Assert.Equal(0, session.Board.Mistakes);
     }
     #endregion
     #endregion

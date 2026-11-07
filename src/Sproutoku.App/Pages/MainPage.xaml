@@ -77,9 +77,9 @@
                            TextColor="#2E241B" />
                     <Label x:Name="WormMessageLabel"
                            TextColor="#2E241B" />
-                    <Button Text="Got it"
+                    <Button Text="Apply"
                             HorizontalOptions="Start"
-                            Clicked="OnWormCloseClicked" />
+                            Clicked="OnWormApplyClicked" />
                 </VerticalStackLayout>
             </Border>
 

@@ -60,6 +60,11 @@ public sealed class GameSession {
     public PowerUpSupply PowerUps { get; private set; }
 
     /// <summary>
+    /// The worm's hint waiting to be applied, or null. While it's open, the board ignores taps, drags and keys: the only way on is <see cref="ApplyHint"/>.
+    /// </summary>
+    public WormHint? OpenHint { get; private set; }
+
+    /// <summary>
     /// For testing (a debug Journal option): Tools are never spent. Not saved.
     /// </summary>
     public bool UnlimitedTools { get; set; }
@@ -188,6 +193,7 @@ public sealed class GameSession {
         LevelGarden = levelGarden;
         Board = board;
         PowerUps = powerUps;
+        OpenHint = null;
         _doubleTap.Reset();
         _boardBeforeTap = null;
         _dragMode = null;
@@ -201,7 +207,7 @@ public sealed class GameSession {
     /// A finished garden ignores taps.
     /// </summary>
     public TapResult Tap(Cell cell, long timeMs) {
-        if (Board.IsFinished) {
+        if (Board.IsFinished || OpenHint is not null) {
             return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }
 
@@ -244,7 +250,7 @@ public sealed class GameSession {
     /// Returns true if the cell changed.
     /// </summary>
     public bool DragOver(Cell cell) {
-        if (_dragMode is null || Board.IsFinished) {
+        if (_dragMode is null || Board.IsFinished || OpenHint is not null) {
             return false;
         }
 
@@ -279,11 +285,12 @@ public sealed class GameSession {
     }
 
     /// <summary>
-    /// Asks the worm for a hint and spends one Worm.
+    /// Asks the worm for the next step and spends one Worm (unless tools are unlimited).
     /// Returns null and spends nothing if there's no Worm left, the garden is over, or there's nothing left to work out.
-    /// The board doesn't change: the player acts on the hint themselves.
+    /// Asking again while a hint is open gives the same hint for free.
     /// </summary>
     public WormHint? UseWorm() {
+        if (OpenHint is not null) return OpenHint;
         if (!CanUse(PowerUp.Worm)) return null;
 
         var hint = WormHelper.HintFor(Board);
@@ -292,8 +299,35 @@ public sealed class GameSession {
         if (!UnlimitedTools) {
             PowerUps = PowerUps.Spend(PowerUp.Worm);
         }
+
         ForgetLastTap();
+        OpenHint = hint;
         return hint;
+    }
+
+    /// <summary>
+    /// Makes the open hint's changes: grows its plants (always correct, so no sun is spent) and marks its rule-outs with ✕.
+    /// Closes the hint. Does nothing if no hint is open.
+    /// </summary>
+    public TapResult ApplyHint() {
+        if (OpenHint is not { } hint) {
+            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
+        }
+
+        OpenHint = null;
+
+        var board = Board;
+        foreach (var cell in hint.Plants) {
+            board = board.TryPlant(cell).Board; // Planting works on a ✕ too, so a wrong ✕ is replaced.
+        }
+
+        foreach (var cell in hint.RuleOuts) {
+            board = board.ToggleMark(cell);
+        }
+
+        Board = board;
+        var outcome = hint.Plants.Count > 0 ? TapOutcome.Grew : TapOutcome.MarkToggled;
+        return new TapResult(outcome, Board.IsFinished);
     }
     #endregion
 
@@ -303,7 +337,7 @@ public sealed class GameSession {
     /// </summary>
     public TapResult ToggleMark(Cell cell) {
         ForgetLastTap();
-        if (Board.IsFinished) {
+        if (Board.IsFinished || OpenHint is not null) {
             return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }
 
@@ -320,7 +354,7 @@ public sealed class GameSession {
     /// </summary>
     public TapResult Plant(Cell cell) {
         ForgetLastTap();
-        if (Board.IsFinished) {
+        if (Board.IsFinished || OpenHint is not null) {
             return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }
 

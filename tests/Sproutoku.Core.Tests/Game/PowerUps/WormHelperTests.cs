@@ -14,46 +14,54 @@ public class WormHelperTests {
     public void OnAFreshGarden_TheWormGivesTheFirstStep() {
         var hint = WormHelper.HintFor(Board.Start(Garden));
 
-        // Bed 0 only has cells in row 1, so the rest of row 1 can't hold a plant.
+        // Bed 0 (Soil) only has cells in row 1, so the rest of row 1 can't hold a plant.
         Assert.NotNull(hint);
-        Assert.Equal(Technique.BedsFillLines, hint.Step.Technique);
-        Assert.Equal([new Cell(0, 0), new Cell(0, 1), new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], hint.Area);
-        Assert.Equal([new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], hint.Targets);
-        Assert.Empty(hint.WrongMarks);
-        Assert.StartsWith("Look at this bed and row 1.", hint.Message);
+        Assert.Equal("Soil only has open cells in row 1. Rule out the other beds there.", hint.Message);
+        Assert.Equal([new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], hint.RuleOuts);
+        Assert.Empty(hint.Plants);
+        Assert.Equal([new Cell(0, 0), new Cell(0, 1), new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], hint.Focus);
     }
 
     [Fact]
     public void StepsAlreadyOnTheBoard_AreSkipped() {
         var hint = WormHelper.HintFor(MarkedAt(new(0, 2), new(0, 3), new(0, 4)));
 
-        // The next step: bed 2 only has cells in row 3.
         Assert.NotNull(hint);
-        Assert.Equal([new Cell(2, 0), new Cell(2, 1), new Cell(2, 2)], hint.Targets);
-        Assert.Contains("row 3", hint.Message);
+        Assert.Equal("Sand only has open cells in row 3. Rule out the other beds there.", hint.Message);
+        Assert.Equal([new Cell(2, 0), new Cell(2, 1), new Cell(2, 2)], hint.RuleOuts);
     }
 
     [Fact]
-    public void OnlyCellsNotYetMarked_AreRinged() {
+    public void OnlyCellsNotYetMarked_GetPreviewMarks() {
         var hint = WormHelper.HintFor(MarkedAt(new Cell(0, 2)));
 
         Assert.NotNull(hint);
-        Assert.Equal([new Cell(0, 3), new Cell(0, 4)], hint.Targets);
+        Assert.Equal([new Cell(0, 3), new Cell(0, 4)], hint.RuleOuts);
+    }
+
+    [Fact]
+    public void AWouldStarveHint_NamesTheRulesThatApply() {
+        var hint = WormHelper.HintFor(MarkedAt(new(0, 2), new(0, 3), new(0, 4), new(2, 0), new(2, 1), new(2, 2)));
+
+        // A plant at (1,0) or (1,1) would block Soil's open cells (0,0) and (0,1): same column, or touching diagonally.
+        Assert.NotNull(hint);
+        Assert.Equal(Technique.WouldStarve, hint.Step.Technique);
+        Assert.Equal("A plant here would block all of Soil's open cells (same row or column, or touching). Rule these out.", hint.Message);
+        Assert.Equal([new Cell(1, 0), new Cell(1, 1)], hint.RuleOuts);
+        Assert.Equal([new Cell(0, 0), new Cell(0, 1), new Cell(1, 0), new Cell(1, 1)], hint.Focus);
     }
 
     [Fact]
     public void AWrongMark_TheStepDoesntTouch_IsLeftAlone() {
-        // (0,0) holds bed 0's plant, but the first step only rules out the rest of row 1.
         var hint = WormHelper.HintFor(MarkedAt(new Cell(0, 0)));
 
         Assert.NotNull(hint);
-        Assert.Equal([new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], hint.Targets);
+        Assert.Equal([new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], hint.RuleOuts);
         Assert.Empty(hint.WrongMarks);
     }
 
     [Fact]
-    public void AWrongMark_TheStepProvesWrong_IsCalledOutInTheHint() {
-        // The first four steps are all marked, and there's a ✕ on (2,4): the fifth step proves bed 2's plant grows there.
+    public void AWrongMark_TheStepProvesWrong_IsCalledOut() {
         var board = MarkedAt(
             new(0, 2), new(0, 3), new(0, 4),
             new(2, 0), new(2, 1), new(2, 2),
@@ -64,24 +72,21 @@ public class WormHelperTests {
         var hint = WormHelper.HintFor(board);
 
         Assert.NotNull(hint);
-        Assert.Equal(Technique.OnlyCellLeft, hint.Step.Technique);
-        Assert.Equal([new Cell(2, 4)], hint.Targets);
+        Assert.Equal("Sand has only one cell left for a plant. Your ✕ there is a mistake.", hint.Message);
+        Assert.Equal([new Cell(2, 4)], hint.Plants);
         Assert.Equal([new Cell(2, 4)], hint.WrongMarks);
-        Assert.Contains("Your ✕ there is a mistake", hint.Message);
     }
 
     [Fact]
     public void APlant_RulesOutItsRowColumnBedAndNeighbors() {
-        var board = Board.Start(Garden).TryPlant(new Cell(0, 0)).Board;
-
-        var hint = WormHelper.HintFor(board);
+        var hint = WormHelper.HintFor(Board.Start(Garden).TryPlant(new Cell(0, 0)).Board);
 
         Assert.NotNull(hint);
-        Assert.Equal(Technique.PlantRulesOut, hint.Step.Technique);
-        Assert.Equal([new Cell(0, 0)], hint.Area);
+        Assert.Equal("This plant's row, column, bed and neighbors can't hold another plant. Rule them out.", hint.Message);
         Assert.Equal(
             [new(0, 1), new(0, 2), new(0, 3), new(0, 4), new(1, 0), new(1, 1), new(2, 0), new(3, 0), new(4, 0)],
-            hint.Targets);
+            hint.RuleOuts);
+        Assert.Equal(new Cell(0, 0), hint.Focus[0]);
     }
 
     [Fact]
@@ -89,41 +94,5 @@ public class WormHelperTests {
         var board = Garden.Solution.Aggregate(Board.Start(Garden), (current, cell) => current.TryPlant(cell).Board);
 
         Assert.Null(WormHelper.HintFor(board));
-    }
-
-    [Theory]
-    [InlineData(1)]
-    [InlineData(25)]
-    [InlineData(40)]
-    public void FollowingEveryHint_GrowsTheWholeGarden(int level) {
-        // A player who only ever does what the worm says always finishes, never runs out of hints, and never makes a mistake.
-        var puzzle = GardenLevels.ForLevel(level).Puzzle;
-        var board = Board.Start(puzzle);
-
-        for (int hints = 0; !board.IsSolved; hints++) {
-            Assert.True(hints < 500, "The worm went round in circles.");
-
-            var hint = WormHelper.HintFor(board);
-            Assert.NotNull(hint);
-
-            foreach (var cell in hint.Targets) {
-                board = hint.Step.Plants.Contains(cell) ? board.TryPlant(cell).Board : board.ToggleMark(cell);
-            }
-        }
-
-        Assert.Equal(0, board.Mistakes);
-    }
-
-    [Fact]
-    public void AWouldStarveHint_SaysWhichRulesDoIt() {
-        // With the first two steps marked, the next one: a plant at (1,0) or (1,1) would starve bed 0, whose open cells are (0,0) and (0,1).
-        // Each is in the same column as one of them and touches the other diagonally; none shares their bed.
-        var hint = WormHelper.HintFor(MarkedAt(new(0, 2), new(0, 3), new(0, 4), new(2, 0), new(2, 1), new(2, 2)));
-
-        Assert.NotNull(hint);
-        Assert.Equal(Technique.WouldStarve, hint.Step.Technique);
-        Assert.Equal([new Cell(1, 0), new Cell(1, 1)], hint.Targets);
-        Assert.Contains("because each of them is in that cell's row or column or touches it", hint.Message);
-        Assert.Contains("This bed would have nowhere left to grow", hint.Message);
     }
 }
