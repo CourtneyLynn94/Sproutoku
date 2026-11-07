@@ -21,11 +21,12 @@ public partial class MainPage : ContentPage {
     partial void HookUpKeyboard();
     partial void FocusGardenForKeyboard();
 #elif ANDROID || IOS
-    private readonly Haptics _haptics = new();
+    private readonly Haptics _haptics;
 #endif
 
     private readonly GardenDrawable _garden = new() { ShouldDrawRegionBorders = false };
     private readonly GameStorage _gameStorage = new();
+    private readonly GameSettings _settings = new();
 
     // The game itself: level, board and every rule. The page only shows it and passes input in.
     // Null only for the moment the saved level is growing at startup.
@@ -43,6 +44,9 @@ public partial class MainPage : ContentPage {
 
     public MainPage() {
         InitializeComponent();
+#if ANDROID || IOS
+        _haptics = new Haptics(_settings);
+#endif
         GardenView.Drawable = _garden;
 
         ApplyLayout(wide: false);
@@ -289,7 +293,7 @@ public partial class MainPage : ContentPage {
     private async void OnJournalClicked(object? sender, EventArgs e) {
         if (_session is null) return; // Still loading.
 
-        List<string> options = ["How to play"];
+        List<string> options = ["How to play", "Settings"];
 #if DEBUG
         options.Add("Go to level (dev)");
         options.Add("Skip to next garden (dev)");
@@ -300,11 +304,14 @@ public partial class MainPage : ContentPage {
         string choice = await DisplayActionSheetAsync("Garden journal", "Keep gardening", "Reset all progress", [.. options]);
 
         switch (choice) {
+            case "Reset all progress":
+                await ConfirmResetAsync();
+                break;
             case "How to play":
                 await Navigation.PushModalAsync(new HowToPlayPage());
                 break;
-            case "Reset all progress":
-                await ConfirmResetAsync();
+            case "Settings":
+                await Navigation.PushModalAsync(new SettingsPage(_settings));
                 break;
 #if DEBUG
             case "Go to level (dev)":

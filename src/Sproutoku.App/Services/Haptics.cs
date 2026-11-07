@@ -14,10 +14,11 @@ public sealed class Haptics {
     private static readonly TimeSpan WiltBuzz = TimeSpan.FromMilliseconds(400);
     private static readonly TimeSpan GardenEndBuzz = TimeSpan.FromMilliseconds(700);
 
-    /// <summary>
-    /// The Settings screen (S54) can turn haptics off.
-    /// </summary>
-    public bool IsEnabled { get; set; } = true;
+    private readonly GameSettings _settings;
+
+    public Haptics(GameSettings settings) {
+        _settings = settings;
+    }
 
     /// <summary>
     /// One short tick: a ✕ placed or cleared, including each cell a drag changes.
@@ -44,7 +45,7 @@ public sealed class Haptics {
     public void GardenEnded() => Vibrate(GardenEndBuzz);
 
     private void Vibrate(TimeSpan duration) {
-        if (!IsEnabled) return;
+        if (!_settings.Vibration) return;
 
         try {
             if (Vibration.Default.IsSupported) {
