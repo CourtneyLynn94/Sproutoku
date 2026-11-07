@@ -92,6 +92,17 @@ public sealed class GardenDrawable : IDrawable {
     /// </summary>
     public IReadOnlyCollection<Cell>? HintMistakes { get; set; }
 
+    /// <summary>
+    /// The rows the open hint names, focused or not. While set, the column letters and row numbers are drawn,
+    /// and these rows' numbers are dark; the rest are faded.
+    /// </summary>
+    public IReadOnlyCollection<int>? HintRows { get; set; }
+
+    /// <summary>
+    /// The columns the open hint names: their letters are dark; the rest are faded.
+    /// </summary>
+    public IReadOnlyCollection<int>? HintColumns { get; set; }
+
     public void Draw(ICanvas canvas, RectF dirtyRect) {
         if (Board is null) return;
 
@@ -152,8 +163,8 @@ public sealed class GardenDrawable : IDrawable {
         canvas.StrokeSize = 3;
         canvas.DrawRectangle(_origin.X, _origin.Y, side, side);
 
-        if (HintFocus is not null) {
-            DrawLabels(canvas, size, HintFocus);
+        if (HintRows is not null && HintColumns is not null) {
+            DrawLabels(canvas, size, HintRows, HintColumns);
         }
     }
 
@@ -275,12 +286,9 @@ public sealed class GardenDrawable : IDrawable {
         canvas.DrawCircle(rect.Center.X, rect.Center.Y, rect.Width * 0.36f);
     }
 
-    // Column letters above the board and row numbers to its left, while the worm's focus is on.
-    // The rows and columns the step is about are dark; the rest are faded.
-    private void DrawLabels(ICanvas canvas, int size, IReadOnlyCollection<Cell> focus) {
-        var rows = focus.Select(cell => cell.Row).ToHashSet();
-        var columns = focus.Select(cell => cell.Column).ToHashSet();
-
+    // Column letters above the board and row numbers to its left, while a hint is open.
+    // Only the rows and columns its message names are dark; the rest are faded.
+    private void DrawLabels(ICanvas canvas, int size, IReadOnlyCollection<int> rows, IReadOnlyCollection<int> columns) {
         canvas.Font = Microsoft.Maui.Graphics.Font.Default;
         canvas.FontSize = LabelFontSize;
 

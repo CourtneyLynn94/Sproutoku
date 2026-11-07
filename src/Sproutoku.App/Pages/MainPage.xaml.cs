@@ -232,6 +232,7 @@ public partial class MainPage : ContentPage {
         _isWide = wide;
 
         if (wide) {
+            GardenView.Margin = new Thickness(0);
             GameArea.RowDefinitions = Rows(GridLength.Star);
             GameArea.ColumnDefinitions = Columns(new GridLength(220), GridLength.Star, new GridLength(220));
             Place(PlantingList, row: 0, column: 0);
@@ -239,6 +240,8 @@ public partial class MainPage : ContentPage {
             Place(BoardArea, row: 0, column: 1);
             Place(ToolShelf, row: 0, column: 2);
         } else {
+            // The garden reaches into the page's side padding. Only the labels sit there; the board keeps its distance from the screen's edge.
+            GardenView.Margin = new Thickness(-16, 0);
             GameArea.RowDefinitions = Rows(GridLength.Star, GridLength.Auto, GridLength.Auto);
             GameArea.ColumnDefinitions = Columns(GridLength.Star);
             Place(BoardArea, row: 0, column: 0);
@@ -661,7 +664,15 @@ public partial class MainPage : ContentPage {
         UpdateWormNote();
     }
 
-    private void OnWormCloseClicked(object? sender, EventArgs e) {
+    // Closing asks first: once it's closed, seeing a hint again takes another Worm.
+    private async void OnWormCloseClicked(object? sender, EventArgs e) {
+        bool close = await DisplayAlertAsync(
+            "Close the worm's note?",
+            "To see the hint again, you'll need another Worm.",
+            "Close",
+            "Keep it");
+        if (!close) return;
+
         Session.CloseHint();
         UpdateWormNote();
     }
@@ -689,6 +700,9 @@ public partial class MainPage : ContentPage {
         _garden.HintPlants = shown?.Plants;
         _garden.HintRuleOuts = shown?.RuleOuts;
         _garden.HintMistakes = shown?.WrongMarks;
+        // Labels stay while the note is up, focused or not, so the player can find what it names.
+        _garden.HintRows = hint?.NamedRows;
+        _garden.HintColumns = hint?.NamedColumns;
         GardenView.Invalidate();
     }
     #endregion

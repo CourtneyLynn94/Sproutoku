@@ -17,6 +17,8 @@ public class WormHelperTests {
         // Bed 0 (Soil) only has cells in row 1, so the rest of row 1 can't hold a plant.
         Assert.NotNull(hint);
         Assert.Equal($"{BedNames.For(0)} only has open cells in row 1. Rule out the other beds there.", hint.Message);
+        Assert.Equal([0], hint.NamedRows);
+        Assert.Empty(hint.NamedColumns);
         Assert.Equal([new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], hint.RuleOuts);
         Assert.Empty(hint.Plants);
         Assert.Equal([new Cell(0, 0), new Cell(0, 1), new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], hint.Focus);
@@ -47,6 +49,8 @@ public class WormHelperTests {
         Assert.NotNull(hint);
         Assert.Equal(Technique.WouldStarve, hint.Step.Technique);
         Assert.Equal($"A plant on A2 or B2 would block all of {BedNames.For(0)}'s open cells (same row or column, or touching). Rule them out.", hint.Message);
+        Assert.Equal([1], hint.NamedRows);
+        Assert.Equal([0, 1], hint.NamedColumns);
         Assert.Equal([new Cell(1, 0), new Cell(1, 1)], hint.RuleOuts);
         Assert.Equal([new Cell(0, 0), new Cell(0, 1), new Cell(1, 0), new Cell(1, 1)], hint.Focus);
     }
@@ -85,6 +89,8 @@ public class WormHelperTests {
 
         Assert.NotNull(hint);
         Assert.Equal($"{BedNames.For(2)} has only one cell left for a plant: E3. Your ✕ there is a mistake.", hint.Message);
+        Assert.Equal([2], hint.NamedRows);
+        Assert.Equal([4], hint.NamedColumns);
         Assert.Equal([new Cell(2, 4)], hint.Plants);
         Assert.Equal([new Cell(2, 4)], hint.WrongMarks);
     }
@@ -95,6 +101,8 @@ public class WormHelperTests {
 
         Assert.NotNull(hint);
         Assert.Equal("No other plant can share a row, column or bed with the plant on A1, or touch it. Rule those cells out.", hint.Message);
+        Assert.Equal([0], hint.NamedRows);
+        Assert.Equal([0], hint.NamedColumns);
         Assert.Equal(
             [new(0, 1), new(0, 2), new(0, 3), new(0, 4), new(1, 0), new(1, 1), new(2, 0), new(3, 0), new(4, 0)],
             hint.RuleOuts);

@@ -9,7 +9,8 @@ namespace Sproutoku.Core.Game.PowerUps;
 /// <see cref="Message"/> is one short line;
 /// <see cref="Focus"/> are the cells the step is about (the rest of the board is dimmed);
 /// <see cref="Plants"/> and <see cref="RuleOuts"/> are what Apply changes;
-/// <see cref="WrongMarks"/> are ✕ marks this step proves wrong.
+/// <see cref="WrongMarks"/> are ✕ marks this step proves wrong;
+/// <see cref="NamedRows"/> and <see cref="NamedColumns"/> are the rows and columns the message names, by index.
 /// </summary>
 public sealed record WormHint(
     LogicStep Step,
@@ -17,7 +18,9 @@ public sealed record WormHint(
     IReadOnlyList<Cell> Focus,
     IReadOnlyList<Cell> Plants,
     IReadOnlyList<Cell> RuleOuts,
-    IReadOnlyList<Cell> WrongMarks) {
+    IReadOnlyList<Cell> WrongMarks,
+    IReadOnlyList<int> NamedRows,
+    IReadOnlyList<int> NamedColumns) {
 
     /// <summary>
     /// What's still left of this hint on the board: plants not yet grown and rule-outs not yet marked.
@@ -65,7 +68,8 @@ public static class WormHelper {
                 : step.Reasons;
             var focus = why.Concat(plants).Concat(ruleOuts).Distinct().ToList();
 
-            return new WormHint(step, Describe(board.Puzzle, step, ruleOuts, wrongMarks), focus, plants, ruleOuts, wrongMarks);
+            var (rows, columns) = NamedLines(step, ruleOuts);
+            return new WormHint(step, Describe(board.Puzzle, step, ruleOuts, wrongMarks), focus, plants, ruleOuts, wrongMarks, rows, columns);
         }
 
         return null;
@@ -128,6 +132,26 @@ public static class WormHelper {
                 return $"A plant {where} would block all of {area}'s open cells ({WhyBlocked(puzzle, ruleOuts, step.Reasons)}). Rule {(ruleOuts.Count == 1 ? "it" : "them")} out.";
             }
         }
+    }
+
+    // The rows and columns the message names: its rows and columns, plus the row and column of each cell it names (B5 names column B and row 5).
+    // Matches Describe, so the app can darken just those labels.
+    private static (List<int> Rows, List<int> Columns) NamedLines(LogicStep step, List<Cell> ruleOuts) {
+        List<Cell> cells = step.Technique switch {
+            Technique.PlantRulesOut => [step.Reasons[0]],
+            Technique.OnlyCellLeft => [step.Plants[0]],
+            Technique.WouldStarve when ruleOuts.Count <= MaxCellsNamed => ruleOuts,
+            _ => [],
+        };
+
+        var rows = step.Areas.Where(area => area.Kind == AreaKind.Row).Select(area => area.Index)
+            .Concat(cells.Select(cell => cell.Row))
+            .Distinct().Order().ToList();
+        var columns = step.Areas.Where(area => area.Kind == AreaKind.Column).Select(area => area.Index)
+            .Concat(cells.Select(cell => cell.Column))
+            .Distinct().Order().ToList();
+
+        return (rows, columns);
     }
 
     // Which rules let a plant in a ruled-out cell block the area's open cells. Only the ones that apply are listed.
