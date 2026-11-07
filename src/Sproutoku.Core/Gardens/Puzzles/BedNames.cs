@@ -4,6 +4,7 @@ namespace Sproutoku.Core.Gardens.Puzzles;
 /// Each bed is a growing medium; its name comes from its bed id. The app's bed colors follow the same order.
 /// </summary>
 public static class BedNames {
+    //#93 adds the planting list with bed names, use standard color names until then
     //private static readonly string[] Names = ["Soil", "Water", "Sand", "Perlite", "Pebble", "Bark", "Moss", "Clay", "Mulch", "Lava"];
     private static readonly string[] Names = ["Brown", "Blue", "Yellow", "White", "Grey", "Orange", "Green", "Red", "Dark Green", "Purple"];
 
