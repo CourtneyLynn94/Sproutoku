@@ -52,6 +52,18 @@ public class WormHelperTests {
     }
 
     [Fact]
+    public void ACorrectMark_CountsAsAFact() {
+        // (0,1) is Soil but not its plant, so the ✕ is right: Soil now has only (0,0) left.
+        // Without trusting the ✕, the worm would have said "Soil only has open cells in row 1" instead.
+        var hint = WormHelper.HintFor(MarkedAt(new Cell(0, 1)));
+
+        Assert.NotNull(hint);
+        Assert.Equal($"{BedNames.For(0)} has only one cell left for a plant.", hint.Message);
+        Assert.Equal([new Cell(0, 0)], hint.Plants);
+        Assert.Contains(new Cell(0, 1), hint.Focus); // The whole bed is lit, including the ✕.
+    }
+
+    [Fact]
     public void AWrongMark_TheStepDoesntTouch_IsLeftAlone() {
         var hint = WormHelper.HintFor(MarkedAt(new Cell(0, 0)));
 

@@ -31,7 +31,7 @@ public static class WormHelper {
         ArgumentNullException.ThrowIfNull(board);
         if (board.IsFinished) return null;
 
-        foreach (var step in LogicSolver.Solve(GardenFacts.From(board)).Steps) {
+        foreach (var step in LogicSolver.Solve(FactsWithCorrectMarks(board)).Steps) {
             // What the step would change on the player's board: plants not yet grown, and rule-outs not yet marked.
             var plants = step.Plants.Where(cell => board[cell] != CellState.Planted).ToList();
             var ruleOuts = step.RuledOut.Where(cell => board[cell] == CellState.Empty).ToList();
@@ -50,6 +50,28 @@ public static class WormHelper {
         }
 
         return null;
+    }
+
+    // The board's facts, plus every ✕ the player got right, so hints follow the board the player sees.
+    // Solving from the facts alone proves where every plant grows (no peeking at the answer); a ✕ anywhere else is correct.
+    // ✕ marks on proven plants are mistakes and stay unknown.
+    // If the facts alone can't finish the garden, no ✕ is trusted.
+    private static GardenFacts FactsWithCorrectMarks(Board board) {
+        var facts = GardenFacts.From(board);
+        var proven = LogicSolver.Solve(facts);
+        if (!proven.IsSolved) return facts;
+
+        var plants = proven.Plants.ToHashSet();
+        for (int row = 0; row < board.Size; row++) {
+            for (int column = 0; column < board.Size; column++) {
+                var cell = new Cell(row, column);
+                if (board[cell] == CellState.Marked && !plants.Contains(cell)) {
+                    facts = facts.WithNoPlant(cell);
+                }
+            }
+        }
+
+        return facts;
     }
 
     // One short line per kind of step.
