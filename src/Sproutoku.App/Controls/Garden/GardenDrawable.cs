@@ -11,7 +11,7 @@ namespace Sproutoku.App.Controls.Garden;
 public sealed class GardenDrawable : IDrawable {
     private const float MaxBoardSize = 520;
 
-    // Growing-medium colors, one per region.
+    // Growing-medium colors, one per bed, in the same order as BedNames.
     private static readonly Color[] RegionColors = [
         Color.FromArgb("#B08560"), // soil
         Color.FromArgb("#9FCAD4"), // water
@@ -30,6 +30,7 @@ public sealed class GardenDrawable : IDrawable {
     private static readonly Color Wilt = Color.FromArgb("#8E3F45");
 
     private static readonly Color Cream = Color.FromArgb("#FBF7EA");
+    private static readonly Color HintScrim = Color.FromArgb("#2E241B").WithAlpha(0.55f);
 
     // Worked out on each draw; used to turn a point into a cell.
     private PointF _origin;
@@ -63,6 +64,26 @@ public sealed class GardenDrawable : IDrawable {
     /// </summary>
     public bool ShowSolution { get; set; }
 
+    /// <summary>
+    /// The cells the worm's step is about. While set, every other cell is dimmed.
+    /// </summary>
+    public IReadOnlyCollection<Cell>? HintFocus { get; set; }
+
+    /// <summary>
+    /// Where Apply will plant: shown as a white ring.
+    /// </summary>
+    public IReadOnlyCollection<Cell>? HintPlants { get; set; }
+
+    /// <summary>
+    /// What Apply will rule out: shown as an outlined white ✕.
+    /// </summary>
+    public IReadOnlyCollection<Cell>? HintRuleOuts { get; set; }
+
+    /// <summary>
+    /// ✕ marks the worm's step proves wrong: ringed in red.
+    /// </summary>
+    public IReadOnlyCollection<Cell>? HintMistakes { get; set; }
+
     public void Draw(ICanvas canvas, RectF dirtyRect) {
         if (Board is null) return;
 
@@ -85,6 +106,22 @@ public sealed class GardenDrawable : IDrawable {
                 }
 
                 DrawContent(canvas, rect, Board[cell]);
+
+                // The worm's focus: everything outside the cells its step is about is dimmed.
+                if (HintFocus is not null && !HintFocus.Contains(cell)) {
+                    canvas.FillColor = HintScrim;
+                    canvas.FillRectangle(rect);
+                }
+
+                if (HintRuleOuts?.Contains(cell) == true) {
+                    DrawPreviewCross(canvas, rect);
+                }
+                if (HintPlants?.Contains(cell) == true) {
+                    DrawPreviewPlant(canvas, rect);
+                }
+                if (HintMistakes?.Contains(cell) == true) {
+                    DrawHintRing(canvas, rect, Wilt);
+                }
 
                 // Developer view:
                 if (ShowSolution && Board.Puzzle.IsSolutionCell(cell) && Board[cell] != CellState.Planted) {
@@ -172,6 +209,41 @@ public sealed class GardenDrawable : IDrawable {
     private static void DrawCross(ICanvas canvas, RectF area) {
         canvas.DrawLine(area.Left, area.Top, area.Right, area.Bottom);
         canvas.DrawLine(area.Right, area.Top, area.Left, area.Bottom);
+    }
+
+    // A dashed ring inside a cell the worm points at.
+    private static void DrawHintRing(ICanvas canvas, RectF rect, Color color) {
+        canvas.StrokeColor = color;
+        canvas.StrokeSize = Math.Max(2, rect.Width * 0.07f);
+        canvas.StrokeDashPattern = [4, 3];
+        canvas.DrawEllipse(rect.Inflate(-rect.Width * 0.18f, -rect.Height * 0.18f));
+        canvas.StrokeDashPattern = null;
+    }
+
+    // The worm's preview ✕: white with a dark edge, so it reads differently from the player's solid ✕.
+    private static void DrawPreviewCross(ICanvas canvas, RectF rect) {
+        var inner = rect.Inflate(-rect.Width * 0.28f, -rect.Height * 0.28f);
+
+        canvas.StrokeLineCap = LineCap.Round;
+        canvas.StrokeColor = Ink;
+        canvas.StrokeSize = 6;
+        DrawCross(canvas, inner);
+        canvas.StrokeColor = Colors.White;
+        canvas.StrokeSize = 3;
+        DrawCross(canvas, inner);
+        canvas.StrokeLineCap = LineCap.Square;
+    }
+
+    // The worm's preview plant: a white ring with a dark edge where the plant will grow.
+    private static void DrawPreviewPlant(ICanvas canvas, RectF rect) {
+        float radius = rect.Width * 0.22f;
+
+        canvas.StrokeColor = Ink;
+        canvas.StrokeSize = 6;
+        canvas.DrawCircle(rect.Center.X, rect.Center.Y, radius);
+        canvas.StrokeColor = Colors.White;
+        canvas.StrokeSize = 3;
+        canvas.DrawCircle(rect.Center.X, rect.Center.Y, radius);
     }
 
     // Cell focus is ink inside cream, drawn on top so it shows on every region color.

@@ -1,6 +1,7 @@
 using Sproutoku.Core.Game.Boards;
 using Sproutoku.Core.Game.Input;
 using Sproutoku.Core.Game.Levels;
+using Sproutoku.Core.Game.PowerUps;
 using Sproutoku.Core.Game.Saving;
 using Sproutoku.Core.Gardens.Puzzles;
 
@@ -23,9 +24,13 @@ public sealed class GameSession {
     // The level's board, set aside while an extra garden is played. Null when playing the level itself.
     private Board? _levelBoard;
 
-    private GameSession(LevelGarden levelGarden, Board board, DoubleTapDetector doubleTap) {
+    // The level's power-ups, set aside with its board while an extra garden is played.
+    private PowerUpSupply? _levelPowerUps;
+
+    private GameSession(LevelGarden levelGarden, Board board, PowerUpSupply powerUps, DoubleTapDetector doubleTap) {
         LevelGarden = levelGarden;
         Board = board;
+        PowerUps = powerUps;
         _doubleTap = doubleTap;
     }
 
@@ -50,6 +55,26 @@ public sealed class GameSession {
     public Board Board { get; private set; }
 
     /// <summary>
+    /// The power-ups left for this garden. A new garden and a fresh start (Try again) get the starting supply.
+    /// </summary>
+    public PowerUpSupply PowerUps { get; private set; }
+
+    /// <summary>
+    /// The worm's hint waiting to be applied, or null. While it's open, the board ignores taps, drags and keys: the only way on is <see cref="ApplyHint"/>.
+    /// </summary>
+    public WormHint? OpenHint { get; private set; }
+
+    /// <summary>
+    /// For testing (a debug Journal option): Tools are never spent. Not saved.
+    /// </summary>
+    public bool UnlimitedTools { get; set; }
+
+    /// <summary>
+    /// True if a power-up can be used now: there's one left (or Tools are unlimited) and the garden isn't over.
+    /// </summary>
+    public bool CanUse(PowerUp powerUp) => !Board.IsFinished && (PowerUps.Has(powerUp) || UnlimitedTools);
+
+    /// <summary>
     /// True while playing a garden outside the levels. Finishing it returns to the level.
     /// </summary>
     public bool IsExtraGarden => _levelBoard is not null;
@@ -63,14 +88,14 @@ public sealed class GameSession {
     /// Picks up from a save, or starts at Garden 1 when there's no usable save.
     /// </summary>
     public static GameSession Resume(GameSave? save, DoubleTapDetector? doubleTap = null) {
-        var (levelGarden, board) = GameSave.Resume(save);
-        return new GameSession(levelGarden, board, doubleTap ?? new DoubleTapDetector());
+        var point = GameSave.Resume(save);
+        return new GameSession(point.Garden, point.Board, point.PowerUps, doubleTap ?? new DoubleTapDetector());
     }
 
     /// <summary>
-    /// What to store so this game can be resumed later. An extra garden is never saved; the level's board is.
+    /// What to store so this game can be resumed later. An extra garden is never saved; the level's board and power-ups are.
     /// </summary>
-    public GameSave ToSave() => GameSave.From(Level, _levelBoard ?? Board);
+    public GameSave ToSave() => GameSave.From(Level, _levelBoard ?? Board, _levelPowerUps ?? PowerUps);
 
     /// <summary>
     /// Moves on once this garden is solved: back to the level after an extra garden, otherwise to the next level.
@@ -82,8 +107,10 @@ public sealed class GameSession {
         }
 
         if (_levelBoard is { } levelBoard) {
+            var levelPowerUps = _levelPowerUps ?? PowerUpSupply.Starting;
             _levelBoard = null;
-            SetGarden(LevelGarden, levelBoard);
+            _levelPowerUps = null;
+            SetGarden(LevelGarden, levelBoard, levelPowerUps);
             return true;
         }
 
@@ -115,7 +142,7 @@ public sealed class GameSession {
             return false;
         }
 
-        SetGarden(LevelGarden, Board.Restart());
+        SetGarden(LevelGarden, Board.Restart(), PowerUpSupply.Starting);
         return true;
     }
 
@@ -138,7 +165,9 @@ public sealed class GameSession {
         ArgumentNullException.ThrowIfNull(levelGarden);
 
         _levelBoard = null;
-        SetGarden(levelGarden, levelGarden.Start());
+        _levelBoard = null;
+        _levelPowerUps = null;
+        SetGarden(levelGarden, levelGarden.Start(), PowerUpSupply.Starting);
     }
 
     /// <summary>
@@ -148,17 +177,23 @@ public sealed class GameSession {
     public void PlayExtraGarden(Puzzle puzzle) {
         ArgumentNullException.ThrowIfNull(puzzle);
 
-        _levelBoard ??= Board;
-        SetGarden(LevelGarden, Board.Start(puzzle));
+        if (_levelBoard is null) {
+            _levelBoard = Board;
+            _levelPowerUps = PowerUps;
+        }
+
+        SetGarden(LevelGarden, Board.Start(puzzle), PowerUpSupply.Starting);
     }
 
     // A level's garden, fresh.
     private void StartLevel(int level) => GoToLevel(GardenLevels.ForLevel(level));
 
     // A new garden forgets the last tap, so a tap on the old garden can't pair up with one on the new one.
-    private void SetGarden(LevelGarden levelGarden, Board board) {
+    private void SetGarden(LevelGarden levelGarden, Board board, PowerUpSupply powerUps) {
         LevelGarden = levelGarden;
         Board = board;
+        PowerUps = powerUps;
+        OpenHint = null;
         _doubleTap.Reset();
         _boardBeforeTap = null;
         _dragMode = null;
@@ -172,7 +207,7 @@ public sealed class GameSession {
     /// A finished garden ignores taps.
     /// </summary>
     public TapResult Tap(Cell cell, long timeMs) {
-        if (Board.IsFinished) {
+        if (Board.IsFinished || OpenHint is not null) {
             return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }
 
@@ -215,7 +250,7 @@ public sealed class GameSession {
     /// Returns true if the cell changed.
     /// </summary>
     public bool DragOver(Cell cell) {
-        if (_dragMode is null || Board.IsFinished) {
+        if (_dragMode is null || Board.IsFinished || OpenHint is not null) {
             return false;
         }
 
@@ -248,6 +283,52 @@ public sealed class GameSession {
     public void EndDrag() {
         _dragMode = null;
     }
+
+    /// <summary>
+    /// Asks the worm for the next step and spends one Worm (unless tools are unlimited).
+    /// Returns null and spends nothing if there's no Worm left, the garden is over, or there's nothing left to work out.
+    /// Asking again while a hint is open gives the same hint for free.
+    /// </summary>
+    public WormHint? UseWorm() {
+        if (OpenHint is not null) return OpenHint;
+        if (!CanUse(PowerUp.Worm)) return null;
+
+        var hint = WormHelper.HintFor(Board);
+        if (hint is null) return null;
+
+        if (!UnlimitedTools) {
+            PowerUps = PowerUps.Spend(PowerUp.Worm);
+        }
+
+        ForgetLastTap();
+        OpenHint = hint;
+        return hint;
+    }
+
+    /// <summary>
+    /// Makes the open hint's changes: grows its plants (always correct, so no sun is spent) and marks its rule-outs with ✕.
+    /// Closes the hint. Does nothing if no hint is open.
+    /// </summary>
+    public TapResult ApplyHint() {
+        if (OpenHint is not { } hint) {
+            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
+        }
+
+        OpenHint = null;
+
+        var board = Board;
+        foreach (var cell in hint.Plants) {
+            board = board.TryPlant(cell).Board; // Planting works on a ✕ too, so a wrong ✕ is replaced.
+        }
+
+        foreach (var cell in hint.RuleOuts) {
+            board = board.ToggleMark(cell);
+        }
+
+        Board = board;
+        var outcome = hint.Plants.Count > 0 ? TapOutcome.Grew : TapOutcome.MarkToggled;
+        return new TapResult(outcome, Board.IsFinished);
+    }
     #endregion
 
     #region Keyboard Actions
@@ -256,7 +337,7 @@ public sealed class GameSession {
     /// </summary>
     public TapResult ToggleMark(Cell cell) {
         ForgetLastTap();
-        if (Board.IsFinished) {
+        if (Board.IsFinished || OpenHint is not null) {
             return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }
 
@@ -273,7 +354,7 @@ public sealed class GameSession {
     /// </summary>
     public TapResult Plant(Cell cell) {
         ForgetLastTap();
-        if (Board.IsFinished) {
+        if (Board.IsFinished || OpenHint is not null) {
             return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }
 

@@ -4,6 +4,7 @@ using Microsoft.Maui.Graphics;
 using Sproutoku.Core.Game.Session;
 using Sproutoku.Core.Game.Levels;
 using Sproutoku.Core.Game.Boards;
+using Sproutoku.Core.Game.PowerUps;
 using Sproutoku.App.Controls.Garden;
 using Sproutoku.App.Services;
 using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;
@@ -75,6 +76,8 @@ public partial class MainPage : ContentPage {
 
     // Draws the session's garden from scratch (new garden, Try again, reset) and saves.
     private void ShowGarden(string info) {
+        CloseWormHint();
+
         _garden.Board = Session.Board;
         _garden.HoverCell = null;
         _garden.FocusCell = null;
@@ -86,6 +89,7 @@ public partial class MainPage : ContentPage {
         GardenSignLabel.Text = Session.IsExtraGarden ? "Test garden" : $"Garden {Session.Level}";
         InfoLabel.Text = info;
         UpdatePlantingList();
+        UpdateToolShelf();
         GardenView.Invalidate();
 
         SaveProgress();
@@ -231,6 +235,7 @@ public partial class MainPage : ContentPage {
             GameArea.RowDefinitions = Rows(GridLength.Star);
             GameArea.ColumnDefinitions = Columns(new GridLength(240), GridLength.Star, new GridLength(200));
             Place(PlantingList, row: 0, column: 0);
+            Place(WormNote, row: 0, column: 0);
             Place(BoardArea, row: 0, column: 1);
             Place(ToolShelf, row: 0, column: 2);
         } else {
@@ -238,6 +243,7 @@ public partial class MainPage : ContentPage {
             GameArea.ColumnDefinitions = Columns(GridLength.Star);
             Place(BoardArea, row: 0, column: 0);
             Place(PlantingList, row: 1, column: 0);
+            Place(WormNote, row: 1, column: 0);
             Place(ToolShelf, row: 2, column: 0);
         }
 
@@ -287,6 +293,7 @@ public partial class MainPage : ContentPage {
 #if DEBUG
         options.Add("Go to level (dev)");
         options.Add("Skip to next garden (dev)");
+        options.Add(Session.UnlimitedTools ? "Normal tools (dev)" : "Unlimited tools (dev)");
         options.Add(_garden.ShowSolution ? "Hide solution (dev)" : "Show solution (dev)");
 #endif
 
@@ -305,6 +312,11 @@ public partial class MainPage : ContentPage {
                 break;
             case "Skip to next garden (dev)":
                 await JumpToLevelAsync(Session.Level + 1);
+                break;
+            case "Unlimited tools (dev)":
+            case "Normal tools (dev)":
+                Session.UnlimitedTools = !Session.UnlimitedTools;
+                UpdateToolShelf();
                 break;
             case "Show solution (dev)":
             case "Hide solution (dev)":
@@ -436,6 +448,7 @@ public partial class MainPage : ContentPage {
     // Shows what a tap or key did, saves, and opens the end screen if the garden is over.
     private void ShowResult(TapResult result) {
         if (result.Outcome == TapOutcome.Ignored) return;
+        CloseWormHint();
 
 #if ANDROID || IOS
         PlayHaptic(result.Outcome);
@@ -443,6 +456,7 @@ public partial class MainPage : ContentPage {
 
         _garden.Board = Session.Board;
         UpdatePlantingList();
+        UpdateToolShelf();
         UpdateSunMeter(animate: true);
         GardenView.Invalidate();
 
@@ -579,6 +593,82 @@ public partial class MainPage : ContentPage {
         }
 
         SemanticProperties.SetDescription(SunMeter, $"{board.SunsLeft} of {board.StartingSuns} suns left");
+    }
+    #endregion
+
+    #region Tool shelf
+    // Each tool's name and count; a tool works when there's one left and the garden isn't over.
+    // The Rake is an unlimited tool that arrives with #49.
+    private void UpdateToolShelf() {
+        ShowTool(SeedsButton, "Seeds", PowerUp.Seeds);
+        ShowTool(WormButton, "Worm", PowerUp.Worm);
+        ShowTool(WaterButton, "Water", PowerUp.Water);
+        RakeButton.IsEnabled = false;
+    }
+
+    private void ShowTool(Button button, string name, PowerUp powerUp) {
+        int left = Session.PowerUps[powerUp];
+
+        button.Text = $"{name}\n{(Session.UnlimitedTools ? "∞" : left)}";
+        button.IsEnabled = Session.CanUse(powerUp);
+        SemanticProperties.SetDescription(button, $"{name}, {left} left. {ToolTipProperties.GetText(button)}");
+    }
+    #endregion
+
+    #region Worm
+    // The hint on show, or null. It closes with Got it, or as soon as the player changes a cell.
+    private WormHint? _wormHint;
+
+    private void OnWormClicked(object? sender, EventArgs e) {
+        if (_session is null) return; // Still loading.
+
+        var hint = Session.UseWorm();
+        if (hint is null) {
+            InfoLabel.Text = "Your worm has nothing new to show.";
+            return;
+        }
+
+        ShowWormHint(hint);
+        UpdateToolShelf();
+        SaveProgress(); // The spent Worm is saved, so reopening the app doesn't refill it.
+    }
+
+    // Opens the note and focuses the board on the step.
+    private void ShowWormHint(WormHint hint) {
+        _wormHint = hint;
+
+        WormMessageLabel.Text = hint.Message;
+        PlantingList.IsVisible = false;
+        WormNote.IsVisible = true;
+
+        _garden.HintFocus = hint.Focus;
+        _garden.HintPlants = hint.Plants;
+        _garden.HintRuleOuts = hint.RuleOuts;
+        _garden.HintMistakes = hint.WrongMarks;
+        GardenView.Invalidate();
+
+        SemanticScreenReader.Announce(hint.Message);
+    }
+
+    // Makes the hint's changes. ShowResult then closes the note, saves, and handles the end of the garden.
+    private void OnWormApplyClicked(object? sender, EventArgs e) {
+        if (_wormHint is null) return;
+        ShowResult(Session.ApplyHint());
+    }
+
+    // Puts the planting list back and clears the board's focus.
+    private void CloseWormHint() {
+        if (_wormHint is null) return;
+
+        _wormHint = null;
+        WormNote.IsVisible = false;
+        PlantingList.IsVisible = true;
+
+        _garden.HintFocus = null;
+        _garden.HintPlants = null;
+        _garden.HintRuleOuts = null;
+        _garden.HintMistakes = null;
+        GardenView.Invalidate();
     }
     #endregion
 }
