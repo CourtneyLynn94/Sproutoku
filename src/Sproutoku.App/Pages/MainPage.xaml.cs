@@ -20,21 +20,21 @@ public partial class MainPage : ContentPage {
     // Keyboard support. Filled in by Platforms/Windows/MainPage.Keyboard.cs; on other platforms these do nothing.
     partial void HookUpKeyboard();
     partial void FocusGardenForKeyboard();
-#elif ANDROID || IOS
-    private readonly Haptics _haptics;
 #endif
 
     private readonly GardenDrawable _garden = new() { ShouldDrawRegionBorders = false };
-    private readonly GameStorage _gameStorage = new();
-    private readonly GameSettings _settings = new();
+
+    // Shared services, from dependency injection (MauiProgram).
+    private readonly GameSettings _settings;
+    private readonly GameStorage _gameStorage;
+    private readonly Haptics _haptics;
+    private readonly LevelPreparer _levels;
+    private readonly IServiceProvider _services;
 
     // The game itself: level, board and every rule. The page only shows it and passes input in.
     // Null only for the moment the saved level is growing at startup.
     private GameSession? _session;
     private GameSession Session => _session ?? throw new InvalidOperationException("The game hasn't loaded yet.");
-
-    // Grows level gardens in the background, starting with the next one while the current one is played.
-    private readonly LevelPreparer _levels = new();
 
     // The press in progress:
     // the cell it started on (null if it started off the board), the last point it was seen at, and whether it has turned into a drag.
@@ -42,11 +42,15 @@ public partial class MainPage : ContentPage {
     private PointF _lastPoint;
     private bool _isDragging;
 
-    public MainPage() {
+    public MainPage(GameSettings settings, GameStorage gameStorage, Haptics haptics, LevelPreparer levels, IServiceProvider services) {
+        _settings = settings;
+        _gameStorage = gameStorage;
+        _haptics = haptics;
+        _levels = levels;
+        _services = services;
+
         InitializeComponent();
-#if ANDROID || IOS
-        _haptics = new Haptics(_settings);
-#endif
+
         GardenView.Drawable = _garden;
 
         ApplyLayout(wide: false);
@@ -174,9 +178,7 @@ public partial class MainPage : ContentPage {
         // The Journal still works during the wait. If a reset or skip changed the garden, this screen is stale.
         if (!ReferenceEquals(Session.Board, board)) return;
 
-#if ANDROID || IOS
         _haptics.GardenEnded();
-#endif
 
         if (board.IsSolved) {
             bool extra = Session.IsExtraGarden;
@@ -311,7 +313,7 @@ public partial class MainPage : ContentPage {
                 await Navigation.PushModalAsync(new HowToPlayPage());
                 break;
             case "Settings":
-                await Navigation.PushModalAsync(new SettingsPage(_settings));
+                await Navigation.PushModalAsync(_services.GetRequiredService<SettingsPage>());
                 break;
 #if DEBUG
             case "Go to level (dev)":
@@ -410,10 +412,7 @@ public partial class MainPage : ContentPage {
     // One cell of a drag, with a tick when it changes.
     private bool DragOver(Cell cell) {
         if (!Session.DragOver(cell)) return false;
-
-#if ANDROID || IOS
         _haptics.Mark();
-#endif
         return true;
     }
 
@@ -457,9 +456,7 @@ public partial class MainPage : ContentPage {
         if (result.Outcome == TapOutcome.Ignored) return;
         CloseWormHint();
 
-#if ANDROID || IOS
         PlayHaptic(result.Outcome);
-#endif
 
         _garden.Board = Session.Board;
         UpdatePlantingList();
@@ -471,6 +468,21 @@ public partial class MainPage : ContentPage {
 
         if (result.EndedGarden) {
             ShowEndOfGarden();
+        }
+    }
+
+    // Mobile: A light tick for ✕, a firmer press for a plant, a buzz for a mistake.
+    private void PlayHaptic(TapOutcome outcome) {
+        switch (outcome) {
+            case TapOutcome.MarkToggled:
+                _haptics.Mark();
+                break;
+            case TapOutcome.Grew:
+                _ = _haptics.GrewAsync();
+                break;
+            case TapOutcome.Wilted:
+                _haptics.Wilted();
+                break;
         }
     }
 
@@ -525,21 +537,6 @@ public partial class MainPage : ContentPage {
         }
 
         GardenView.Invalidate();
-    }
-#elif ANDROID || IOS
-    // A light tick for ✕, a firmer press for a plant, a buzz for a mistake.
-    private void PlayHaptic(TapOutcome outcome) {
-        switch (outcome) {
-            case TapOutcome.MarkToggled:
-                _haptics.Mark();
-                break;
-            case TapOutcome.Grew:
-                _ = _haptics.GrewAsync();
-                break;
-            case TapOutcome.Wilted:
-                _haptics.Wilted();
-                break;
-        }
     }
 #endif
     #endregion

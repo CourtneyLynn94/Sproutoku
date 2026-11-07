@@ -3,15 +3,6 @@ using System.Diagnostics;
 namespace Sproutoku.App.Services;
 
 /// <summary>
-/// How light or dark the game looks (coming with the Dusk theme).
-/// </summary>
-public enum LightMode {
-    MatchDevice,
-    Morning,
-    Dusk,
-}
-
-/// <summary>
 /// The player's settings, saved on the device in the default Preferences container,
 /// so Reset all progress (which clears only the progress container) never touches them.
 /// Read once at startup and kept in memory; every change is saved straight away and announced through <see cref="Changed"/>.
@@ -25,7 +16,7 @@ public sealed class GameSettings {
     private bool _vibration = Load(VibrationKey, true);
     private bool _bedPatterns = Load(BedPatternsKey, false);
     private bool _sound = Load(SoundKey, true);
-    private LightMode _light = (LightMode)Load(LightKey, (int)LightMode.MatchDevice);
+    private AppTheme _light = (AppTheme)Load(LightKey, (int)AppTheme.Unspecified);
 
     /// <summary>
     /// Raised after any setting changes, so the page can redraw or update what depends on it.
@@ -54,9 +45,10 @@ public sealed class GameSettings {
     }
 
     /// <summary>
-    /// Morning, Dusk, or whatever the device uses.
+    /// Morning (Light), Dusk (Dark), or Unspecified to match the device.
+    /// Applied through Application.UserAppTheme once the Dusk colors exist, so AppThemeBinding picks them.
     /// </summary>
-    public LightMode Light {
+    public AppTheme Light {
         get => _light;
         set {
             if (_light == value) return;

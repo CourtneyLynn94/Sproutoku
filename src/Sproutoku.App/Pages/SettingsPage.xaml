@@ -25,11 +25,10 @@
                    FontAttributes="Bold" />
 
             <!-- One row per setting: the name and a note on the left, the switch on the right. -->
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <Grid x:Name="VibrationRow" ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <VerticalStackLayout>
                     <Label Text="Vibration" FontAttributes="Bold" />
-                    <Label x:Name="VibrationNote"
-                           Style="{StaticResource Note}"
+                    <Label Style="{StaticResource Note}"
                            Text="A buzz when you mark, plant or make a mistake." />
                 </VerticalStackLayout>
                 <Switch x:Name="VibrationSwitch" Grid.Column="1" VerticalOptions="Center" />

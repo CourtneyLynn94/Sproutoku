@@ -16,11 +16,8 @@ public partial class SettingsPage : ContentPage {
         BedPatternsSwitch.IsToggled = settings.BedPatterns;
         SoundSwitch.IsToggled = settings.Sound;
 
-        // Desktops and some tablets can't vibrate: show the setting, but say why it's off.
-        if (!Vibration.Default.IsSupported) {
-            VibrationSwitch.IsEnabled = false;
-            VibrationNote.Text = "This device can't vibrate.";
-        }
+        // Desktops can't vibrate, so the setting isn't shown there at all.
+        VibrationRow.IsVisible = Vibration.Default.IsSupported;
 
         // Hooked up after the switches show the saved values, so setting them above doesn't count as a change.
         VibrationSwitch.Toggled += (_, e) => _settings.Vibration = e.Value;
