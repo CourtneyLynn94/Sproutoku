@@ -1,12 +1,12 @@
-using System.Diagnostics;
 using Microsoft.Maui.Controls.Shapes;
-using Microsoft.Maui.Graphics;
-using Sproutoku.Core.Game.Session;
-using Sproutoku.Core.Game.Levels;
-using Sproutoku.Core.Game.Boards;
-using Sproutoku.Core.Game.PowerUps;
 using Sproutoku.App.Controls.Garden;
 using Sproutoku.App.Services;
+using Sproutoku.Core.Game.Boards;
+using Sproutoku.Core.Game.Input;
+using Sproutoku.Core.Game.Levels;
+using Sproutoku.Core.Game.PowerUps;
+using Sproutoku.Core.Game.Session;
+using System.Diagnostics;
 using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;
 
 namespace Sproutoku.App.Pages;
@@ -39,8 +39,7 @@ public partial class MainPage : ContentPage {
     // The press in progress:
     // the cell it started on (null if it started off the board), the last point it was seen at, and whether it has turned into a drag.
     private Cell? _pressedCell;
-    private PointF _lastPoint;
-    private bool _isDragging;
+    private DragTracker? _drag; // The press in progress, or null. Only presses that start on the board can drag.
 
     public MainPage(GameSettings settings, GameStorage gameStorage, Haptics haptics, LevelPreparer levels, IServiceProvider services) {
         _settings = settings;
@@ -373,13 +372,15 @@ public partial class MainPage : ContentPage {
             Session.UnfocusHint();
             UpdateWormNote();
             _pressedCell = null;
-            _isDragging = false;
+            _drag = null;
             return;
         }
 
-        _pressedCell = _garden.CellAt(e.Touches[0]);
-        _lastPoint = e.Touches[0];
-        _isDragging = false;
+        var point = e.Touches[0];
+        _pressedCell = _garden.CellAt(point);
+        _drag = _pressedCell is not null && _garden.CellPosition(point) is { } position
+            ? new DragTracker(position.X, position.Y)
+            : null;
 
         if (_pressedCell is { } pressed) {
             _garden.FocusCell = pressed;
@@ -394,34 +395,29 @@ public partial class MainPage : ContentPage {
 
     private void OnDrag(object? sender, TouchEventArgs e) => DragTo(e.Touches[0]);
 
-    // Moving onto another board cell turns the press into a drag that marks or clears every cell it passes.
-    // Moving into blank space doesn't: the press stays a possible tap until it reaches another cell.
+    // Moving a third of a cell turns the press into a drag that marks or clears every cell it passes, starting with its own.
+    // A drag that starts along a row or column stays in it until the finger is clearly in another line.
     private void DragTo(PointF point) {
-        if (_pressedCell is not { } start) return; // started off the board
+        if (_drag is null || _garden.CellPosition(point) is not { } position) return; // Started off the board.
 
-        var path = _garden.CellsAlong(_lastPoint, point);
-        bool changed = false;
+        bool wasDragging = _drag.IsDragging;
+        var cells = _drag.MoveTo(position.X, position.Y);
+        if (cells.Count == 0) return; // Still a press.
 
-        if (!_isDragging) {
-            if (!path.Any(cell => cell != start)) {
-                _lastPoint = point;
-                return;
-            }
-
-            _isDragging = true;
+        if (!wasDragging) {
             Session.BeginDrag();
-            changed |= DragOver(start);
         }
 
-        foreach (var cell in path) {
-            changed |= DragOver(cell);
+        bool changed = false;
+        foreach (var cell in cells) {
+            if (cell.IsInside(Session.Board.Size)) {
+                changed |= DragOver(cell);
+            }
         }
-
-        _lastPoint = point;
 
         if (changed) {
             _garden.Board = Session.Board;
-            UpdateWormNote();
+            UpdateWormNote(); // Also redraws.
         }
     }
 
@@ -438,12 +434,9 @@ public partial class MainPage : ContentPage {
         var point = e.Touches[0];
 
         // A fast swipe can cross cells after its last move update, so cover the stretch up to where it lifted.
-        // A press that lifts on its own cell stays a tap: DragTo leaves it alone.
-        if (pressed is not null) {
-            DragTo(point);
-        }
+        DragTo(point);
 
-        bool wasDragging = _isDragging;
+        bool wasDragging = _drag?.IsDragging == true;
         FinishPress();
 
         if (wasDragging) return;
@@ -456,13 +449,13 @@ public partial class MainPage : ContentPage {
 
     // Clears the press. A drag in progress ends and is saved once.
     private void FinishPress() {
-        if (_isDragging) {
+        if (_drag?.IsDragging == true) {
             Session.EndDrag();
             SaveProgress();
         }
 
         _pressedCell = null;
-        _isDragging = false;
+        _drag = null;
     }
 
     private void OnCellTapped(Cell cell) => ShowResult(Session.Tap(cell, Environment.TickCount64));
