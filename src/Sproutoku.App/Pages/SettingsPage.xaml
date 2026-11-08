@@ -2,16 +2,16 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Sproutoku.App.Pages.SettingsPage"
-             BackgroundColor="#F3EDD6">
+             BackgroundColor="{StaticResource Paper}">
 
     <ContentPage.Resources>
         <Style TargetType="Label">
-            <Setter Property="TextColor" Value="#2E241B" />
+            <Setter Property="TextColor" Value="{StaticResource Ink}" />
             <Setter Property="FontSize" Value="17" />
         </Style>
         <!-- The second line under each setting: what it does, or "Coming soon". -->
         <Style x:Key="Note" TargetType="Label">
-            <Setter Property="TextColor" Value="#6B5B49" />
+            <Setter Property="TextColor" Value="{StaticResource InkSoft}" />
             <Setter Property="FontSize" Value="14" />
         </Style>
     </ContentPage.Resources>

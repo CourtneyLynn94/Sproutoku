@@ -2,12 +2,12 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Sproutoku.App.Pages.MainPage"
-             BackgroundColor="#F3EDD6">
+             BackgroundColor="{StaticResource Paper}">
 
     <Grid RowDefinitions="Auto,*">
 
         <!-- Sky band: journal button on the left, suns centered. -->
-        <Grid BackgroundColor="#D6EAE8"
+        <Grid BackgroundColor="{StaticResource Sky}"
               Padding="16,8"
               ColumnDefinitions="*,Auto,*">
             <Button Text="Journal"
@@ -31,13 +31,13 @@
             <Grid x:Name="BoardArea"
                   RowDefinitions="Auto,*"
                   RowSpacing="4">
-                <Border BackgroundColor="#B98A5B"
-                        Stroke="#2E241B"
+                <Border BackgroundColor="{StaticResource Wood}"
+                        Stroke="{StaticResource InkBrush}"
                         StrokeThickness="2"
                         Padding="12,4"
                         HorizontalOptions="Start">
                     <Label x:Name="GardenSignLabel"
-                           TextColor="#2E241B"
+                           TextColor="{StaticResource Ink}"
                            FontAttributes="Bold" />
                 </Border>
 
@@ -47,36 +47,36 @@
 
             <!-- Planting list placeholder. -->
             <Border x:Name="PlantingList"
-                    BackgroundColor="#FBF7EA"
-                    Stroke="#2E241B"
+                    BackgroundColor="{StaticResource Cream}"
+                    Stroke="{StaticResource InkBrush}"
                     StrokeThickness="2"
                     Padding="12"
                     VerticalOptions="Start">
                 <VerticalStackLayout Spacing="4">
                     <Label Text="Planting list"
                            FontAttributes="Bold"
-                           TextColor="#2E241B" />
+                           TextColor="{StaticResource Ink}" />
                     <Label x:Name="PlantingCountLabel"
-                           TextColor="#2E241B" />
+                           TextColor="{StaticResource Ink}" />
                     <Label x:Name="InfoLabel"
-                           TextColor="#6B5B49" />
+                           TextColor="{StaticResource InkSoft}" />
                 </VerticalStackLayout>
             </Border>
 
             <!-- The worm's note: shown in the planting list's place while a hint is open. -->
             <Border x:Name="WormNote"
                     IsVisible="False"
-                    BackgroundColor="#FBF7EA"
-                    Stroke="#2E241B"
+                    BackgroundColor="{StaticResource Cream}"
+                    Stroke="{StaticResource InkBrush}"
                     StrokeThickness="2"
                     Padding="12"
                     VerticalOptions="Start">
                 <VerticalStackLayout Spacing="8">
                     <Label Text="Your worm says"
                            FontAttributes="Bold"
-                           TextColor="#2E241B" />
+                           TextColor="{StaticResource Ink}" />
                     <Label x:Name="WormMessageLabel"
-                           TextColor="#2E241B" />
+                           TextColor="{StaticResource Ink}" />
                     <HorizontalStackLayout Spacing="8">
                         <Button x:Name="WormApplyButton"
                                 Text="Apply"
@@ -116,7 +116,7 @@
                         LineBreakMode="WordWrap"
                         ToolTipProperties.Text="Water: reveals a few cells where nothing can grow." />
                 <BoxView x:Name="ShelfDivider"
-                         Color="#CDBF9B" />
+                         Color="{StaticResource Plank}" />
                 <Button x:Name="RakeButton"
                         Text="Rake"
                         IsEnabled="False"

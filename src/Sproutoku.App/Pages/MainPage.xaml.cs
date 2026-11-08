@@ -1,5 +1,6 @@
 using Microsoft.Maui.Controls.Shapes;
 using Sproutoku.App.Controls.Garden;
+using Sproutoku.App.Resources.Styles;
 using Sproutoku.App.Services;
 using Sproutoku.Core.Game.Boards;
 using Sproutoku.Core.Game.Input;
@@ -558,9 +559,9 @@ public partial class MainPage : ContentPage {
     #endregion
 
     #region Sun meter
-    private static readonly Color Ink = Color.FromArgb("#2E241B");
-    private static readonly Color SunColor = Color.FromArgb("#F2B632");
-    private static readonly Color SpentSunColor = Color.FromArgb("#D9CFB6");
+    private static Color Ink => Palette.Ink;
+    private static Color SunColor => Palette.Sun;
+    private static Color SpentSunColor => Palette.SpentSun;
 
     // The bright sun in each sun slot, left to right.
     // Spending a sun fades one out.
