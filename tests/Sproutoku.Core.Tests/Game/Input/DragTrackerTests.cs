@@ -99,6 +99,29 @@ public class DragTrackerTests {
         var cells = drag.MoveTo(0.9, 0.5);
 
         Assert.True(drag.IsDragging);
-        Assert.Equal([new Cell(0, 0)], cells);
+        Cell[] expected = [new(0, 0)];
+        Assert.Equal(expected, cells.Where(cell => cell.IsInside(Size)).Distinct());
+    }
+
+    [Fact]
+    public void GoingAroundTheBoardsEdge_IsNotCrossingIt() {
+        var drag = new DragTracker(0.5, 0.5, Size);
+
+        Assert.Empty(drag.MoveTo(0.5, -0.1)); // Just off the top.
+        Assert.Empty(drag.MoveTo(2.5, -0.1)); // Along the outside of the top edge.
+        Assert.False(drag.IsDragging);
+    }
+
+    [Fact]
+    public void ComingBackOntoTheBoardElsewhere_MarksOnlyWhereTheFingerWent() {
+        var drag = new DragTracker(0.5, 0.5, Size);
+        drag.MoveTo(0.5, -0.1);
+        drag.MoveTo(2.5, -0.1);
+
+        var cells = drag.MoveTo(2.5, 0.5); // Down into (0,2).
+
+        // The press's own cell, then (0,2). Not (0,1): the finger went round it.
+        Cell[] expected = [new(0, 0), new(0, 2)];
+        Assert.Equal(expected, cells.Where(cell => cell.IsInside(Size)).Distinct());
     }
 }
