@@ -1,5 +1,4 @@
 using Sproutoku.Core.Game.Boards;
-using Sproutoku.Core.Game.Input;
 using Sproutoku.Core.Gardens.Puzzles;
 using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;
 
@@ -182,21 +181,15 @@ public sealed class GardenDrawable : IDrawable {
     }
 
     /// <summary>
-    /// The board cells a straight line between two points passes through, in order (S27).
+    /// Where a point is on the board in cell units (x is the column, y is the row), for drags; null before the first draw.
+    /// Points off the board give positions outside 0 to the board's size.
     /// </summary>
-    public IReadOnlyList<Cell> CellsAlong(PointF from, PointF to) {
-        if (Board is null || _cellSize <= 0) return [];
-
-        return DragGridLine.CellsAlong(
-                (from.X - _origin.X) / _cellSize,
-                (from.Y - _origin.Y) / _cellSize,
-                (to.X - _origin.X) / _cellSize,
-                (to.Y - _origin.Y) / _cellSize)
-            .Where(cell => cell.IsInside(Board.Size))
-            .ToList();
+    public (double X, double Y)? CellPosition(PointF point) {
+        if (Board is null || _cellSize <= 0) return null;
+        return ((point.X - _origin.X) / _cellSize, (point.Y - _origin.Y) / _cellSize);
     }
-    private RectF CellRect(Cell cell) =>
-        new(_origin.X + (cell.Column * _cellSize), _origin.Y + (cell.Row * _cellSize), _cellSize, _cellSize);
+
+    private RectF CellRect(Cell cell) => new(_origin.X + (cell.Column * _cellSize), _origin.Y + (cell.Row * _cellSize), _cellSize, _cellSize);
 
     private static void DrawContent(ICanvas canvas, RectF rect, CellState state) {
         float inset = rect.Width * 0.28f;

@@ -1,12 +1,12 @@
-using System.Diagnostics;
 using Microsoft.Maui.Controls.Shapes;
-using Microsoft.Maui.Graphics;
-using Sproutoku.Core.Game.Session;
-using Sproutoku.Core.Game.Levels;
-using Sproutoku.Core.Game.Boards;
-using Sproutoku.Core.Game.PowerUps;
 using Sproutoku.App.Controls.Garden;
 using Sproutoku.App.Services;
+using Sproutoku.Core.Game.Boards;
+using Sproutoku.Core.Game.Input;
+using Sproutoku.Core.Game.Levels;
+using Sproutoku.Core.Game.PowerUps;
+using Sproutoku.Core.Game.Session;
+using System.Diagnostics;
 using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;
 
 namespace Sproutoku.App.Pages;
@@ -20,29 +20,36 @@ public partial class MainPage : ContentPage {
     // Keyboard support. Filled in by Platforms/Windows/MainPage.Keyboard.cs; on other platforms these do nothing.
     partial void HookUpKeyboard();
     partial void FocusGardenForKeyboard();
-#elif ANDROID || IOS
-    private readonly Haptics _haptics = new();
 #endif
 
     private readonly GardenDrawable _garden = new() { ShouldDrawRegionBorders = false };
-    private readonly GameStorage _gameStorage = new();
+
+    // Shared services, from dependency injection (MauiProgram).
+    private readonly GameSettings _settings;
+    private readonly GameStorage _gameStorage;
+    private readonly Haptics _haptics;
+    private readonly LevelPreparer _levels;
+    private readonly IServiceProvider _services;
 
     // The game itself: level, board and every rule. The page only shows it and passes input in.
     // Null only for the moment the saved level is growing at startup.
     private GameSession? _session;
     private GameSession Session => _session ?? throw new InvalidOperationException("The game hasn't loaded yet.");
 
-    // Grows level gardens in the background, starting with the next one while the current one is played.
-    private readonly LevelPreparer _levels = new();
-
     // The press in progress:
     // the cell it started on (null if it started off the board), the last point it was seen at, and whether it has turned into a drag.
     private Cell? _pressedCell;
-    private PointF _lastPoint;
-    private bool _isDragging;
+    private DragTracker? _drag; // The press in progress, or null. Only presses that start on the board can drag.
 
-    public MainPage() {
+    public MainPage(GameSettings settings, GameStorage gameStorage, Haptics haptics, LevelPreparer levels, IServiceProvider services) {
+        _settings = settings;
+        _gameStorage = gameStorage;
+        _haptics = haptics;
+        _levels = levels;
+        _services = services;
+
         InitializeComponent();
+
         GardenView.Drawable = _garden;
 
         ApplyLayout(wide: false);
@@ -170,9 +177,11 @@ public partial class MainPage : ContentPage {
         // The Journal still works during the wait. If a reset or skip changed the garden, this screen is stale.
         if (!ReferenceEquals(Session.Board, board)) return;
 
-#if ANDROID || IOS
-        _haptics.GardenEnded();
-#endif
+        if (board.IsSolved) {
+            _haptics.GardenComplete();
+        } else {
+            _haptics.OutOfSun();
+        }
 
         if (board.IsSolved) {
             bool extra = Session.IsExtraGarden;
@@ -292,7 +301,7 @@ public partial class MainPage : ContentPage {
     private async void OnJournalClicked(object? sender, EventArgs e) {
         if (_session is null) return; // Still loading.
 
-        List<string> options = ["How to play"];
+        List<string> options = ["How to play", "Settings"];
 #if DEBUG
         options.Add("Go to level (dev)");
         options.Add("Skip to next garden (dev)");
@@ -303,11 +312,14 @@ public partial class MainPage : ContentPage {
         string choice = await DisplayActionSheetAsync("Garden journal", "Keep gardening", "Reset all progress", [.. options]);
 
         switch (choice) {
+            case "Reset all progress":
+                await ConfirmResetAsync();
+                break;
             case "How to play":
                 await Navigation.PushModalAsync(new HowToPlayPage());
                 break;
-            case "Reset all progress":
-                await ConfirmResetAsync();
+            case "Settings":
+                await Navigation.PushModalAsync(_services.GetRequiredService<SettingsPage>());
                 break;
 #if DEBUG
             case "Go to level (dev)":
@@ -360,13 +372,15 @@ public partial class MainPage : ContentPage {
             Session.UnfocusHint();
             UpdateWormNote();
             _pressedCell = null;
-            _isDragging = false;
+            _drag = null;
             return;
         }
 
-        _pressedCell = _garden.CellAt(e.Touches[0]);
-        _lastPoint = e.Touches[0];
-        _isDragging = false;
+        var point = e.Touches[0];
+        _pressedCell = _garden.CellAt(point);
+        _drag = _pressedCell is not null && _garden.CellPosition(point) is { } position
+            ? new DragTracker(position.X, position.Y, Session.Board.Size)
+            : null;
 
         if (_pressedCell is { } pressed) {
             _garden.FocusCell = pressed;
@@ -381,44 +395,36 @@ public partial class MainPage : ContentPage {
 
     private void OnDrag(object? sender, TouchEventArgs e) => DragTo(e.Touches[0]);
 
-    // Moving onto another board cell turns the press into a drag that marks or clears every cell it passes.
-    // Moving into blank space doesn't: the press stays a possible tap until it reaches another cell.
+    // Moving a third of a cell turns the press into a drag that marks or clears every cell it passes, starting with its own.
+    // A drag that starts along a row or column stays in it until the finger is clearly in another line.
     private void DragTo(PointF point) {
-        if (_pressedCell is not { } start) return; // started off the board
+        if (_drag is null || _garden.CellPosition(point) is not { } position) return; // Started off the board.
 
-        var path = _garden.CellsAlong(_lastPoint, point);
-        bool changed = false;
+        bool wasDragging = _drag.IsDragging;
+        var cells = _drag.MoveTo(position.X, position.Y);
+        if (cells.Count == 0) return; // Still a press.
 
-        if (!_isDragging) {
-            if (!path.Any(cell => cell != start)) {
-                _lastPoint = point;
-                return;
-            }
-
-            _isDragging = true;
+        if (!wasDragging) {
             Session.BeginDrag();
-            changed |= DragOver(start);
         }
 
-        foreach (var cell in path) {
-            changed |= DragOver(cell);
+        bool changed = false;
+        foreach (var cell in cells) {
+            if (cell.IsInside(Session.Board.Size)) {
+                changed |= DragOver(cell);
+            }
         }
-
-        _lastPoint = point;
 
         if (changed) {
             _garden.Board = Session.Board;
-            UpdateWormNote();
+            UpdateWormNote(); // Also redraws.
         }
     }
 
     // One cell of a drag, with a tick when it changes.
     private bool DragOver(Cell cell) {
         if (!Session.DragOver(cell)) return false;
-
-#if ANDROID || IOS
         _haptics.Mark();
-#endif
         return true;
     }
 
@@ -428,12 +434,9 @@ public partial class MainPage : ContentPage {
         var point = e.Touches[0];
 
         // A fast swipe can cross cells after its last move update, so cover the stretch up to where it lifted.
-        // A press that lifts on its own cell stays a tap: DragTo leaves it alone.
-        if (pressed is not null) {
-            DragTo(point);
-        }
+        DragTo(point);
 
-        bool wasDragging = _isDragging;
+        bool wasDragging = _drag?.IsDragging == true;
         FinishPress();
 
         if (wasDragging) return;
@@ -446,13 +449,13 @@ public partial class MainPage : ContentPage {
 
     // Clears the press. A drag in progress ends and is saved once.
     private void FinishPress() {
-        if (_isDragging) {
+        if (_drag?.IsDragging == true) {
             Session.EndDrag();
             SaveProgress();
         }
 
         _pressedCell = null;
-        _isDragging = false;
+        _drag = null;
     }
 
     private void OnCellTapped(Cell cell) => ShowResult(Session.Tap(cell, Environment.TickCount64));
@@ -462,9 +465,7 @@ public partial class MainPage : ContentPage {
         if (result.Outcome == TapOutcome.Ignored) return;
         UpdateWormNote();
 
-#if ANDROID || IOS
         PlayHaptic(result.Outcome);
-#endif
 
         _garden.Board = Session.Board;
         UpdatePlantingList();
@@ -476,6 +477,21 @@ public partial class MainPage : ContentPage {
 
         if (result.EndedGarden) {
             ShowEndOfGarden();
+        }
+    }
+
+    // Mobile: A tick for ✕, two pops for a plant, a knock for a mistake.
+    private void PlayHaptic(TapOutcome outcome) {
+        switch (outcome) {
+            case TapOutcome.MarkToggled:
+                _haptics.Mark();
+                break;
+            case TapOutcome.Grew:
+                _haptics.Grew();
+                break;
+            case TapOutcome.Wilted:
+                _haptics.Wilted();
+                break;
         }
     }
 
@@ -537,21 +553,6 @@ public partial class MainPage : ContentPage {
         }
 
         GardenView.Invalidate();
-    }
-#elif ANDROID || IOS
-    // A light tick for ✕, a firmer press for a plant, a buzz for a mistake.
-    private void PlayHaptic(TapOutcome outcome) {
-        switch (outcome) {
-            case TapOutcome.MarkToggled:
-                _haptics.Mark();
-                break;
-            case TapOutcome.Grew:
-                _ = _haptics.GrewAsync();
-                break;
-            case TapOutcome.Wilted:
-                _haptics.Wilted();
-                break;
-        }
     }
 #endif
     #endregion

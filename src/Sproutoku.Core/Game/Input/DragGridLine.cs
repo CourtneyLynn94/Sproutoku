@@ -3,7 +3,7 @@ using Sproutoku.Core.Gardens.Puzzles;
 namespace Sproutoku.Core.Game.Input;
 
 /// <summary>
-/// Finds the cells a straight line passes through, for drags (S27).
+/// Finds the cells a straight line passes through, for drags.
 /// Positions are in cell units: x is the column and y is the row, so (2.5, 0.5) is the middle of cell (0, 2).
 /// </summary>
 public static class DragGridLine {
