@@ -4,6 +4,16 @@
 
 A cozy logic puzzle for Android phones and Windows desktops, built with .NET MAUI: grow one plant in every bed of the garden.
 
+## The game
+
+- Tap a cell to mark it ✕, double-tap to grow a plant, drag to mark a row. One plant per bed, row and column, and plants never touch, not even diagonally.
+- Endless gardens, generated from each level's number, so level N is the same garden for everyone. Levels 1–30 teach one deduction at a time; every 10th level from 40 is Hard and every 50th is Super hard.
+- Every garden has exactly one answer, and it can be found by logic alone, with no guessing.
+- Three suns: a wrong plant wilts and costs one.
+- The Worm shows the next logical step on the board and explains it in one line.
+
+Download the latest Android APK or Windows zip from [Releases](https://github.com/CourtneyLynn94/Sproutoku/releases).
+
 ## Projects
 
 - `src/Sproutoku.App`: MAUI app (UI only)
@@ -30,6 +40,12 @@ dotnet build src/Sproutoku.App -t:Run -f net10.0-android   # needs a connected p
 
 ```powershell
 dotnet test tests/Sproutoku.Core.Tests
+```
+
+That includes the slow tests (like checking 2,000 levels are all different), which take a few minutes. To skip them, as CI does on every pull request:
+
+```powershell
+dotnet test tests/Sproutoku.Core.Tests --filter "Speed!=Slow"
 ```
 
 ## Lint
@@ -67,9 +83,11 @@ Release APKs are signed with one permanent key, so each release installs as an u
 
 ## Continuous integration
 
-GitHub Actions (`.github/workflows/ci.yml`):
-- **Every pull request** into `develop` or `master`: Core checks (formatting, build with warnings as errors, unit tests) and app builds for Android and Windows.
-- **Every push** to `develop` or `master`: Core checks only, since the pull request already built the app. (Branch rules require pull requests, so these pushes come from merges.)
+GitHub Actions (`.github/workflows/`):
+- **Every pull request** into `develop` or `master` (`ci.yml`): Core checks (formatting, build with warnings as errors, unit tests without the slow ones) and app builds for Android and Windows.
+- **Every push** to `develop` or `master` (`ci.yml`): Core checks only, since the pull request already built the app. (Branch rules require pull requests, so these pushes come from merges.)
+- **Slow tests** (`slow-tests.yml`): weekly, on every release to `master`, and by hand from the Actions tab.
+- **PR commit list** (`pr-commits.yml`): keeps the commit list in each pull request's description up to date.
 
 ## License & Copyright
 

@@ -71,6 +71,7 @@
                 <Label Style="{StaticResource Note}" Text="Coming soon: Morning, Dusk, or match your device." />
             </VerticalStackLayout>
 
+            <Label x:Name="VersionLabel" Style="{StaticResource Note}" />
             <Button Text="Done"
                     HorizontalOptions="Start"
                     Clicked="OnDoneClicked" />

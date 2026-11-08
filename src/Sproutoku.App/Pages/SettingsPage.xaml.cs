@@ -23,6 +23,12 @@ public partial class SettingsPage : ContentPage {
         VibrationSwitch.Toggled += (_, e) => _settings.Vibration = e.Value;
         BedPatternsSwitch.Toggled += (_, e) => _settings.BedPatterns = e.Value;
         SoundSwitch.Toggled += (_, e) => _settings.Sound = e.Value;
+
+        if (Version.TryParse(AppInfo.Current.VersionString, out Version? version)) {
+            //formatted to Major.Minor.Build
+            string formattedVersion = version.ToString(3);
+            VersionLabel.Text = $"Sproutoku {formattedVersion}";
+        }
     }
 
     private async void OnDoneClicked(object? sender, EventArgs e) => await Navigation.PopModalAsync();
