@@ -29,6 +29,7 @@ public static class MauiProgram {
         // Pages: a fresh one each time one opens. Shell builds MainPage through this too.
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<SettingsPage>();
+        builder.Services.AddTransient<HowToPlayPage>();
 
         return builder.Build();
     }

@@ -30,7 +30,6 @@ public partial class MainPage : ContentPage {
     private readonly GameStorage _gameStorage;
     private readonly Haptics _haptics;
     private readonly LevelPreparer _levels;
-    private readonly IServiceProvider _services;
     private readonly Dialogs _dialogs;
 
     // The game itself: level, board and every rule. The page only shows it and passes input in.
@@ -43,13 +42,12 @@ public partial class MainPage : ContentPage {
     private Cell? _pressedCell;
     private DragTracker? _drag; // The press in progress, or null. Only presses that start on the board can drag.
 
-    public MainPage(GameSettings settings, GameStorage gameStorage, Haptics haptics, LevelPreparer levels, Dialogs dialogs, IServiceProvider services) {
+    public MainPage(GameSettings settings, GameStorage gameStorage, Haptics haptics, LevelPreparer levels, Dialogs dialogs) {
         _settings = settings;
         _gameStorage = gameStorage;
         _haptics = haptics;
         _levels = levels;
         _dialogs = dialogs;
-        _services = services;
 
         InitializeComponent();
 
@@ -319,10 +317,10 @@ public partial class MainPage : ContentPage {
                 await ConfirmResetAsync();
                 break;
             case "How to play":
-                await Navigation.PushModalAsync(new HowToPlayPage());
+                await Shell.Current.GoToAsync(Routes.HowToPlay);
                 break;
             case "Settings":
-                await Navigation.PushModalAsync(_services.GetRequiredService<SettingsPage>());
+                await Shell.Current.GoToAsync(Routes.Settings);
                 break;
 #if DEBUG
             case "Go to level (dev)":

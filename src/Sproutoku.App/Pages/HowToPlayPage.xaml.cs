@@ -29,7 +29,5 @@ public partial class HowToPlayPage : ContentPage {
         return board;
     }
 
-    private async void OnCloseClicked(object? sender, EventArgs e) {
-        await Navigation.PopModalAsync();
-    }
+    private async void OnCloseClicked(object? sender, EventArgs e) => await Shell.Current.GoToAsync("..");
 }
