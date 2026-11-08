@@ -17,14 +17,19 @@ public sealed partial class Haptics {
         var vibrator = DeviceVibrator();
         if (vibrator is null || !vibrator.HasVibrator) return;
 
-        if (OperatingSystem.IsAndroidVersionAtLeast(33)) {
-            // Played as touch feedback, so it follows the phone's touch vibration strength, like the keyboard and other apps' taps.
-            vibrator.Vibrate(Effect(vibrator, feel), VibrationAttributes.CreateForUsage((int)VibrationAttributesUsageType.Touch));
-        } else if (OperatingSystem.IsAndroidVersionAtLeast(26)) {
-            vibrator.Vibrate(Effect(vibrator, feel));
-        } else {
+        if (!OperatingSystem.IsAndroidVersionAtLeast(26)) {
             var (timings, strengths) = Waveform(feel);
             vibrator.Vibrate(OnOff(timings, strengths), -1);
+            return;
+        }
+
+        if (Effect(vibrator, feel) is not { } effect) return;
+
+        if (OperatingSystem.IsAndroidVersionAtLeast(33)) {
+            // Played as touch feedback, so it follows the phone's touch vibration strength, like the keyboard and other apps' taps.
+            vibrator.Vibrate(effect, VibrationAttributes.CreateForUsage((int)VibrationAttributesUsageType.Touch));
+        } else {
+            vibrator.Vibrate(effect);
         }
     }
 

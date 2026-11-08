@@ -39,11 +39,13 @@ public enum HapticFeel {
 /// iOS will map them to its own light, medium and heavy taps.
 /// </summary>
 public sealed partial class Haptics {
-    // A drag can change cells faster than a motor can tick cleanly, so ticks closer together than this are skipped.
+    // Drag clicks are at least this far apart, so a fast drag stays a run of crisp clicks instead of a buzz.
+    // A click that comes too soon waits its turn instead of being dropped; only one waits at a time.
     private const long MinTickGapMs = 35;
 
     private readonly GameSettings _settings;
-    private long _lastTickMs;
+    private long _lastTickMs; // When the last click played, or when the waiting one will.
+    private bool _tickWaiting;
 
     public Haptics(GameSettings settings) {
         _settings = settings;
@@ -54,9 +56,25 @@ public sealed partial class Haptics {
     /// </summary>
     public void Mark() {
         long now = Environment.TickCount64;
-        if (now - _lastTickMs < MinTickGapMs) return;
+        long wait = _lastTickMs + MinTickGapMs - now;
 
-        _lastTickMs = now;
+        if (wait <= 0) {
+            _lastTickMs = now;
+            Play(HapticFeel.Tick);
+            return;
+        }
+
+        // Too soon after the last click: play it once the gap is up, unless one is already waiting.
+        if (_tickWaiting) return;
+
+        _tickWaiting = true;
+        _lastTickMs += MinTickGapMs;
+        _ = PlayTickLaterAsync(wait);
+    }
+
+    private async Task PlayTickLaterAsync(long waitMs) {
+        await Task.Delay(TimeSpan.FromMilliseconds(waitMs));
+        _tickWaiting = false;
         Play(HapticFeel.Tick);
     }
 
