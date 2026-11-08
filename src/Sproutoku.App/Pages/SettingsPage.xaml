@@ -29,9 +29,13 @@
                 <VerticalStackLayout>
                     <Label Text="Vibration" FontAttributes="Bold" />
                     <Label Style="{StaticResource Note}"
-                           Text="A buzz when you mark, plant or make a mistake." />
+                           Text="A click when you mark, plant or make a mistake." />
                 </VerticalStackLayout>
-                <Switch x:Name="VibrationSwitch" Grid.Column="1" VerticalOptions="Center" />
+                <Switch x:Name="VibrationSwitch"
+                        Grid.Column="1"
+                        VerticalOptions="Center"
+                        SemanticProperties.Description="Vibration"
+                        SemanticProperties.Hint="A click when you mark, plant or make a mistake." />
             </Grid>
 
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
@@ -41,7 +45,12 @@
                            Style="{StaticResource Note}"
                            Text="Coming soon: a pattern on each bed, so beds can be told apart without color." />
                 </VerticalStackLayout>
-                <Switch x:Name="BedPatternsSwitch" Grid.Column="1" VerticalOptions="Center" IsEnabled="False" />
+                <Switch x:Name="BedPatternsSwitch"
+                        Grid.Column="1"
+                        VerticalOptions="Center"
+                        IsEnabled="False"
+                        SemanticProperties.Description="Bed patterns"
+                        SemanticProperties.Hint="Coming soon: a pattern on each bed, so beds can be told apart without color." />
             </Grid>
 
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
@@ -49,7 +58,12 @@
                     <Label Text="Sound" FontAttributes="Bold" />
                     <Label Style="{StaticResource Note}" Text="Coming soon." />
                 </VerticalStackLayout>
-                <Switch x:Name="SoundSwitch" Grid.Column="1" VerticalOptions="Center" IsEnabled="False" />
+                <Switch x:Name="SoundSwitch"
+                        Grid.Column="1"
+                        VerticalOptions="Center"
+                        IsEnabled="False"
+                        SemanticProperties.Description="Sound"
+                        SemanticProperties.Hint="Coming soon." />
             </Grid>
 
             <VerticalStackLayout>
