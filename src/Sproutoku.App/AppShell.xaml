@@ -3,7 +3,7 @@
        xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
        xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
        xmlns:pages="clr-namespace:Sproutoku.App.Pages"
-       Title="Sproutoku.App">
+       Title="Sproutoku">
 
     <ShellContent Title="Sproutoku"
                   ContentTemplate="{DataTemplate pages:MainPage}"
