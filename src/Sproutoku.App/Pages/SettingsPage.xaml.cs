@@ -8,6 +8,9 @@ namespace Sproutoku.App.Pages;
 public partial class SettingsPage : ContentPage {
     private readonly GameSettings _settings;
 
+    /// <summary>
+    /// Shows the saved settings and saves each change as soon as a switch flips.
+    /// </summary>
     public SettingsPage(GameSettings settings) {
         InitializeComponent();
         _settings = settings;
@@ -24,11 +27,10 @@ public partial class SettingsPage : ContentPage {
         BedPatternsSwitch.Toggled += (_, e) => _settings.BedPatterns = e.Value;
         SoundSwitch.Toggled += (_, e) => _settings.Sound = e.Value;
 
-        if (Version.TryParse(AppInfo.Current.VersionString, out Version? version)) {
-            //formatted to Major.Minor.Build
-            string formattedVersion = version.ToString(3);
-            VersionLabel.Text = $"Sproutoku {formattedVersion}";
-        }
+        string raw = AppInfo.Current.VersionString;
+        VersionLabel.Text = Version.TryParse(raw, out var version) && version.Build >= 0
+            ? $"Sproutoku {version.ToString(3)}"
+            : $"Sproutoku {raw}";
     }
 
     private async void OnDoneClicked(object? sender, EventArgs e) => await Navigation.PopModalAsync();

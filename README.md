@@ -9,7 +9,7 @@ A cozy logic puzzle for Android phones and Windows desktops, built with .NET MAU
 - Tap a cell to mark it ✕, double-tap to grow a plant, drag to mark a row. One plant per bed, row and column, and plants never touch, not even diagonally.
 - Endless gardens, generated from each level's number, so level N is the same garden for everyone. Levels 1–30 teach one deduction at a time; every 10th level from 40 is Hard and every 50th is Super hard.
 - Every garden has exactly one answer, and it can be found by logic alone, with no guessing.
-- Three suns: a wrong plant wilts and costs one.
+- Most gardens have three suns, and a wrong plant wilts and costs one. Some gardens have only one sun, so the first mistake ends them: levels 18 and 27, every Super hard garden, and now and then a later level. The garden's info line says "One sun" when it is one.
 - The Worm shows the next logical step on the board and explains it in one line.
 
 Download the latest Android APK or Windows zip from [Releases](https://github.com/CourtneyLynn94/Sproutoku/releases).
