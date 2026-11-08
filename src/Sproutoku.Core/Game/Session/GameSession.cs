@@ -333,6 +333,7 @@ public sealed class GameSession {
         }
 
         CloseHint();
+        ForgetLastTap(); // A tap from before the hint can't pair with one after it and take the hint's changes back.
 
         var board = Board;
         foreach (var cell in hint.Plants) {
