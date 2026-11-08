@@ -1,59 +1,96 @@
 using System.Diagnostics;
-using Microsoft.Maui.Devices;
 
 namespace Sproutoku.App.Services;
 
 /// <summary>
-/// Vibrations for marks, plants, mistakes and the end of a garden, each with its own rhythm.
-/// Does nothing on devices without vibration (like desktops), and never stops the game if it fails.
+/// How each moment feels in the hand. Each platform plays them its own way.
 /// </summary>
-public sealed class Haptics {
-    private static readonly TimeSpan Tick = TimeSpan.FromMilliseconds(20);
-    private static readonly TimeSpan Pulse = TimeSpan.FromMilliseconds(70);
-    private static readonly TimeSpan PulseGap = TimeSpan.FromMilliseconds(110);
-    private static readonly TimeSpan WiltBuzz = TimeSpan.FromMilliseconds(400);
-    private static readonly TimeSpan GardenEndBuzz = TimeSpan.FromMilliseconds(700);
+public enum HapticFeel {
+    /// <summary>
+    /// A ✕ placed or cleared, including each cell a drag changes: one crisp click.
+    /// </summary>
+    Tick,
+
+    /// <summary>
+    /// A plant grew: two quick pops, the second stronger.
+    /// </summary>
+    Grew,
+
+    /// <summary>
+    /// A wrong plant wilted and a sun was spent: one firm knock that falls away.
+    /// </summary>
+    Wilted,
+
+    /// <summary>
+    /// The end screen for a finished garden: a short swell ending in two pops.
+    /// </summary>
+    GardenComplete,
+
+    /// <summary>
+    /// The end screen for running out of sun: two heavy knocks, the second softer.
+    /// </summary>
+    OutOfSun,
+}
+
+/// <summary>
+/// Haptic feedback for marks, plants, mistakes and the end of a garden, each with its own feel.
+/// Plays nothing when Vibration is off in Settings or the device can't vibrate (like desktops), and never stops the game if it fails.
+/// Android plays the feels in Platforms/Android/Haptics.Android.cs. Other platforms play nothing yet;
+/// iOS will map them to its own light, medium and heavy taps.
+/// </summary>
+public sealed partial class Haptics {
+    // A drag can change cells faster than a motor can tick cleanly, so ticks closer together than this are skipped.
+    private const long MinTickGapMs = 35;
 
     private readonly GameSettings _settings;
+    private long _lastTickMs;
 
     public Haptics(GameSettings settings) {
         _settings = settings;
     }
 
     /// <summary>
-    /// One short tick: a ✕ placed or cleared, including each cell a drag changes.
+    /// A ✕ placed or cleared, including each cell a drag changes.
     /// </summary>
-    public void Mark() => Vibrate(Tick);
+    public void Mark() {
+        long now = Environment.TickCount64;
+        if (now - _lastTickMs < MinTickGapMs) return;
 
-    /// <summary>
-    /// Two pulses: a plant grew.
-    /// </summary>
-    public async Task GrewAsync() {
-        Vibrate(Pulse);
-        await Task.Delay(Pulse + PulseGap);
-        Vibrate(Pulse);
+        _lastTickMs = now;
+        Play(HapticFeel.Tick);
     }
 
     /// <summary>
-    /// One long buzz: a wrong plant wilted and a sun was spent.
+    /// A plant grew.
     /// </summary>
-    public void Wilted() => Vibrate(WiltBuzz);
+    public void Grew() => Play(HapticFeel.Grew);
 
     /// <summary>
-    /// A longer buzz as the end screen appears: garden complete, or out of sun.
+    /// A wrong plant wilted and a sun was spent.
     /// </summary>
-    public void GardenEnded() => Vibrate(GardenEndBuzz);
+    public void Wilted() => Play(HapticFeel.Wilted);
 
-    private void Vibrate(TimeSpan duration) {
+    /// <summary>
+    /// The end screen for a finished garden is appearing.
+    /// </summary>
+    public void GardenComplete() => Play(HapticFeel.GardenComplete);
+
+    /// <summary>
+    /// The end screen for running out of sun is appearing.
+    /// </summary>
+    public void OutOfSun() => Play(HapticFeel.OutOfSun);
+
+    private void Play(HapticFeel feel) {
         if (!_settings.Vibration) return;
 
         try {
-            if (Vibration.Default.IsSupported) {
-                Vibration.Default.Vibrate(duration);
-            }
+            PlayOnDevice(feel);
         }
         catch (Exception ex) {
-            Debug.WriteLine($"Vibration failed: {ex.Message}");
+            Debug.WriteLine($"Haptics failed: {ex.Message}");
         }
     }
+
+    // Plays one feel on this device. Only Android has a body so far; on other platforms the compiler drops the call.
+    partial void PlayOnDevice(HapticFeel feel);
 }

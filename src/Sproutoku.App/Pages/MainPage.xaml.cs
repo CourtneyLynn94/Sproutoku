@@ -178,7 +178,11 @@ public partial class MainPage : ContentPage {
         // The Journal still works during the wait. If a reset or skip changed the garden, this screen is stale.
         if (!ReferenceEquals(Session.Board, board)) return;
 
-        _haptics.GardenEnded();
+        if (board.IsSolved) {
+            _haptics.GardenComplete();
+        } else {
+            _haptics.OutOfSun();
+        }
 
         if (board.IsSolved) {
             bool extra = Session.IsExtraGarden;
@@ -483,14 +487,14 @@ public partial class MainPage : ContentPage {
         }
     }
 
-    // Mobile: A light tick for ✕, a firmer press for a plant, a buzz for a mistake.
+    // Mobile: A tick for ✕, two pops for a plant, a knock for a mistake.
     private void PlayHaptic(TapOutcome outcome) {
         switch (outcome) {
             case TapOutcome.MarkToggled:
                 _haptics.Mark();
                 break;
             case TapOutcome.Grew:
-                _ = _haptics.GrewAsync();
+                _haptics.Grew();
                 break;
             case TapOutcome.Wilted:
                 _haptics.Wilted();
