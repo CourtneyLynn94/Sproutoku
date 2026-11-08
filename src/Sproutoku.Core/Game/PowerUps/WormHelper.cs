@@ -6,24 +6,51 @@ namespace Sproutoku.Core.Game.PowerUps;
 
 /// <summary>
 /// One Worm hint: the next step, shown more than told.
-/// <see cref="Message"/> is one short line;
+/// <see cref="Message"/> is one short line: the step's <see cref="Text"/>, plus a call-out while a ✕ it proves wrong is still on the board;
 /// <see cref="Focus"/> are the cells the step is about (the rest of the board is dimmed);
 /// <see cref="Plants"/> and <see cref="RuleOuts"/> are what Apply changes;
-/// <see cref="WrongMarks"/> are ✕ marks this step proves wrong.
+/// <see cref="WrongMarks"/> are ✕ marks this step proves wrong;
+/// <see cref="NamedRows"/> and <see cref="NamedColumns"/> are the rows and columns the message names, by index.
 /// </summary>
 public sealed record WormHint(
     LogicStep Step,
-    string Message,
+    string Text,
     IReadOnlyList<Cell> Focus,
     IReadOnlyList<Cell> Plants,
     IReadOnlyList<Cell> RuleOuts,
-    IReadOnlyList<Cell> WrongMarks);
+    IReadOnlyList<Cell> WrongMarks,
+    IReadOnlyList<int> NamedRows,
+    IReadOnlyList<int> NamedColumns) {
+
+    /// <summary>
+    /// What the note says. The mistake call-out goes away once the player clears that ✕ (or the hint plants over it).
+    /// </summary>
+    public string Message => WrongMarks.Count > 0 ? $"{Text} Your ✕ there is a mistake." : Text;
+
+    /// <summary>
+    /// What's still left of this hint on the board: plants not yet grown and rule-outs not yet marked.
+    /// Null once the player has done all of it, or the garden is over. The message stays as it was.
+    /// </summary>
+    public WormHint? LeftToDo(Board board) {
+        if (board.IsFinished) return null;
+
+        var plants = Plants.Where(cell => board[cell] != CellState.Planted).ToList();
+        var ruleOuts = RuleOuts.Where(cell => board[cell] == CellState.Empty).ToList();
+        if (plants.Count == 0 && ruleOuts.Count == 0) return null;
+
+        var wrongMarks = plants.Where(cell => board[cell] == CellState.Marked).ToList();
+        return this with { Plants = plants, RuleOuts = ruleOuts, WrongMarks = wrongMarks };
+    }
+}
 
 /// <summary>
-/// The Worm's thinking. It only uses what the player can see: the bed shapes and the board's facts.
-/// It never peeks at the answer and never trusts ✕ marks; a ✕ the next step proves wrong is called out in that hint.
+/// The Worm's thinking. It only uses what the player can see: the bed shapes, the board's facts and the player's correct ✕ marks.
+/// It never peeks at the answer; a ✕ the next step proves wrong is called out in that hint.
 /// </summary>
 public static class WormHelper {
+    // A "would starve" hint names its cells up to this many; past that, the preview marks show them.
+    private const int MaxCellsNamed = 4;
+
     /// <summary>
     /// The next step for this board, or null if the garden is over or there's nothing left to work out.
     /// </summary>
@@ -31,7 +58,7 @@ public static class WormHelper {
         ArgumentNullException.ThrowIfNull(board);
         if (board.IsFinished) return null;
 
-        foreach (var step in LogicSolver.Solve(GardenFacts.From(board)).Steps) {
+        foreach (var step in LogicSolver.Solve(FactsWithCorrectMarks(board)).Steps) {
             // What the step would change on the player's board: plants not yet grown, and rule-outs not yet marked.
             var plants = step.Plants.Where(cell => board[cell] != CellState.Planted).ToList();
             var ruleOuts = step.RuledOut.Where(cell => board[cell] == CellState.Empty).ToList();
@@ -46,27 +73,50 @@ public static class WormHelper {
                 : step.Reasons;
             var focus = why.Concat(plants).Concat(ruleOuts).Distinct().ToList();
 
-            return new WormHint(step, Describe(board.Puzzle, step, ruleOuts, wrongMarks), focus, plants, ruleOuts, wrongMarks);
+            var (rows, columns) = NamedLines(step, ruleOuts);
+            return new WormHint(step, Describe(board.Puzzle, step, ruleOuts), focus, plants, ruleOuts, wrongMarks, rows, columns);
         }
 
         return null;
     }
 
-    // One short line per kind of step.
-    private static string Describe(Puzzle puzzle, LogicStep step, List<Cell> ruleOuts, List<Cell> wrongMarks) {
+    // The board's facts, plus every ✕ the player got right, so hints follow the board the player sees.
+    // Solving from the facts alone proves where every plant grows (no peeking at the answer); a ✕ anywhere else is correct.
+    // ✕ marks on proven plants are mistakes and stay unknown.
+    // If the facts alone can't finish the garden, no ✕ is trusted.
+    private static GardenFacts FactsWithCorrectMarks(Board board) {
+        var facts = GardenFacts.From(board);
+        var proven = LogicSolver.Solve(facts);
+        if (!proven.IsSolved) return facts;
+
+        var plants = proven.Plants.ToHashSet();
+        for (int row = 0; row < board.Size; row++) {
+            for (int column = 0; column < board.Size; column++) {
+                var cell = new Cell(row, column);
+                if (board[cell] == CellState.Marked && !plants.Contains(cell)) {
+                    facts = facts.WithNoPlant(cell);
+                }
+            }
+        }
+
+        return facts;
+    }
+
+    // One short line per kind of step. Cells and lines use the board's labels: columns A, B, C…, rows 1, 2, 3…, cells like B5.
+    private static string Describe(Puzzle puzzle, LogicStep step, List<Cell> ruleOuts) {
         var beds = step.Areas.Where(area => area.Kind == AreaKind.Bed).ToList();
         var lines = step.Areas.Where(area => area.Kind != AreaKind.Bed).ToList();
 
         switch (step.Technique) {
             case Technique.PlantRulesOut:
-                return "This plant's row, column, bed and neighbors can't hold another plant. Rule them out.";
+                return $"No other plant can share a row, column or bed with the plant on {step.Reasons[0].Label}, or touch it. Rule those cells out.";
 
             case Technique.OnlyCellLeft: {
                 var area = step.Areas[0];
-                string message = area.Kind == AreaKind.Bed
-                    ? $"{Name(area)} has only one cell left for a plant."
-                    : $"Only one cell left in {Name(area)} for a plant.";
-                return wrongMarks.Count > 0 ? $"{message} Your ✕ there is a mistake." : message;
+                string cell = step.Plants[0].Label;
+                return area.Kind == AreaKind.Bed
+                    ? $"{Name(area)} has only one cell left for a plant: {cell}."
+                    : $"Only one cell left in {Name(area)} for a plant: {cell}.";
             }
 
             case Technique.BedsFillLines:
@@ -80,9 +130,32 @@ public static class WormHelper {
             default: {
                 // WouldStarve: the area that would be left with nowhere to grow, and the rules that would do it.
                 string area = Name(step.Areas[0]);
-                return $"A plant here would block all of {area}'s open cells ({WhyBlocked(puzzle, ruleOuts, step.Reasons)}). Rule these out.";
+                string where = ruleOuts.Count <= MaxCellsNamed
+                    ? $"on {Join(ruleOuts.Select(cell => cell.Label), "or")}"
+                    : "on any of these cells";
+                return $"A plant {where} would block all of {area}'s open cells ({WhyBlocked(puzzle, ruleOuts, step.Reasons)}). Rule {(ruleOuts.Count == 1 ? "it" : "them")} out.";
             }
         }
+    }
+
+    // The rows and columns the message names: its rows and columns, plus the row and column of each cell it names (B5 names column B and row 5).
+    // Matches Describe, so the app can darken just those labels.
+    private static (List<int> Rows, List<int> Columns) NamedLines(LogicStep step, List<Cell> ruleOuts) {
+        List<Cell> cells = step.Technique switch {
+            Technique.PlantRulesOut => [step.Reasons[0]],
+            Technique.OnlyCellLeft => [step.Plants[0]],
+            Technique.WouldStarve when ruleOuts.Count <= MaxCellsNamed => ruleOuts,
+            _ => [],
+        };
+
+        var rows = step.Areas.Where(area => area.Kind == AreaKind.Row).Select(area => area.Index)
+            .Concat(cells.Select(cell => cell.Row))
+            .Distinct().Order().ToList();
+        var columns = step.Areas.Where(area => area.Kind == AreaKind.Column).Select(area => area.Index)
+            .Concat(cells.Select(cell => cell.Column))
+            .Distinct().Order().ToList();
+
+        return (rows, columns);
     }
 
     // Which rules let a plant in a ruled-out cell block the area's open cells. Only the ones that apply are listed.
@@ -124,26 +197,28 @@ public static class WormHelper {
         }
     }
 
-    // "Sand", "row 3", "column 10". Players count from 1.
+    // "Sand", "row 3", "column B".
     private static string Name(Area area) => area.Kind switch {
-        AreaKind.Row => $"row {area.Index + 1}",
-        AreaKind.Column => $"column {area.Index + 1}",
+        AreaKind.Row => $"row {Cell.RowLabel(area.Index)}",
+        AreaKind.Column => $"column {Cell.ColumnLabel(area.Index)}",
         _ => BedNames.For(area.Index),
     };
 
     // "Sand", "Sand and Moss", "Sand, Moss and Clay" (or "or").
-    private static string Beds(List<Area> beds, string joiner) {
-        var names = beds.Select(Name).ToList();
-        return names.Count == 1 ? names[0] : $"{string.Join(", ", names.Take(names.Count - 1))} {joiner} {names[^1]}";
+    private static string Beds(List<Area> beds, string joiner) => Join(beds.Select(Name), joiner);
+
+    // "row 3", "rows 2 and 4", "columns A, C and E".
+    private static string Lines(List<Area> lines) {
+        bool rows = lines[0].Kind == AreaKind.Row;
+        string labels = Join(lines.Select(line => rows ? Cell.RowLabel(line.Index) : Cell.ColumnLabel(line.Index)), "and");
+        string kind = rows ? "row" : "column";
+
+        return lines.Count == 1 ? $"{kind} {labels}" : $"{kind}s {labels}";
     }
 
-    // "row 3", "rows 2 and 4", "columns 1, 3 and 5".
-    private static string Lines(List<Area> lines) {
-        string kind = lines[0].Kind == AreaKind.Row ? "row" : "column";
-        var numbers = lines.Select(line => (line.Index + 1).ToString()).ToList();
-
-        return numbers.Count == 1
-            ? $"{kind} {numbers[0]}"
-            : $"{kind}s {string.Join(", ", numbers.Take(numbers.Count - 1))} and {numbers[^1]}";
+    // "A", "A and B", "A, B and C" (or "or").
+    private static string Join(IEnumerable<string> names, string joiner) {
+        var list = names.ToList();
+        return list.Count == 1 ? list[0] : $"{string.Join(", ", list.Take(list.Count - 1))} {joiner} {list[^1]}";
     }
 }

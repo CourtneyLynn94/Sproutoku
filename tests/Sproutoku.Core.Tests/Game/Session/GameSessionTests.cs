@@ -705,7 +705,7 @@ public class GameSessionTests {
     }
 
     [Fact]
-    public void WhileAHintIsOpen_TheBoardIgnoresTapsDragsAndKeys() {
+    public void WhileAHintIsFocused_TheBoardIgnoresTapsDragsAndKeys() {
         var session = NewGame();
         var cell = WrongCells(session.Board.Puzzle).First();
         Assert.NotNull(session.UseWorm());
@@ -732,6 +732,7 @@ public class GameSessionTests {
         Assert.Equal(TapOutcome.MarkToggled, result.Outcome);
         Assert.All(hint.RuleOuts, cell => Assert.Equal(CellState.Marked, session.Board[cell]));
         Assert.Null(session.OpenHint);
+        Assert.False(session.IsHintFocused);
         Assert.Equal(TapOutcome.Ignored, session.ApplyHint().Outcome); // Nothing left to apply.
     }
 
@@ -795,6 +796,125 @@ public class GameSessionTests {
         Assert.NotNull(last);
         Assert.True(last.EndedGarden);
         Assert.Equal(0, session.Board.Mistakes);
+    }
+
+    [Fact]
+    public void AnUnfocusedHint_StaysOpen_WhileThePlayerPlays() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        Assert.NotNull(session.UseWorm()); // Rule out A1's row: (0,2), (0,3) and (0,4).
+        Assert.True(session.IsHintFocused);
+
+        session.UnfocusHint();
+
+        Assert.False(session.IsHintFocused);
+        Assert.Equal(TapOutcome.MarkToggled, session.ToggleMark(new Cell(4, 0)).Outcome);
+        Assert.NotNull(session.OpenHint);
+    }
+
+    [Fact]
+    public void TheOpenHint_ShowsOnlyWhatsLeft_AndClosesOnceItsDone() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        session.UseWorm();
+        session.UnfocusHint();
+
+        session.ToggleMark(new Cell(0, 2));
+
+        Assert.NotNull(session.OpenHint);
+        Assert.Equal([new Cell(0, 3), new Cell(0, 4)], session.OpenHint.RuleOuts);
+
+        session.ToggleMark(new Cell(0, 3));
+        session.ToggleMark(new Cell(0, 4));
+
+        Assert.Null(session.OpenHint);
+        Assert.False(session.IsHintFocused);
+    }
+
+    [Fact]
+    public void ApplyHint_AfterSomeOfTheWork_OnlyDoesWhatsLeft() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        session.UseWorm();
+        session.UnfocusHint();
+        session.ToggleMark(new Cell(0, 2));
+        session.FocusHint();
+
+        var result = session.ApplyHint();
+
+        // (0,2) keeps the player's ✕ instead of being toggled back off.
+        Cell[] ruleOuts = [new(0, 2), new(0, 3), new(0, 4)];
+        Assert.Equal(TapOutcome.MarkToggled, result.Outcome);
+        Assert.All(ruleOuts, cell => Assert.Equal(CellState.Marked, session.Board[cell]));
+    }
+
+    [Fact]
+    public void FocusingTheHintAgain_IsFree() {
+        var session = NewGame();
+        var hint = session.UseWorm();
+        session.UnfocusHint();
+
+        Assert.Same(hint, session.UseWorm());
+        Assert.True(session.IsHintFocused);
+        Assert.Equal(PowerUpSupply.Starting.Worm - 1, session.PowerUps.Worm);
+
+        session.UnfocusHint();
+        session.FocusHint();
+        Assert.True(session.IsHintFocused);
+    }
+
+    [Fact]
+    public void CloseHint_PutsTheHintAway() {
+        var session = NewGame();
+        session.UseWorm();
+
+        session.CloseHint();
+        session.FocusHint(); // Nothing left to focus.
+
+        Assert.Null(session.OpenHint);
+        Assert.False(session.IsHintFocused);
+    }
+
+    [Fact]
+    public void ARuleOutMarkedThenCleared_ComesBackToTheHint() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        session.UseWorm(); // Rule out (0,2), (0,3) and (0,4).
+        session.UnfocusHint();
+
+        session.ToggleMark(new Cell(0, 2));
+        session.ToggleMark(new Cell(0, 2));
+
+        Assert.NotNull(session.OpenHint);
+        Assert.Equal([new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], session.OpenHint.RuleOuts);
+
+        session.ToggleMark(new Cell(0, 3));
+        session.ToggleMark(new Cell(0, 4));
+        Assert.NotNull(session.OpenHint); // (0,2) is still left, so the hint stays open.
+    }
+
+    [Fact]
+    public void ClearingTheWrongMark_TakesTheMistakeOutOfTheNote() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+
+        // The first four steps marked, plus a wrong ✕ on (2,4) (E3), where Sand's plant grows.
+        Cell[] marks = [new(0, 2), new(0, 3), new(0, 4), new(2, 0), new(2, 1), new(2, 2), new(1, 0), new(1, 1), new(2, 3), new(2, 4)];
+        foreach (var cell in marks) {
+            session.ToggleMark(cell);
+        }
+
+        var hint = session.UseWorm();
+        Assert.NotNull(hint);
+        Assert.EndsWith("Your ✕ there is a mistake.", hint.Message);
+
+        session.UnfocusHint();
+        session.ToggleMark(new Cell(2, 4)); // The player clears the wrong ✕.
+
+        Assert.NotNull(session.OpenHint);
+        Assert.Empty(session.OpenHint.WrongMarks);
+        Assert.Equal($"{BedNames.For(2)} has only one cell left for a plant: E3.", session.OpenHint.Message);
+        Assert.Equal([new Cell(2, 4)], session.OpenHint.Plants); // The plant is still left to grow.
     }
     #endregion
     #endregion
