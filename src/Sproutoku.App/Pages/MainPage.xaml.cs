@@ -31,6 +31,7 @@ public partial class MainPage : ContentPage {
     private readonly Haptics _haptics;
     private readonly LevelPreparer _levels;
     private readonly IServiceProvider _services;
+    private readonly Dialogs _dialogs;
 
     // The game itself: level, board and every rule. The page only shows it and passes input in.
     // Null only for the moment the saved level is growing at startup.
@@ -42,11 +43,12 @@ public partial class MainPage : ContentPage {
     private Cell? _pressedCell;
     private DragTracker? _drag; // The press in progress, or null. Only presses that start on the board can drag.
 
-    public MainPage(GameSettings settings, GameStorage gameStorage, Haptics haptics, LevelPreparer levels, IServiceProvider services) {
+    public MainPage(GameSettings settings, GameStorage gameStorage, Haptics haptics, LevelPreparer levels, Dialogs dialogs, IServiceProvider services) {
         _settings = settings;
         _gameStorage = gameStorage;
         _haptics = haptics;
         _levels = levels;
+        _dialogs = dialogs;
         _services = services;
 
         InitializeComponent();
@@ -151,7 +153,7 @@ public partial class MainPage : ContentPage {
 
     // A complete progress reset. Asks first, because it can't be undone.
     private async Task ConfirmResetAsync() {
-        bool erase = await DisplayAlertAsync(
+        bool erase = await _dialogs.ConfirmAsync(
             "Reset all progress?",
             "This erases every garden you've grown and everything you've earned, and starts you again at Garden 1. Your settings stay as they are. It can't be undone.",
             "Erase my progress",
@@ -192,7 +194,7 @@ public partial class MainPage : ContentPage {
                 $"Mistakes: {board.Mistakes}\n" +
                 $"Beds: {board.Size}";
 
-            await DisplayAlertAsync("Garden complete", stats, extra ? $"Back to Garden {Session.Level}" : "Next garden");
+            await _dialogs.AlertAsync("Garden complete", stats, extra ? $"Back to Garden {Session.Level}" : "Next garden");
 
             if (extra) {
                 if (Session.TryAdvance()) {
@@ -213,7 +215,7 @@ public partial class MainPage : ContentPage {
         const string Title = "Your garden needs more sun";
         const string Message = "All your suns are spent. Give this garden a fresh start.";
 
-        await DisplayAlertAsync(Title, Message, "Try again");
+        await _dialogs.AlertAsync(Title, Message, "Try again");
         if (Session.TryRestart()) {
             ShowGarden("A fresh start");
         }
@@ -310,7 +312,7 @@ public partial class MainPage : ContentPage {
         options.Add(_garden.ShowSolution ? "Hide solution (dev)" : "Show solution (dev)");
 #endif
 
-        string choice = await DisplayActionSheetAsync("Garden journal", "Keep gardening", "Reset all progress", [.. options]);
+        string? choice = await _dialogs.ChooseAsync("Garden journal", "Keep gardening", "Reset all progress", [.. options]);
 
         switch (choice) {
             case "Reset all progress":
@@ -346,7 +348,7 @@ public partial class MainPage : ContentPage {
 #if DEBUG
     // Dev: jumps straight to any level by number. The garden is grown off the main thread, since big or Super hard ones can take a moment.
     private async Task GoToLevelAsync() {
-        string? answer = await DisplayPromptAsync(
+        string? answer = await _dialogs.PromptAsync(
             "Go to level",
             $"You're on Garden {Session.Level}. Which level?",
             accept: "Go",
@@ -667,7 +669,7 @@ public partial class MainPage : ContentPage {
 
     // Closing asks first: once it's closed, seeing a hint again takes another Worm.
     private async void OnWormCloseClicked(object? sender, EventArgs e) {
-        bool close = await DisplayAlertAsync(
+        bool close = await _dialogs.ConfirmAsync(
             "Close the worm's note?",
             "To see the hint again, you'll need another Worm.",
             "Close",

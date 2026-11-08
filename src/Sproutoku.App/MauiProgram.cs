@@ -24,6 +24,7 @@ public static class MauiProgram {
         builder.Services.AddSingleton<GameStorage>();
         builder.Services.AddSingleton<Haptics>();
         builder.Services.AddSingleton<LevelPreparer>();
+        builder.Services.AddSingleton<Dialogs>();
 
         // Pages: a fresh one each time one opens. Shell builds MainPage through this too.
         builder.Services.AddTransient<MainPage>();
