@@ -379,7 +379,7 @@ public partial class MainPage : ContentPage {
         var point = e.Touches[0];
         _pressedCell = _garden.CellAt(point);
         _drag = _pressedCell is not null && _garden.CellPosition(point) is { } position
-            ? new DragTracker(position.X, position.Y)
+            ? new DragTracker(position.X, position.Y, Session.Board.Size)
             : null;
 
         if (_pressedCell is { } pressed) {

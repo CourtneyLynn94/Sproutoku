@@ -28,6 +28,7 @@ public enum DragLock {
 /// A press becomes a drag once it moves a third of a cell, and the start cell comes first so it's marked at once.
 /// A drag that starts clearly along a row or column stays in that line, so a wobbly finger can't slip into the next one;
 /// it lets go once the finger is past the middle of the neighboring line. A diagonal start follows the finger freely.
+/// A press that leaves the board without crossing another cell stays a press, like a finger sliding off the garden.
 /// </summary>
 public sealed class DragTracker {
     /// <summary>
@@ -46,14 +47,17 @@ public sealed class DragTracker {
     private double _lastX;
     private double _lastY;
 
+    private readonly int _boardSize;
+
     /// <summary>
-    /// A press at this position.
+    /// A press at this position, on a board of this size.
     /// </summary>
-    public DragTracker(double x, double y) {
+    public DragTracker(double x, double y, int boardSize) {
         _startX = x;
         _startY = y;
         _lastX = x;
         _lastY = y;
+        _boardSize = boardSize;
     }
 
     /// <summary>
@@ -76,6 +80,9 @@ public sealed class DragTracker {
             double dx = x - _startX;
             double dy = y - _startY;
             if (Math.Sqrt((dx * dx) + (dy * dy)) < StartDistance) return [];
+
+            // Off the board without crossing another cell: still a press. It may come back, or lift off as nothing.
+            if (!IsOnBoard(x, y) && !CrossesAnotherCell(x, y)) return [];
 
             IsDragging = true;
             Lock = Math.Abs(dx) >= LockRatio * Math.Abs(dy) ? DragLock.Row
@@ -100,5 +107,14 @@ public sealed class DragTracker {
         _lastX = toX;
         _lastY = toY;
         return cells;
+    }
+
+    private bool IsOnBoard(double x, double y) => x >= 0 && x < _boardSize && y >= 0 && y < _boardSize;
+
+    // Whether the straight path from the press to here passes through a board cell other than the one it started on.
+    private bool CrossesAnotherCell(double x, double y) {
+        var start = new Cell((int)Math.Floor(_startY), (int)Math.Floor(_startX));
+        return DragGridLine.CellsAlong(_startX, _startY, x, y)
+            .Any(cell => cell != start && cell.IsInside(_boardSize));
     }
 }
