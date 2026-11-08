@@ -24,4 +24,11 @@ public class CellTests {
 
         Assert.Equal(new Cell(expectedRow, expectedColumn), moved);
     }
+
+    [Theory]
+    [InlineData(0, 0, "A1")]
+    [InlineData(4, 1, "B5")]
+    [InlineData(9, 9, "J10")]
+    public void Label_IsTheColumnLetterThenTheRowNumber(int row, int column, string expected) =>
+        Assert.Equal(expected, new Cell(row, column).Label);
 }

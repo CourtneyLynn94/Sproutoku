@@ -11,6 +11,14 @@ namespace Sproutoku.App.Controls.Garden;
 public sealed class GardenDrawable : IDrawable {
     private const float MaxBoardSize = 520;
 
+    // The column letters (above the board) and row numbers (left of it) are one fixed size on every garden,
+    // the same as the worm's message text.
+    private const float LabelFontSize = 14;
+
+    // Room for the labels. The same room is left on every side, so the board stays centered,
+    // and it's always there, so the board doesn't jump when a hint opens.
+    private const float LabelBand = 20;
+
     // Growing-medium colors, one per bed, in the same order as BedNames.
     private static readonly Color[] RegionColors = [
         Color.FromArgb("#B08560"), // soil
@@ -84,11 +92,22 @@ public sealed class GardenDrawable : IDrawable {
     /// </summary>
     public IReadOnlyCollection<Cell>? HintMistakes { get; set; }
 
+    /// <summary>
+    /// The rows the open hint names, focused or not. While set, the column letters and row numbers are drawn,
+    /// and these rows' numbers are dark; the rest are faded.
+    /// </summary>
+    public IReadOnlyCollection<int>? HintRows { get; set; }
+
+    /// <summary>
+    /// The columns the open hint names: their letters are dark; the rest are faded.
+    /// </summary>
+    public IReadOnlyCollection<int>? HintColumns { get; set; }
+
     public void Draw(ICanvas canvas, RectF dirtyRect) {
         if (Board is null) return;
 
         int size = Board.Size;
-        float side = Math.Min(Math.Min(dirtyRect.Width, dirtyRect.Height), MaxBoardSize);
+        float side = Math.Min(Math.Min(dirtyRect.Width, dirtyRect.Height) - (2 * LabelBand), MaxBoardSize);
         _cellSize = side / size;
         _origin = new PointF(dirtyRect.Center.X - (side / 2), dirtyRect.Center.Y - (side / 2));
 
@@ -143,6 +162,10 @@ public sealed class GardenDrawable : IDrawable {
         canvas.StrokeColor = Ink;
         canvas.StrokeSize = 3;
         canvas.DrawRectangle(_origin.X, _origin.Y, side, side);
+
+        if (HintRows is not null && HintColumns is not null) {
+            DrawLabels(canvas, size, HintRows, HintColumns);
+        }
     }
 
     /// <summary>
@@ -261,6 +284,25 @@ public sealed class GardenDrawable : IDrawable {
         canvas.StrokeColor = Leaf;
         canvas.StrokeSize = 3;
         canvas.DrawCircle(rect.Center.X, rect.Center.Y, rect.Width * 0.36f);
+    }
+
+    // Column letters above the board and row numbers to its left, while a hint is open.
+    // Only the rows and columns its message names are dark; the rest are faded.
+    private void DrawLabels(ICanvas canvas, int size, IReadOnlyCollection<int> rows, IReadOnlyCollection<int> columns) {
+        canvas.Font = Microsoft.Maui.Graphics.Font.Default;
+        canvas.FontSize = LabelFontSize;
+
+        for (int i = 0; i < size; i++) {
+            float offset = i * _cellSize;
+
+            canvas.FontColor = columns.Contains(i) ? Ink : Ink.WithAlpha(0.4f);
+            canvas.DrawString(Cell.ColumnLabel(i), _origin.X + offset, _origin.Y - LabelBand, _cellSize, LabelBand,
+                HorizontalAlignment.Center, VerticalAlignment.Center);
+
+            canvas.FontColor = rows.Contains(i) ? Ink : Ink.WithAlpha(0.4f);
+            canvas.DrawString(Cell.RowLabel(i), _origin.X - LabelBand, _origin.Y + offset, LabelBand, _cellSize,
+                HorizontalAlignment.Center, VerticalAlignment.Center);
+        }
     }
 
     // Draws the line on each cell's right and bottom edge:

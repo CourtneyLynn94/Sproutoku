@@ -59,10 +59,21 @@ public sealed class GameSession {
     /// </summary>
     public PowerUpSupply PowerUps { get; private set; }
 
+    // The open hint as the worm gave it. OpenHint is what's still left of it, worked out from this every time,
+    // so a rule-out the player marks and then clears again comes back.
+    private WormHint? _givenHint;
+
     /// <summary>
-    /// The worm's hint waiting to be applied, or null. While it's open, the board ignores taps, drags and keys: the only way on is <see cref="ApplyHint"/>.
+    /// The worm's hint, or null. It stays open while the player keeps playing and shows only what's still left to do.
+    /// It closes when it's applied or closed, once the player has done all of it, or on a new garden.
     /// </summary>
     public WormHint? OpenHint { get; private set; }
+
+    /// <summary>
+    /// Whether the board is focused on the open hint. While it is, the board ignores taps, drags and keys.
+    /// The player can Apply, or unfocus and keep playing.
+    /// </summary>
+    public bool IsHintFocused { get; private set; }
 
     /// <summary>
     /// For testing (a debug Journal option): Tools are never spent. Not saved.
@@ -193,7 +204,7 @@ public sealed class GameSession {
         LevelGarden = levelGarden;
         Board = board;
         PowerUps = powerUps;
-        OpenHint = null;
+        CloseHint();
         _doubleTap.Reset();
         _boardBeforeTap = null;
         _dragMode = null;
@@ -207,7 +218,7 @@ public sealed class GameSession {
     /// A finished garden ignores taps.
     /// </summary>
     public TapResult Tap(Cell cell, long timeMs) {
-        if (Board.IsFinished || OpenHint is not null) {
+        if (Board.IsFinished || IsHintFocused) {
             return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }
 
@@ -215,6 +226,7 @@ public sealed class GameSession {
             var result = _boardBeforeTap.TryPlant(cell);
             Board = result.Board;
             _boardBeforeTap = null;
+            UpdateHint();
 
             var outcome = result.Outcome switch {
                 PlantOutcome.Grew => TapOutcome.Grew,
@@ -227,6 +239,7 @@ public sealed class GameSession {
         var before = Board;
         _boardBeforeTap = before;
         Board = before.ToggleMark(cell);
+        UpdateHint();
 
         var markOutcome = ReferenceEquals(Board, before) ? TapOutcome.Ignored : TapOutcome.MarkToggled;
         return new TapResult(markOutcome, EndedGarden: false);
@@ -250,7 +263,7 @@ public sealed class GameSession {
     /// Returns true if the cell changed.
     /// </summary>
     public bool DragOver(Cell cell) {
-        if (_dragMode is null || Board.IsFinished || OpenHint is not null) {
+        if (_dragMode is null || Board.IsFinished || IsHintFocused) {
             return false;
         }
 
@@ -274,6 +287,7 @@ public sealed class GameSession {
         }
 
         Board = Board.ToggleMark(cell);
+        UpdateHint();
         return true;
     }
 
@@ -285,12 +299,15 @@ public sealed class GameSession {
     }
 
     /// <summary>
-    /// Asks the worm for the next step and spends one Worm (unless tools are unlimited).
+    /// Asks the worm for the next step, spends one Worm (unless tools are unlimited) and focuses the board on it.
     /// Returns null and spends nothing if there's no Worm left, the garden is over, or there's nothing left to work out.
-    /// Asking again while a hint is open gives the same hint for free.
+    /// Asking again while a hint is open focuses it again for free.
     /// </summary>
     public WormHint? UseWorm() {
-        if (OpenHint is not null) return OpenHint;
+        if (OpenHint is not null) {
+            FocusHint();
+            return OpenHint;
+        }
         if (!CanUse(PowerUp.Worm)) return null;
 
         var hint = WormHelper.HintFor(Board);
@@ -300,13 +317,14 @@ public sealed class GameSession {
             PowerUps = PowerUps.Spend(PowerUp.Worm);
         }
 
-        ForgetLastTap();
+        _givenHint = hint;
         OpenHint = hint;
+        FocusHint();
         return hint;
     }
 
     /// <summary>
-    /// Makes the open hint's changes: grows its plants (always correct, so no sun is spent) and marks its rule-outs with ✕.
+    /// Makes what's left of the open hint: grows its plants (always correct, so no sun is spent) and marks its rule-outs with ✕.
     /// Closes the hint. Does nothing if no hint is open.
     /// </summary>
     public TapResult ApplyHint() {
@@ -314,7 +332,7 @@ public sealed class GameSession {
             return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }
 
-        OpenHint = null;
+        CloseHint();
 
         var board = Board;
         foreach (var cell in hint.Plants) {
@@ -322,12 +340,44 @@ public sealed class GameSession {
         }
 
         foreach (var cell in hint.RuleOuts) {
-            board = board.ToggleMark(cell);
+            board = board.ToggleMark(cell); // Only cells still empty: OpenHint keeps up with the board.
         }
 
         Board = board;
         var outcome = hint.Plants.Count > 0 ? TapOutcome.Grew : TapOutcome.MarkToggled;
         return new TapResult(outcome, Board.IsFinished);
+    }
+
+    /// <summary>
+    /// Focuses the board on the open hint again. Does nothing if no hint is open.
+    /// </summary>
+    public void FocusHint() {
+        if (OpenHint is null) return;
+
+        ForgetLastTap();
+        IsHintFocused = true;
+    }
+
+    /// <summary>
+    /// Takes the focus off the hint so the player can keep playing. The hint stays open.
+    /// </summary>
+    public void UnfocusHint() => IsHintFocused = false;
+
+    /// <summary>
+    /// Puts the hint away without applying it.
+    /// </summary>
+    public void CloseHint() {
+        _givenHint = null;
+        OpenHint = null;
+        IsHintFocused = false;
+    }
+
+    // After the player changes the board: the open hint is what's still left of the worm's hint, and closes once nothing is.
+    private void UpdateHint() {
+        OpenHint = _givenHint?.LeftToDo(Board);
+        if (OpenHint is null) {
+            CloseHint();
+        }
     }
     #endregion
 
@@ -337,12 +387,13 @@ public sealed class GameSession {
     /// </summary>
     public TapResult ToggleMark(Cell cell) {
         ForgetLastTap();
-        if (Board.IsFinished || OpenHint is not null) {
+        if (Board.IsFinished || IsHintFocused) {
             return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }
 
         var before = Board;
         Board = before.ToggleMark(cell);
+        UpdateHint();
 
         var outcome = ReferenceEquals(Board, before) ? TapOutcome.Ignored : TapOutcome.MarkToggled;
         return new TapResult(outcome, EndedGarden: false);
@@ -354,12 +405,13 @@ public sealed class GameSession {
     /// </summary>
     public TapResult Plant(Cell cell) {
         ForgetLastTap();
-        if (Board.IsFinished || OpenHint is not null) {
+        if (Board.IsFinished || IsHintFocused) {
             return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }
 
         var result = Board.TryPlant(cell);
         Board = result.Board;
+        UpdateHint();
         return new TapResult(ToTapOutcome(result.Outcome), Board.IsFinished);
     }
 
