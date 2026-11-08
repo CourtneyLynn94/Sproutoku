@@ -916,6 +916,23 @@ public class GameSessionTests {
         Assert.Equal($"{BedNames.For(2)} has only one cell left for a plant: E3.", session.OpenHint.Message);
         Assert.Equal([new Cell(2, 4)], session.OpenHint.Plants); // The plant is still left to grow.
     }
+
+    [Fact]
+    public void ApplyHint_EndsAHalfFinishedDoubleTap() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        session.UseWorm(); // Rule out (0,2), (0,3) and (0,4).
+        session.UnfocusHint();
+
+        var cell = new Cell(4, 0);
+        session.Tap(cell, 1000);  // First tap: a ✕.
+        session.ApplyHint();      // Not possible from the app (Apply only shows while focused), but GameSession allows it.
+        session.Tap(cell, 1100);  // Soon enough to be a double tap.
+
+        // The second tap is a fresh tap, not a double tap rebuilt from the board before the hint.
+        Cell[] ruleOuts = [new(0, 2), new(0, 3), new(0, 4)];
+        Assert.All(ruleOuts, ruleOut => Assert.Equal(CellState.Marked, session.Board[ruleOut]));
+    }
     #endregion
     #endregion
 }
