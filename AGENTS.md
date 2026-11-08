@@ -9,7 +9,7 @@ plants never touch, not even diagonally. Gardens are N×N with N beds.
   `Gardens` (`Puzzles`: what a garden is; `Solving`; `Generation`) and
   `Game` (`Session`: `GameSession`; `Boards`: what the player sees, `Board` is immutable; `Levels`; `PowerUps`; `Input`; `Saving`).
   Tests mirror these folders.
-- `Sproutoku.App`: `Pages/`, `Controls/` (reusable views; logic moves out of pages into controls), `Services/` (haptics, settings, storage, preparing the next garden in the background). Shared services are registered in `MauiProgram` for dependency injection and arrive through constructors. Android-only code lives in `Platforms/Android/` as the other half of a partial class (for example `Haptics.Android.cs`), keeping the shared namespace.
+- `Sproutoku.App`: MAUI UI only. Pages hold view code (layout, drawing, turning touches and keys into cells); `ViewModels/` (CommunityToolkit.Mvvm) wrap `GameSession`, save, move between gardens and ask the player through the `Dialogs` service. `GardenViewModel` is a singleton: one game for the whole app. Each ViewModel and page is split into `#region`s by part of the screen, so a region can move into its own control.
 - `GameSession` (Core) owns the level, board, tap meaning, progression, restarting and saving.
 - `Sproutoku.App`: MAUI UI only. Pages pass input to `GameSession` and show the results.
 - Saves: `GameSave` (Core, JSON) and `GameStorage` (App, MAUI Preferences).

@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:Sproutoku.App.ViewModels"
              x:Class="Sproutoku.App.Pages.MainPage"
+             x:DataType="viewModels:GardenViewModel"
              BackgroundColor="{StaticResource Paper}">
 
     <Grid RowDefinitions="Auto,*">
@@ -11,13 +13,14 @@
               Padding="16,8"
               ColumnDefinitions="*,Auto,*">
             <Button Text="Journal"
-                    Clicked="OnJournalClicked"
+                    Command="{Binding OpenJournalCommand}"
                     HorizontalOptions="Start" />
 
             <HorizontalStackLayout x:Name="SunMeter"
                                    Grid.Column="1"
                                    Spacing="8"
-                                   VerticalOptions="Center" />
+                                   VerticalOptions="Center"
+                                   SemanticProperties.Description="{Binding SunsDescription}" />
         </Grid>
 
         <!-- Game area. ApplyLayout places these three parts for phone or desktop. -->
@@ -36,7 +39,7 @@
                         StrokeThickness="2"
                         Padding="12,4"
                         HorizontalOptions="Start">
-                    <Label x:Name="GardenSignLabel"
+                    <Label Text="{Binding GardenName}"
                            TextColor="{StaticResource Ink}"
                            FontAttributes="Bold" />
                 </Border>
@@ -47,6 +50,7 @@
 
             <!-- Planting list placeholder. -->
             <Border x:Name="PlantingList"
+                    IsVisible="{Binding IsPlantingListShown}"
                     BackgroundColor="{StaticResource Cream}"
                     Stroke="{StaticResource InkBrush}"
                     StrokeThickness="2"
@@ -56,16 +60,16 @@
                     <Label Text="Planting list"
                            FontAttributes="Bold"
                            TextColor="{StaticResource Ink}" />
-                    <Label x:Name="PlantingCountLabel"
+                    <Label Text="{Binding PlantingCount}"
                            TextColor="{StaticResource Ink}" />
-                    <Label x:Name="InfoLabel"
+                    <Label Text="{Binding Info}"
                            TextColor="{StaticResource InkSoft}" />
                 </VerticalStackLayout>
             </Border>
 
             <!-- The worm's note: shown in the planting list's place while a hint is open. -->
             <Border x:Name="WormNote"
-                    IsVisible="False"
+                    IsVisible="{Binding IsHintOpen}"
                     BackgroundColor="{StaticResource Cream}"
                     Stroke="{StaticResource InkBrush}"
                     StrokeThickness="2"
@@ -75,21 +79,21 @@
                     <Label Text="Your worm says"
                            FontAttributes="Bold"
                            TextColor="{StaticResource Ink}" />
-                    <Label x:Name="WormMessageLabel"
+                    <Label Text="{Binding HintMessage}"
                            TextColor="{StaticResource Ink}" />
                     <HorizontalStackLayout Spacing="8">
-                        <Button x:Name="WormApplyButton"
-                                Text="Apply"
-                                Clicked="OnWormApplyClicked" />
-                        <Button x:Name="WormHideButton"
-                                Text="Hide"
-                                Clicked="OnWormHideClicked" />
-                        <Button x:Name="WormShowButton"
-                                Text="Show"
-                                Clicked="OnWormShowClicked" />
-                        <Button x:Name="WormCloseButton"
-                                Text="Close"
-                                Clicked="OnWormCloseClicked" />
+                        <Button Text="Apply"
+                                Command="{Binding ApplyHintCommand}"
+                                IsVisible="{Binding IsHintFocused}" />
+                        <Button Text="Hide"
+                                Command="{Binding HideHintCommand}"
+                                IsVisible="{Binding IsHintFocused}" />
+                        <Button Text="Show"
+                                Command="{Binding ShowHintCommand}"
+                                IsVisible="{Binding IsHintHidden}" />
+                        <Button Text="Close"
+                                Command="{Binding CloseHintCommand}"
+                                IsVisible="{Binding IsHintHidden}" />
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Border>
@@ -100,20 +104,28 @@
                   ColumnSpacing="8"
                   VerticalOptions="Start">
                 <Button x:Name="SeedsButton"
-                        IsEnabled="False"
+                        Text="{Binding SeedsText}"
+                        IsEnabled="{Binding CanUseSeeds}"
                         Padding="4"
                         LineBreakMode="WordWrap"
+                        SemanticProperties.Description="{Binding SeedsDescription}"
+                        SemanticProperties.Hint="Plants one correct seed for you."
                         ToolTipProperties.Text="Seeds: plants one correct seed for you." />
                 <Button x:Name="WormButton"
-                        IsEnabled="False"
+                        Text="{Binding WormText}"
+                        Command="{Binding UseWormCommand}"
                         Padding="4"
                         LineBreakMode="WordWrap"
-                        Clicked="OnWormClicked"
+                        SemanticProperties.Description="{Binding WormDescription}"
+                        SemanticProperties.Hint="Shows the next step and why."
                         ToolTipProperties.Text="Worm: shows the next step and why." />
                 <Button x:Name="WaterButton"
-                        IsEnabled="False"
+                        Text="{Binding WaterText}"
+                        IsEnabled="{Binding CanUseWater}"
                         Padding="4"
                         LineBreakMode="WordWrap"
+                        SemanticProperties.Description="{Binding WaterDescription}"
+                        SemanticProperties.Hint="Reveals a few cells where nothing can grow."
                         ToolTipProperties.Text="Water: reveals a few cells where nothing can grow." />
                 <BoxView x:Name="ShelfDivider"
                          Color="{StaticResource Plank}" />

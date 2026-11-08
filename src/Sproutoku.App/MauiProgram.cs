@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Sproutoku.App.Pages;
 using Sproutoku.App.Services;
+using Sproutoku.App.ViewModels;
 using Sproutoku.Core.Game.Levels;
 
 namespace Sproutoku.App;
@@ -25,6 +26,7 @@ public static class MauiProgram {
         builder.Services.AddSingleton<Haptics>();
         builder.Services.AddSingleton<LevelPreparer>();
         builder.Services.AddSingleton<Dialogs>();
+        builder.Services.AddSingleton<GardenViewModel>();
 
         // Pages: a fresh one each time one opens. Shell builds MainPage through this too.
         builder.Services.AddTransient<MainPage>();
