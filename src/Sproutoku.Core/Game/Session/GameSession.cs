@@ -59,6 +59,10 @@ public sealed class GameSession {
     /// </summary>
     public PowerUpSupply PowerUps { get; private set; }
 
+    // The open hint as the worm gave it. OpenHint is what's still left of it, worked out from this every time,
+    // so a rule-out the player marks and then clears again comes back.
+    private WormHint? _givenHint;
+
     /// <summary>
     /// The worm's hint, or null. It stays open while the player keeps playing and shows only what's still left to do.
     /// It closes when it's applied or closed, once the player has done all of it, or on a new garden.
@@ -313,6 +317,7 @@ public sealed class GameSession {
             PowerUps = PowerUps.Spend(PowerUp.Worm);
         }
 
+        _givenHint = hint;
         OpenHint = hint;
         FocusHint();
         return hint;
@@ -362,15 +367,16 @@ public sealed class GameSession {
     /// Puts the hint away without applying it.
     /// </summary>
     public void CloseHint() {
+        _givenHint = null;
         OpenHint = null;
         IsHintFocused = false;
     }
 
-    // After the player changes the board: the open hint keeps only what's left to do, and closes once nothing is.
+    // After the player changes the board: the open hint is what's still left of the worm's hint, and closes once nothing is.
     private void UpdateHint() {
-        OpenHint = OpenHint?.LeftToDo(Board);
+        OpenHint = _givenHint?.LeftToDo(Board);
         if (OpenHint is null) {
-            IsHintFocused = false;
+            CloseHint();
         }
     }
     #endregion

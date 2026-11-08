@@ -874,6 +874,24 @@ public class GameSessionTests {
         Assert.Null(session.OpenHint);
         Assert.False(session.IsHintFocused);
     }
+
+    [Fact]
+    public void ARuleOutMarkedThenCleared_ComesBackToTheHint() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        session.UseWorm(); // Rule out (0,2), (0,3) and (0,4).
+        session.UnfocusHint();
+
+        session.ToggleMark(new Cell(0, 2));
+        session.ToggleMark(new Cell(0, 2));
+
+        Assert.NotNull(session.OpenHint);
+        Assert.Equal([new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], session.OpenHint.RuleOuts);
+
+        session.ToggleMark(new Cell(0, 3));
+        session.ToggleMark(new Cell(0, 4));
+        Assert.NotNull(session.OpenHint); // (0,2) is still left, so the hint stays open.
+    }
     #endregion
     #endregion
 }

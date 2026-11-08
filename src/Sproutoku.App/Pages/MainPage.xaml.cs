@@ -407,9 +407,8 @@ public partial class MainPage : ContentPage {
         _lastPoint = point;
 
         if (changed) {
-            UpdateWormNote();
             _garden.Board = Session.Board;
-            GardenView.Invalidate();
+            UpdateWormNote();
         }
     }
 
