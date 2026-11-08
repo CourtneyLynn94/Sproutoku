@@ -6,7 +6,7 @@ namespace Sproutoku.Core.Game.PowerUps;
 
 /// <summary>
 /// One Worm hint: the next step, shown more than told.
-/// <see cref="Message"/> is one short line;
+/// <see cref="Message"/> is one short line: the step's <see cref="Text"/>, plus a call-out while a ✕ it proves wrong is still on the board;
 /// <see cref="Focus"/> are the cells the step is about (the rest of the board is dimmed);
 /// <see cref="Plants"/> and <see cref="RuleOuts"/> are what Apply changes;
 /// <see cref="WrongMarks"/> are ✕ marks this step proves wrong;
@@ -14,13 +14,18 @@ namespace Sproutoku.Core.Game.PowerUps;
 /// </summary>
 public sealed record WormHint(
     LogicStep Step,
-    string Message,
+    string Text,
     IReadOnlyList<Cell> Focus,
     IReadOnlyList<Cell> Plants,
     IReadOnlyList<Cell> RuleOuts,
     IReadOnlyList<Cell> WrongMarks,
     IReadOnlyList<int> NamedRows,
     IReadOnlyList<int> NamedColumns) {
+
+    /// <summary>
+    /// What the note says. The mistake call-out goes away once the player clears that ✕ (or the hint plants over it).
+    /// </summary>
+    public string Message => WrongMarks.Count > 0 ? $"{Text} Your ✕ there is a mistake." : Text;
 
     /// <summary>
     /// What's still left of this hint on the board: plants not yet grown and rule-outs not yet marked.
@@ -69,7 +74,7 @@ public static class WormHelper {
             var focus = why.Concat(plants).Concat(ruleOuts).Distinct().ToList();
 
             var (rows, columns) = NamedLines(step, ruleOuts);
-            return new WormHint(step, Describe(board.Puzzle, step, ruleOuts, wrongMarks), focus, plants, ruleOuts, wrongMarks, rows, columns);
+            return new WormHint(step, Describe(board.Puzzle, step, ruleOuts), focus, plants, ruleOuts, wrongMarks, rows, columns);
         }
 
         return null;
@@ -98,7 +103,7 @@ public static class WormHelper {
     }
 
     // One short line per kind of step. Cells and lines use the board's labels: columns A, B, C…, rows 1, 2, 3…, cells like B5.
-    private static string Describe(Puzzle puzzle, LogicStep step, List<Cell> ruleOuts, List<Cell> wrongMarks) {
+    private static string Describe(Puzzle puzzle, LogicStep step, List<Cell> ruleOuts) {
         var beds = step.Areas.Where(area => area.Kind == AreaKind.Bed).ToList();
         var lines = step.Areas.Where(area => area.Kind != AreaKind.Bed).ToList();
 
@@ -109,10 +114,9 @@ public static class WormHelper {
             case Technique.OnlyCellLeft: {
                 var area = step.Areas[0];
                 string cell = step.Plants[0].Label;
-                string message = area.Kind == AreaKind.Bed
+                return area.Kind == AreaKind.Bed
                     ? $"{Name(area)} has only one cell left for a plant: {cell}."
                     : $"Only one cell left in {Name(area)} for a plant: {cell}.";
-                return wrongMarks.Count > 0 ? $"{message} Your ✕ there is a mistake." : message;
             }
 
             case Technique.BedsFillLines:

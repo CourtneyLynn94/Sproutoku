@@ -892,6 +892,30 @@ public class GameSessionTests {
         session.ToggleMark(new Cell(0, 4));
         Assert.NotNull(session.OpenHint); // (0,2) is still left, so the hint stays open.
     }
+
+    [Fact]
+    public void ClearingTheWrongMark_TakesTheMistakeOutOfTheNote() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+
+        // The first four steps marked, plus a wrong ✕ on (2,4) (E3), where Sand's plant grows.
+        Cell[] marks = [new(0, 2), new(0, 3), new(0, 4), new(2, 0), new(2, 1), new(2, 2), new(1, 0), new(1, 1), new(2, 3), new(2, 4)];
+        foreach (var cell in marks) {
+            session.ToggleMark(cell);
+        }
+
+        var hint = session.UseWorm();
+        Assert.NotNull(hint);
+        Assert.EndsWith("Your ✕ there is a mistake.", hint.Message);
+
+        session.UnfocusHint();
+        session.ToggleMark(new Cell(2, 4)); // The player clears the wrong ✕.
+
+        Assert.NotNull(session.OpenHint);
+        Assert.Empty(session.OpenHint.WrongMarks);
+        Assert.Equal($"{BedNames.For(2)} has only one cell left for a plant: E3.", session.OpenHint.Message);
+        Assert.Equal([new Cell(2, 4)], session.OpenHint.Plants); // The plant is still left to grow.
+    }
     #endregion
     #endregion
 }
