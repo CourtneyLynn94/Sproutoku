@@ -1,0 +1,31 @@
+name: Slow tests
+
+# The tests marked Speed=Slow, such as the 2,000-level "every garden is different" check.
+# Too slow for every PR, so they run weekly, on every release to master, and by hand from the Actions tab.
+on:
+  schedule:
+    - cron: '17 7 * * 1'  # Mondays, 07:17 UTC
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  slow-tests:
+    name: Slow tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run slow tests
+        run: dotnet test tests/Sproutoku.Core.Tests/Sproutoku.Core.Tests.csproj --filter "Speed=Slow"
