@@ -1,16 +1,15 @@
-using Sproutoku.App.Controls.Garden;
 using VirtualKey = global::Windows.System.VirtualKey;
 using WinControl = Microsoft.UI.Xaml.Controls.Control;
 using WinFocusState = Microsoft.UI.Xaml.FocusState;
 using WinKeyEventArgs = Microsoft.UI.Xaml.Input.KeyRoutedEventArgs;
 
-namespace Sproutoku.App.Pages;
+namespace Sproutoku.App.Controls.Garden;
 
 // Keyboard play on Windows. The garden is a single drawn view, so its Windows control listens for keys itself.
-public partial class MainPage {
+public sealed partial class GardenView {
     partial void HookUpKeyboard() {
-        GardenView.HandlerChanged += (_, _) => {
-            if (GardenView.Handler?.PlatformView is not WinControl view) return;
+        _canvas.HandlerChanged += (_, _) => {
+            if (_canvas.Handler?.PlatformView is not WinControl view) return;
 
             view.IsTabStop = true;
             view.UseSystemFocusVisuals = false; //the garden draws its own focus ring
@@ -26,7 +25,7 @@ public partial class MainPage {
 
     // A click gives the garden focus too, so arrow keys work straight after clicking.
     partial void FocusGardenForKeyboard() {
-        (GardenView.Handler?.PlatformView as WinControl)?.Focus(WinFocusState.Pointer);
+        (_canvas.Handler?.PlatformView as WinControl)?.Focus(WinFocusState.Pointer);
     }
 
     private void OnGardenKeyDown(object sender, WinKeyEventArgs e) {

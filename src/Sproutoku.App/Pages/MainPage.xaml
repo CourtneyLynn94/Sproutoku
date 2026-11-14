@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:Sproutoku.App.ViewModels"
+             xmlns:controls="clr-namespace:Sproutoku.App.Controls"
+             xmlns:garden="clr-namespace:Sproutoku.App.Controls.Garden"
              x:Class="Sproutoku.App.Pages.MainPage"
-             BackgroundColor="#F3EDD6">
+             x:DataType="viewModels:GardenViewModel"
+             BackgroundColor="{StaticResource Paper}">
 
     <Grid RowDefinitions="Auto,*">
 
         <!-- Sky band: journal button on the left, suns centered. -->
-        <Grid BackgroundColor="#D6EAE8"
+        <Grid BackgroundColor="{StaticResource Sky}"
               Padding="16,8"
               ColumnDefinitions="*,Auto,*">
             <Button Text="Journal"
-                    Clicked="OnJournalClicked"
+                    Command="{Binding OpenJournalCommand}"
                     HorizontalOptions="Start" />
 
-            <HorizontalStackLayout x:Name="SunMeter"
-                                   Grid.Column="1"
-                                   Spacing="8"
-                                   VerticalOptions="Center" />
+            <controls:SunMeter Grid.Column="1"
+                               VerticalOptions="Center"
+                               StartingSuns="{Binding StartingSuns}"
+                               SunsLeft="{Binding SunsLeft}"
+                               SemanticProperties.Description="{Binding SunsDescription}" />
         </Grid>
 
         <!-- Game area. ApplyLayout places these three parts for phone or desktop. -->
@@ -31,98 +36,33 @@
             <Grid x:Name="BoardArea"
                   RowDefinitions="Auto,*"
                   RowSpacing="4">
-                <Border BackgroundColor="#B98A5B"
-                        Stroke="#2E241B"
+                <Border BackgroundColor="{StaticResource Wood}"
+                        Stroke="{StaticResource InkBrush}"
                         StrokeThickness="2"
                         Padding="12,4"
                         HorizontalOptions="Start">
-                    <Label x:Name="GardenSignLabel"
-                           TextColor="#2E241B"
+                    <Label Text="{Binding GardenName}"
+                           TextColor="{StaticResource Ink}"
                            FontAttributes="Bold" />
                 </Border>
 
-                <GraphicsView x:Name="GardenView"
-                              Grid.Row="1" />
+                <garden:GardenView x:Name="Garden"
+                                   Grid.Row="1" />
             </Grid>
 
             <!-- Planting list placeholder. -->
-            <Border x:Name="PlantingList"
-                    BackgroundColor="#FBF7EA"
-                    Stroke="#2E241B"
-                    StrokeThickness="2"
-                    Padding="12"
-                    VerticalOptions="Start">
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Planting list"
-                           FontAttributes="Bold"
-                           TextColor="#2E241B" />
-                    <Label x:Name="PlantingCountLabel"
-                           TextColor="#2E241B" />
-                    <Label x:Name="InfoLabel"
-                           TextColor="#6B5B49" />
-                </VerticalStackLayout>
-            </Border>
+            <controls:PlantingList x:Name="PlantingList"
+                                   IsVisible="{Binding IsPlantingListShown}"
+                                   VerticalOptions="Start" />
 
             <!-- The worm's note: shown in the planting list's place while a hint is open. -->
-            <Border x:Name="WormNote"
-                    IsVisible="False"
-                    BackgroundColor="#FBF7EA"
-                    Stroke="#2E241B"
-                    StrokeThickness="2"
-                    Padding="12"
-                    VerticalOptions="Start">
-                <VerticalStackLayout Spacing="8">
-                    <Label Text="Your worm says"
-                           FontAttributes="Bold"
-                           TextColor="#2E241B" />
-                    <Label x:Name="WormMessageLabel"
-                           TextColor="#2E241B" />
-                    <HorizontalStackLayout Spacing="8">
-                        <Button x:Name="WormApplyButton"
-                                Text="Apply"
-                                Clicked="OnWormApplyClicked" />
-                        <Button x:Name="WormHideButton"
-                                Text="Hide"
-                                Clicked="OnWormHideClicked" />
-                        <Button x:Name="WormShowButton"
-                                Text="Show"
-                                Clicked="OnWormShowClicked" />
-                        <Button x:Name="WormCloseButton"
-                                Text="Close"
-                                Clicked="OnWormCloseClicked" />
-                    </HorizontalStackLayout>
-                </VerticalStackLayout>
-            </Border>
+            <controls:WormNote x:Name="WormNote"
+                               IsVisible="{Binding IsHintOpen}"
+                               VerticalOptions="Start" />
 
             <!-- Tool shelf placeholder: Seeds, Worm, Water | Rake. -->
-            <Grid x:Name="ToolShelf"
-                  RowSpacing="8"
-                  ColumnSpacing="8"
-                  VerticalOptions="Start">
-                <Button x:Name="SeedsButton"
-                        IsEnabled="False"
-                        Padding="4"
-                        LineBreakMode="WordWrap"
-                        ToolTipProperties.Text="Seeds: plants one correct seed for you." />
-                <Button x:Name="WormButton"
-                        IsEnabled="False"
-                        Padding="4"
-                        LineBreakMode="WordWrap"
-                        Clicked="OnWormClicked"
-                        ToolTipProperties.Text="Worm: shows the next step and why." />
-                <Button x:Name="WaterButton"
-                        IsEnabled="False"
-                        Padding="4"
-                        LineBreakMode="WordWrap"
-                        ToolTipProperties.Text="Water: reveals a few cells where nothing can grow." />
-                <BoxView x:Name="ShelfDivider"
-                         Color="#CDBF9B" />
-                <Button x:Name="RakeButton"
-                        Text="Rake"
-                        IsEnabled="False"
-                        Padding="4"
-                        ToolTipProperties.Text="Rake: clears all your ✕ marks. Coming soon." />
-            </Grid>
+            <controls:ToolShelf x:Name="ToolShelf"
+                                VerticalOptions="Start" />
         </Grid>
     </Grid>
     

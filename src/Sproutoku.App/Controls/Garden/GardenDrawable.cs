@@ -1,3 +1,4 @@
+using Sproutoku.App.Resources.Styles;
 using Sproutoku.Core.Game.Boards;
 using Sproutoku.Core.Gardens.Puzzles;
 using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;
@@ -18,26 +19,12 @@ public sealed class GardenDrawable : IDrawable {
     // and it's always there, so the board doesn't jump when a hint opens.
     private const float LabelBand = 20;
 
-    // Growing-medium colors, one per bed, in the same order as BedNames.
-    private static readonly Color[] RegionColors = [
-        Color.FromArgb("#B08560"), // soil
-        Color.FromArgb("#9FCAD4"), // water
-        Color.FromArgb("#EBD498"), // sand
-        Color.FromArgb("#E4E2D8"), // perlite
-        Color.FromArgb("#AEB4B3"), // pebble
-        Color.FromArgb("#D69A5C"), // bark
-        Color.FromArgb("#A9C47B"), // moss
-        Color.FromArgb("#E0A090"), // clay
-        Color.FromArgb("#A59C6C"), // mulch
-        Color.FromArgb("#B79CB2"), // lava
-    ];
-
-    private static readonly Color Ink = Color.FromArgb("#2E241B");
-    private static readonly Color Leaf = Color.FromArgb("#487634");
-    private static readonly Color Wilt = Color.FromArgb("#8E3F45");
-
-    private static readonly Color Cream = Color.FromArgb("#FBF7EA");
-    private static readonly Color HintScrim = Color.FromArgb("#2E241B").WithAlpha(0.55f);
+    // From the palette in Colors.xaml.
+    private static Color Ink => Palette.Ink;
+    private static Color Leaf => Palette.Leaf;
+    private static Color Wilt => Palette.Wilt;
+    private static Color Cream => Palette.Cream;
+    private static Color HintScrim => Palette.Ink.WithAlpha(0.55f);
 
     // Worked out on each draw; used to turn a point into a cell.
     private PointF _origin;
@@ -115,7 +102,7 @@ public sealed class GardenDrawable : IDrawable {
                 var cell = new Cell(row, column);
                 RectF rect = CellRect(cell);
 
-                canvas.FillColor = RegionColors[Board.Puzzle.RegionAt(cell)];
+                canvas.FillColor = Palette.Bed(Board.Puzzle.RegionAt(cell));
                 canvas.FillRectangle(rect);
 
                 if (cell == HoverCell) {

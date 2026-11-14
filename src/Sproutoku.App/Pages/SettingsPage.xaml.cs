@@ -33,5 +33,5 @@ public partial class SettingsPage : ContentPage {
             : $"Sproutoku {raw}";
     }
 
-    private async void OnDoneClicked(object? sender, EventArgs e) => await Navigation.PopModalAsync();
+    private async void OnDoneClicked(object? sender, EventArgs e) => await Shell.Current.GoToAsync("..");
 }

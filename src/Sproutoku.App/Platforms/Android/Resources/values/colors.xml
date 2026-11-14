@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#512BD4</color>
-    <color name="colorPrimaryDark">#2B0B98</color>
-    <color name="colorAccent">#2B0B98</color>
+	<!-- Sproutoku's colors for Android's own parts of the screen (status bar, system accents). -->
+	<color name="colorPrimary">#B98A5B</color>			<!-- wood, the garden sign -->
+	<color name="colorPrimaryDark">#2E241B</color>		<!-- ink, the status bar -->
+	<color name="colorAccent">#487634</color>			<!-- leaf -->
 </resources>
