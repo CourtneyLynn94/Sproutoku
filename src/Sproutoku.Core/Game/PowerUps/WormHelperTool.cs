@@ -84,7 +84,7 @@ public static class WormHelperTool {
     // Solving from the facts alone proves where every plant grows (no peeking at the answer); a ✕ anywhere else is correct.
     // ✕ marks on proven plants are mistakes and stay unknown.
     // If the facts alone can't finish the garden, no ✕ is trusted.
-    private static GardenFacts FactsWithCorrectMarks(Board board) {
+    internal static GardenFacts FactsWithCorrectMarks(Board board) {
         var facts = GardenFacts.From(board);
         var proven = LogicSolver.Solve(facts);
         if (!proven.IsSolved) return facts;

@@ -27,7 +27,7 @@
                 ToolTipProperties.Text="Worm: shows the next step and why." />
         <Button x:Name="WaterButton"
                 Text="{Binding WaterText}"
-                IsEnabled="{Binding CanUseWater}"
+                Command="{Binding UseWaterCommand}"
                 Padding="4"
                 LineBreakMode="WordWrap"
                 SemanticProperties.Description="{Binding WaterDescription}"

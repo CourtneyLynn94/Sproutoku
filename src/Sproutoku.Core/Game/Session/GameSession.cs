@@ -394,6 +394,29 @@ public sealed class GameSession {
         UpdateHint();
         return new TapResult(TapOutcome.Grew, Board.IsFinished);
     }
+
+    /// <summary>
+    /// Water: reveals up to three empty cells logic can prove hold no plant (see <see cref="WateringCanTool"/>). They lock.
+    /// Does nothing and spends nothing if none are left, the garden is over, or there's nothing left to prove.
+    /// </summary>
+    public TapResult UseWater() {
+        var cells = CanUse(PowerUp.Water) ? WateringCanTool.CellsFor(Board) : [];
+        if (cells.Count == 0) {
+            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
+        }
+
+        ForgetLastTap();
+        Spend(PowerUp.Water);
+
+        var board = Board;
+        foreach (var cell in cells) {
+            board = board.RevealEmpty(cell);
+        }
+
+        Board = board;
+        UpdateHint();
+        return new TapResult(TapOutcome.Revealed, EndedGarden: false);
+    }
     #endregion
 
     #region Keyboard Actions

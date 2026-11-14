@@ -958,5 +958,33 @@ public class GameSessionTests {
     }
     #endregion
 
+    #region Watering can
+    [Fact]
+    public void Water_RevealsCells_AndLocksThem() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+
+        var result = session.UseWater();
+
+        Cell[] revealed = [new(0, 2), new(0, 3), new(0, 4)];
+        Assert.Equal(TapOutcome.Revealed, result.Outcome);
+        Assert.All(revealed, cell => Assert.Equal(CellState.RevealedEmpty, session.Board[cell]));
+        Assert.Equal(TapOutcome.Ignored, SingleTap(session, new Cell(0, 2)).Outcome);
+        Assert.Equal(PowerUpSupply.Starting.Water - 1, session.PowerUps.Water);
+    }
+
+    [Fact]
+    public void Water_WithNothingLeftToProve_SpendsNothing() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        foreach (var cell in WrongCells(session.Board.Puzzle)) {
+            session.ToggleMark(cell); // Every empty cell is already marked correctly.
+        }
+
+        Assert.Equal(TapOutcome.Ignored, session.UseWater().Outcome);
+        Assert.Equal(PowerUpSupply.Starting.Water, session.PowerUps.Water);
+    }
+    #endregion
+
     #endregion
 }

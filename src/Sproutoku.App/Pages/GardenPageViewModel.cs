@@ -72,6 +72,7 @@ public sealed partial class GardenPageViewModel : ObservableObject {
         OnPropertyChanged(string.Empty);
         UseWormCommand.NotifyCanExecuteChanged();
         UseSeedlingCommand.NotifyCanExecuteChanged();
+        UseWaterCommand.NotifyCanExecuteChanged();
         BoardChanged?.Invoke(this, EventArgs.Empty);
     }
     #endregion
@@ -343,6 +344,7 @@ public sealed partial class GardenPageViewModel : ObservableObject {
     private void PlayHaptic(TapOutcome outcome) {
         switch (outcome) {
             case TapOutcome.MarkToggled:
+            case TapOutcome.Revealed:
                 _haptics.Mark();
                 break;
             case TapOutcome.Grew:
@@ -426,7 +428,6 @@ public sealed partial class GardenPageViewModel : ObservableObject {
 
     #region Tool shelf
     // Each tool shows its name and count (∞ with the dev option); a tool works when there's one left and the garden isn't over.
-    // Water does nothing yet (#46), and the Rake arrives with #49.
     public string SeedlingText => ToolText("Seedling", PowerUp.Seedling);
     public string WormText => ToolText("Worm", PowerUp.Worm);
     public string WaterText => ToolText("Water", PowerUp.Water);
@@ -456,6 +457,18 @@ public sealed partial class GardenPageViewModel : ObservableObject {
     // Grows one correct plant for free.
     [RelayCommand(CanExecute = nameof(CanUseSeedling))]
     private void UseSeedling() => ShowResult(Session.UseSeedling());
+
+    // Reveals a few cells where nothing can grow. If logic can't prove any more, it says so and nothing is spent.
+    [RelayCommand(CanExecute = nameof(CanUseWater))]
+    private void UseWater() {
+        var result = Session.UseWater();
+        if (result.Outcome == TapOutcome.Ignored) {
+            Info = "Your watering can has nothing new to show.";
+            return;
+        }
+
+        ShowResult(result);
+    }
 
     private string ToolText(string name, PowerUp powerUp) =>
         _session is null ? name : $"{name}\n{(Session.UnlimitedTools ? "∞" : Session.PowerUps[powerUp].ToString())}";
