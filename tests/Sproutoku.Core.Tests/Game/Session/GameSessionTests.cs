@@ -1001,8 +1001,8 @@ public class GameSessionTests {
     public void Rake_ClearsThePlayersMarks_KeepsRevealedCells_AndClosesTheHint() {
         var session = NewGame();
         session.PlayExtraGarden(ExtraGarden());
+        session.ToggleMark(new Cell(4, 0)); // Before watering: the can only picks empty cells, so this ✕ is safe.
         session.UseWater();
-        session.ToggleMark(new Cell(4, 0));
         Assert.NotNull(session.UseWorm());
 
         var result = session.Rake();

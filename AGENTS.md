@@ -43,6 +43,8 @@ plants never touch, not even diagonally. Gardens are N×N with N beds.
 - Settings live in the default Preferences container; Reset all progress never touches them.
 - The Rake clears only the player's own ✕ marks. Cells revealed by the watering can or an applied Worm hint stay, and so do plants and wilts. It asks first and closes an open Worm hint.
 - Home, the garden, the Journal and the end screens don't scroll, by design; only Settings and How to play may. How large system text fits them is decided with the cozy UI (#131).
+- Seedlings grow the plant of a random bed without one; Water reveals random empty cells and is allowed to use the answer to pick them. Both are deliberately random and not limited to what logic can prove. Only the Worm follows logic.
+- Tool randomness uses `Random.Shared`: unlike gardens, it doesn't need to be the same for every player.
 
 ## Please do flag
 - Game rules or state changes in App code that belong in `Sproutoku.Core`.

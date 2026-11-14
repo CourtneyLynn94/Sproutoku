@@ -1,6 +1,6 @@
 # Runs the same checks CI runs, in order, and stops at the first failure.
-# Save as scripts\check.ps1 and run from anywhere:  .\scripts\check.ps1
-# To auto-fix formatting instead of only checking it:  .\scripts\check.ps1 -Fix
+# Run from anywhere:  .\scripts\ci-checks.ps1
+# To auto-fix formatting instead of only checking it:  .\scripts\ci-checks.ps1 -Fix
 
 param(
     [switch]$Fix
@@ -33,7 +33,7 @@ foreach ($step in $steps) {
         Write-Host ""
         Write-Host "FAILED at step ${i}: $($step.Name)" -ForegroundColor Red
         if (-not $Fix -and $step.Name -like 'Format check*') {
-            Write-Host "Tip: run .\scripts\check.ps1 -Fix to fix formatting, then run it again." -ForegroundColor Yellow
+            Write-Host "Tip: run .\scripts\ci-checks.ps1 -Fix to fix formatting, then run it again." -ForegroundColor Yellow
         }
         exit $LASTEXITCODE
     }
