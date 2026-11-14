@@ -20,6 +20,16 @@ public enum TapOutcome {
     /// A double tap wilted a wrong cell and spent a sun.
     /// </summary>
     Wilted,
+
+    /// <summary>
+    /// The watering can revealed cells where nothing can grow.
+    /// </summary>
+    Revealed,
+
+    /// <summary>
+    /// The rake cleared every ✕ and revealed cell.
+    /// </summary>
+    Raked,
 }
 
 /// <summary>

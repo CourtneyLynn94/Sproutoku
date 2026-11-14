@@ -3,7 +3,7 @@ namespace Sproutoku.Core.Tests.Game.PowerUps;
 public class PowerUpSupplyTests {
     [Fact]
     public void EveryGarden_StartsWithTwoWorms_AndNoSeedsOrWater() {
-        Assert.Equal(new PowerUpSupply(Seeds: 0, Worm: 2, Water: 0), PowerUpSupply.Starting);
+        Assert.Equal(new PowerUpSupply(Seeds: 2, Worm: 2, Water: 2), PowerUpSupply.Starting);
     }
 
     [Fact]
@@ -27,8 +27,10 @@ public class PowerUpSupplyTests {
 
     [Fact]
     public void Spending_WithNoneLeft_Throws() {
-        Assert.False(PowerUpSupply.Starting.Has(PowerUp.Seeds));
-        Assert.Throws<InvalidOperationException>(() => PowerUpSupply.Starting.Spend(PowerUp.Seeds));
+        var supply = new PowerUpSupply(Seeds: 0, Worm: 2, Water: 2);
+
+        Assert.False(supply.Has(PowerUp.Seeds));
+        Assert.Throws<InvalidOperationException>(() => supply.Spend(PowerUp.Seeds));
     }
 
     [Fact]

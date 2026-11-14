@@ -35,7 +35,7 @@ plants never touch, not even diagonally. Gardens are N×N with N beds.
 - Dialogs, buttons and colors are placeholder UI until the real design is built.
 - Starting over is only offered after losing ("Try again"). There is no last garden: levels are endless.
 - Levels are endless and generated from each level's seed; level N is the same garden for every player.
-- Power-ups: every garden starts with 2 Worms and no Seeds or Water until rewards exist. The Rake is an unlimited tool.
+- Power-ups: until the tool shed exists, every garden starts with 2 Seeds, 2 Worms and 2 Water, refilled by a new garden or Try again. The Rake is an unlimited tool. The Unlimited tools developer option covers all of them.
 - The Worm uses the player's ✕ marks that are correct (proven without peeking at the answer); ✕ marks on proven plants are called out as mistakes. A hint never locks the board: the player can hide it, keep playing and show it again for free. An open hint isn't saved.
 - Hint messages and board labels use battleship names: columns A–J, rows 1–10, cells like B5.
 - Haptics play as Android touch feedback (`VibrationAttributes` usage Touch), so they follow the phone's touch-vibration strength and go quiet if the player turns touch vibration off. Drag clicks closer than 35 ms apart wait their turn.

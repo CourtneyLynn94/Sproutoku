@@ -601,7 +601,7 @@ public class GameSessionTests {
 
     [Fact]
     public void APowerUp_CanBeUsed_OnlyWithOneLeft_AndBeforeTheGardenEnds() {
-        var session = NewGame();
+        var session = GameWithOneWormLeft();
 
         Assert.True(session.CanUse(PowerUp.Worm));
         Assert.False(session.CanUse(PowerUp.Seeds));

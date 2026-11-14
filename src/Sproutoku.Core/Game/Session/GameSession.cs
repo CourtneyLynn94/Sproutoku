@@ -313,9 +313,7 @@ public sealed class GameSession {
         var hint = WormHelper.HintFor(Board);
         if (hint is null) return null;
 
-        if (!UnlimitedTools) {
-            PowerUps = PowerUps.Spend(PowerUp.Worm);
-        }
+        Spend(PowerUp.Worm);
 
         _givenHint = hint;
         OpenHint = hint;
@@ -421,6 +419,13 @@ public sealed class GameSession {
         PlantOutcome.Wilted => TapOutcome.Wilted,
         _ => TapOutcome.Ignored,
     };
+
+    // Spends one of a power-up, unless the developer option makes them unlimited.
+    private void Spend(PowerUp powerUp) {
+        if (!UnlimitedTools) {
+            PowerUps = PowerUps.Spend(powerUp);
+        }
+    }
 
     // Ends any half-finished double tap, so the next tap starts fresh.
     private void ForgetLastTap() {

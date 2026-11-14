@@ -127,6 +127,39 @@ public sealed class Board {
             : new PlantResult(With(cell, CellState.Wilted, sunsLeft: Math.Max(0, SunsLeft - 1)), PlantOutcome.Wilted);
     }
 
+    /// <summary>
+    /// The watering can shows this cell can't hold a plant: an empty or ✕ cell becomes revealed empty and locks.
+    /// Solution cells, locked cells and finished gardens don't change, so a mistake in the caller can never hide a plant.
+    /// </summary>
+    public Board RevealEmpty(Cell cell) {
+        if (IsFinished || Puzzle.IsSolutionCell(cell) || this[cell] is not (CellState.Empty or CellState.Marked)) {
+            return this;
+        }
+
+        return With(cell, CellState.RevealedEmpty);
+    }
+
+    /// <summary>
+    /// The rake: every ✕ and every revealed-empty cell goes back to empty. Plants and wilts stay.
+    /// Nothing changes once the garden is finished.
+    /// </summary>
+    public Board ClearMarks() {
+        if (IsFinished) {
+            return this;
+        }
+
+        var cells = (CellState[,])_cells.Clone();
+        for (int row = 0; row < Size; row++) {
+            for (int column = 0; column < Size; column++) {
+                if (cells[row, column] is CellState.Marked or CellState.RevealedEmpty) {
+                    cells[row, column] = CellState.Empty;
+                }
+            }
+        }
+
+        return new Board(Puzzle, cells, StartingSuns, SunsLeft);
+    }
+
     // A copy of this board with one cell changed, and optionally a new sun count.
     private Board With(Cell cell, CellState state, int? sunsLeft = null) {
         var cells = (CellState[,])_cells.Clone();

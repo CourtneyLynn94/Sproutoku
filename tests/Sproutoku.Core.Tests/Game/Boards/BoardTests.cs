@@ -108,6 +108,43 @@ public class BoardTests {
     }
     #endregion
 
+    #region Revealing and raking
+    [Fact]
+    public void RevealEmpty_LocksAnEmptyOrMarkedCell() {
+        var board = NewBoard()
+            .ToggleMark(AnotherWrongCell)
+            .RevealEmpty(WrongCell)
+            .RevealEmpty(AnotherWrongCell);
+
+        Assert.Equal(CellState.RevealedEmpty, board[WrongCell]);
+        Assert.Equal(CellState.RevealedEmpty, board[AnotherWrongCell]);
+        Assert.Equal(CellState.RevealedEmpty, board.ToggleMark(WrongCell)[WrongCell]); // Locked against taps.
+    }
+
+    [Fact]
+    public void RevealEmpty_NeverHidesAPlant() {
+        Assert.Equal(CellState.Empty, NewBoard().RevealEmpty(SolutionCell)[SolutionCell]);
+    }
+
+    [Fact]
+    public void ClearMarks_ClearsEveryMarkAndRevealedCell_AndKeepsPlantsAndWilts() {
+        var revealed = new Cell(0, 3);
+        var board = NewBoard()
+            .TryPlant(SolutionCell).Board
+            .TryPlant(WrongCell).Board
+            .ToggleMark(AnotherWrongCell)
+            .RevealEmpty(revealed);
+
+        var raked = board.ClearMarks();
+
+        Assert.Equal(CellState.Planted, raked[SolutionCell]);
+        Assert.Equal(CellState.Wilted, raked[WrongCell]);
+        Assert.Equal(CellState.Empty, raked[AnotherWrongCell]);
+        Assert.Equal(CellState.Empty, raked[revealed]);
+        Assert.Equal(board.SunsLeft, raked.SunsLeft);
+    }
+    #endregion
+
     #region Sunlight
     [Fact]
     public void Start_HasTheDefaultSuns() {

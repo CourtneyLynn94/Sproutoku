@@ -25,9 +25,9 @@ public enum PowerUp {
 /// </summary>
 public sealed record PowerUpSupply(int Seeds, int Worm, int Water) {
     /// <summary>
-    /// What every garden starts with until rewards exist: two Worm hints, and no Seeds or Water yet.
+    /// What every garden starts with until the tool shed exists: two of each power-up.
     /// </summary>
-    public static PowerUpSupply Starting { get; } = new(Seeds: 0, Worm: 2, Water: 0);
+    public static PowerUpSupply Starting { get; } = new(Seeds: 2, Worm: 2, Water: 2);
 
     public int this[PowerUp powerUp] => powerUp switch {
         PowerUp.Seeds => Seeds,
