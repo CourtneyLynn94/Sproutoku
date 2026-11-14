@@ -30,19 +30,21 @@ plants never touch, not even diagonally. Gardens are N×N with N beds.
 - No license file, on purpose: all rights reserved.
 - No Undo, Redo or Restart buttons.
 - Double-tap plants, including on a ✕ cell. A single tap toggles ✕. Double-tap timing is 250 ms.
-- The game never places ✕ marks automatically (no auto rule-outs after a plant). The only exceptions are the player applying a Worm hint and, later, the Water power-up revealing empty cells.
+- The game never places ✕ marks automatically (no auto rule-outs after a plant). The watering can and an applied Worm hint reveal cells instead: they look different from the player's ✕, are locked, and the Rake keeps them.
 - "Reset all progress" clears only the `sproutoku.progress` Preferences container. Settings are kept on purpose.
 - Dialogs, buttons and colors are placeholder UI until the real design is built.
 - Starting over is only offered after losing ("Try again"). There is no last garden: levels are endless.
 - Levels are endless and generated from each level's seed; level N is the same garden for every player.
-- Power-ups: every garden starts with 2 Worms and no Seeds or Water until rewards exist. The Rake is an unlimited tool.
+- Power-ups: until the tool shed exists, every garden starts with 2 Seedlings, 2 Worms and 2 Water, refilled by a new garden or Try again. The Rake is an unlimited tool. The Unlimited tools developer option covers all of them.
 - The Worm uses the player's ✕ marks that are correct (proven without peeking at the answer); ✕ marks on proven plants are called out as mistakes. A hint never locks the board: the player can hide it, keep playing and show it again for free. An open hint isn't saved.
 - Hint messages and board labels use battleship names: columns A–J, rows 1–10, cells like B5.
 - Haptics play as Android touch feedback (`VibrationAttributes` usage Touch), so they follow the phone's touch-vibration strength and go quiet if the player turns touch vibration off. Drag clicks closer than 35 ms apart wait their turn.
 - A drag starts after a third of a cell, and one that starts along a row or column stays in it until the finger is past the middle of the next line. A press that slides off the board without reaching another cell stays a press.
 - Settings live in the default Preferences container; Reset all progress never touches them.
-- When it's built, the Rake clears every ✕ on the board, including ones from the Worm and Water. Only plants and wilts stay.
+- The Rake clears only the player's own ✕ marks. Cells revealed by the watering can or an applied Worm hint stay, and so do plants and wilts. It asks first and closes an open Worm hint.
 - Home, the garden, the Journal and the end screens don't scroll, by design; only Settings and How to play may. How large system text fits them is decided with the cozy UI (#131).
+- Seedlings grow the plant of a random bed without one; Water reveals random empty cells and is allowed to use the answer to pick them. Both are deliberately random and not limited to what logic can prove. Only the Worm follows logic.
+- Tool randomness uses `Random.Shared`: unlike gardens, it doesn't need to be the same for every player.
 
 ## Please do flag
 - Game rules or state changes in App code that belong in `Sproutoku.Core`.

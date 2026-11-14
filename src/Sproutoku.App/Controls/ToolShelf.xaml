@@ -5,18 +5,18 @@
              x:Class="Sproutoku.App.Controls.ToolShelf"
              x:DataType="pages:GardenPageViewModel">
 
-    <!-- Seeds, Worm, Water | Rake. Arrange lays them out in a row (phone) or a column (desktop). -->
+    <!-- Seedling, Worm, Water | Rake. Arrange lays them out in a row (phone) or a column (desktop). -->
     <Grid x:Name="Shelf"
           RowSpacing="8"
           ColumnSpacing="8">
-        <Button x:Name="SeedsButton"
-                Text="{Binding SeedsText}"
-                IsEnabled="{Binding CanUseSeeds}"
+        <Button x:Name="SeedlingButton"
+                Text="{Binding SeedlingText}"
+                Command="{Binding UseSeedlingCommand}"
                 Padding="4"
                 LineBreakMode="WordWrap"
-                SemanticProperties.Description="{Binding SeedsDescription}"
-                SemanticProperties.Hint="Plants one correct seed for you."
-                ToolTipProperties.Text="Seeds: plants one correct seed for you." />
+                SemanticProperties.Description="{Binding SeedlingDescription}"
+                SemanticProperties.Hint="Grows one correct plant for you."
+                ToolTipProperties.Text="Seedling: grows one correct plant for you." />
         <Button x:Name="WormButton"
                 Text="{Binding WormText}"
                 Command="{Binding UseWormCommand}"
@@ -27,7 +27,7 @@
                 ToolTipProperties.Text="Worm: shows the next step and why." />
         <Button x:Name="WaterButton"
                 Text="{Binding WaterText}"
-                IsEnabled="{Binding CanUseWater}"
+                Command="{Binding UseWaterCommand}"
                 Padding="4"
                 LineBreakMode="WordWrap"
                 SemanticProperties.Description="{Binding WaterDescription}"
@@ -37,9 +37,10 @@
                  Color="{StaticResource Plank}" />
         <Button x:Name="RakeButton"
                 Text="Rake"
-                IsEnabled="False"
+                Command="{Binding RakeCommand}"
                 Padding="4"
-                SemanticProperties.Hint="Clears all your ✕ marks. Coming soon."
-                ToolTipProperties.Text="Rake: clears all your ✕ marks. Coming soon." />
+                SemanticProperties.Description="Rake, unlimited"
+                SemanticProperties.Hint="Clears every ✕ you placed. Revealed cells stay."
+                ToolTipProperties.Text="Rake: clears every ✕ you placed. Revealed cells stay." />
     </Grid>
 </ContentView>

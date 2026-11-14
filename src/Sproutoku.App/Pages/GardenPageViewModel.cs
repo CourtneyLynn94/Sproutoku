@@ -71,6 +71,9 @@ public sealed partial class GardenPageViewModel : ObservableObject {
     private void Refresh() {
         OnPropertyChanged(string.Empty);
         UseWormCommand.NotifyCanExecuteChanged();
+        UseSeedlingCommand.NotifyCanExecuteChanged();
+        UseWaterCommand.NotifyCanExecuteChanged();
+        RakeCommand.NotifyCanExecuteChanged();
         BoardChanged?.Invoke(this, EventArgs.Empty);
     }
     #endregion
@@ -342,6 +345,8 @@ public sealed partial class GardenPageViewModel : ObservableObject {
     private void PlayHaptic(TapOutcome outcome) {
         switch (outcome) {
             case TapOutcome.MarkToggled:
+            case TapOutcome.Revealed:
+            case TapOutcome.Raked:
                 _haptics.Mark();
                 break;
             case TapOutcome.Grew:
@@ -425,18 +430,18 @@ public sealed partial class GardenPageViewModel : ObservableObject {
 
     #region Tool shelf
     // Each tool shows its name and count (∞ with the dev option); a tool works when there's one left and the garden isn't over.
-    // Seeds and Water do nothing yet (#45, #46), and the Rake arrives with #49.
-    public string SeedsText => ToolText("Seeds", PowerUp.Seeds);
+    public string SeedlingText => ToolText("Seedling", PowerUp.Seedling);
     public string WormText => ToolText("Worm", PowerUp.Worm);
     public string WaterText => ToolText("Water", PowerUp.Water);
 
-    public string SeedsDescription => ToolDescription("Seeds", PowerUp.Seeds);
+    public string SeedlingDescription => ToolDescription("Seedling", PowerUp.Seedling);
     public string WormDescription => ToolDescription("Worm", PowerUp.Worm);
     public string WaterDescription => ToolDescription("Water", PowerUp.Water);
 
-    public bool CanUseSeeds => _session?.CanUse(PowerUp.Seeds) == true;
+    public bool CanUseSeedling => _session?.CanUse(PowerUp.Seedling) == true;
     public bool CanUseWater => _session?.CanUse(PowerUp.Water) == true;
     private bool CanUseWorm => _session?.CanUse(PowerUp.Worm) == true;
+    private bool CanRake => _session?.CanRake == true;
 
     // The next step, focused on the board. With a hint already open, this focuses it again for free.
     [RelayCommand(CanExecute = nameof(CanUseWorm))]
@@ -450,6 +455,36 @@ public sealed partial class GardenPageViewModel : ObservableObject {
         Save(); // The spent Worm is saved, so reopening the app doesn't refill it.
         Refresh();
         SemanticScreenReader.Announce(hint.Message);
+    }
+
+    // Grows one correct plant for free.
+    [RelayCommand(CanExecute = nameof(CanUseSeedling))]
+    private void UseSeedling() => ShowResult(Session.UseSeedling());
+
+    // Reveals a few cells where nothing can grow. If logic can't prove any more, it says so and nothing is spent.
+    [RelayCommand(CanExecute = nameof(CanUseWater))]
+    private void UseWater() {
+        var result = Session.UseWater();
+        if (result.Outcome == TapOutcome.Ignored) {
+            Info = "Every empty cell is already marked.";
+            return;
+        }
+
+        ShowResult(result);
+    }
+
+    // Clears every ✕ the player placed, after asking: there's no undo. Revealed cells stay.
+    [RelayCommand(CanExecute = nameof(CanRake))]
+    private async Task RakeAsync() {
+        string message = "Every ✕ you placed is cleared. Cells the watering can and the Worm revealed stay, and so do your plants.";
+        if (IsHintOpen) {
+            message += " The worm's note closes too.";
+        }
+
+        bool rake = await _dialogs.ConfirmAsync("Rake the garden?", message, "Rake", "Keep my marks");
+        if (!rake) return;
+
+        ShowResult(Session.Rake());
     }
 
     private string ToolText(string name, PowerUp powerUp) =>

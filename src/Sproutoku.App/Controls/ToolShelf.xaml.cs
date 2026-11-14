@@ -3,7 +3,7 @@ using static Sproutoku.App.Controls.GridLayout;
 namespace Sproutoku.App.Controls;
 
 /// <summary>
-/// The tool shelf: Seeds, Worm and Water with their counts, a divider, then the Rake.
+/// The tool shelf: Seedling, Worm and Water with their counts, a divider, then the Rake.
 /// </summary>
 public partial class ToolShelf : ContentView {
     public ToolShelf() {
@@ -14,7 +14,7 @@ public partial class ToolShelf : ContentView {
     /// Phone: the tools share one row, so they shrink to fit a 360px screen. Desktop: they stack in one column.
     /// </summary>
     public void Arrange(bool vertical) {
-        View[] tools = [SeedsButton, WormButton, WaterButton, Divider, RakeButton];
+        View[] tools = [SeedlingButton, WormButton, WaterButton, Divider, RakeButton];
 
         if (vertical) {
             Shelf.ColumnDefinitions = Columns(GridLength.Star);

@@ -310,12 +310,10 @@ public sealed class GameSession {
         }
         if (!CanUse(PowerUp.Worm)) return null;
 
-        var hint = WormHelper.HintFor(Board);
+        var hint = WormHelperTool.HintFor(Board);
         if (hint is null) return null;
 
-        if (!UnlimitedTools) {
-            PowerUps = PowerUps.Spend(PowerUp.Worm);
-        }
+        Spend(PowerUp.Worm);
 
         _givenHint = hint;
         OpenHint = hint;
@@ -324,7 +322,7 @@ public sealed class GameSession {
     }
 
     /// <summary>
-    /// Makes what's left of the open hint: grows its plants (always correct, so no sun is spent) and marks its rule-outs with ✕.
+    /// Makes what's left of the open hint: grows its plants (always correct, so no sun is spent) and reveals its rule-outs.
     /// Closes the hint. Does nothing if no hint is open.
     /// </summary>
     public TapResult ApplyHint() {
@@ -341,11 +339,11 @@ public sealed class GameSession {
         }
 
         foreach (var cell in hint.RuleOuts) {
-            board = board.ToggleMark(cell); // Only cells still empty: OpenHint keeps up with the board.
+            board = board.RevealEmpty(cell); // Only cells still empty: OpenHint keeps up with the board, so the player's own ✕ stays a ✕.
         }
 
         Board = board;
-        var outcome = hint.Plants.Count > 0 ? TapOutcome.Grew : TapOutcome.MarkToggled;
+        var outcome = hint.Plants.Count > 0 ? TapOutcome.Grew : TapOutcome.Revealed;
         return new TapResult(outcome, Board.IsFinished);
     }
 
@@ -379,6 +377,65 @@ public sealed class GameSession {
         if (OpenHint is null) {
             CloseHint();
         }
+    }
+
+    /// <summary>
+    /// Seedling: grows the correct plant of a random bed that doesn't have one yet. Costs no sun and places no ✕ marks.
+    /// Does nothing and spends nothing if none are left or the garden is over.
+    /// </summary>
+    public TapResult UseSeedling() {
+        if (!CanUse(PowerUp.Seedling) || SeedlingTool.CellFor(Board, Random.Shared) is not { } cell) {
+            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
+        }
+
+        ForgetLastTap();
+        Spend(PowerUp.Seedling);
+        Board = Board.TryPlant(cell).Board;
+        UpdateHint();
+        return new TapResult(TapOutcome.Grew, Board.IsFinished);
+    }
+
+    /// <summary>
+    /// Water: reveals up to three random cells that hold no plant (see <see cref="WateringCanTool"/>). They lock.
+    /// Does nothing and spends nothing if none are left, the garden is over, or no empty cell without a plant is left.
+    /// </summary>
+    public TapResult UseWater() {
+        var cells = CanUse(PowerUp.Water) ? WateringCanTool.CellsFor(Board, Random.Shared) : [];
+        if (cells.Count == 0) {
+            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
+        }
+
+        ForgetLastTap();
+        Spend(PowerUp.Water);
+
+        var board = Board;
+        foreach (var cell in cells) {
+            board = board.RevealEmpty(cell);
+        }
+
+        Board = board;
+        UpdateHint();
+        return new TapResult(TapOutcome.Revealed, EndedGarden: false);
+    }
+
+    /// <summary>
+    /// Whether the rake has anything to clear: a ✕ the player placed, on a garden that isn't over.
+    /// </summary>
+    public bool CanRake => !Board.IsFinished && Board.CountOf(CellState.Marked) > 0;
+
+    /// <summary>
+    /// The rake: clears every ✕ the player placed (see <see cref="Board.ClearMarks"/>), and closes an open Worm hint,
+    /// which may have relied on them. Revealed cells stay. Unlimited: it has no count.
+    /// </summary>
+    public TapResult Rake() {
+        if (!CanRake) {
+            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
+        }
+
+        ForgetLastTap();
+        CloseHint();
+        Board = Board.ClearMarks();
+        return new TapResult(TapOutcome.Raked, EndedGarden: false);
     }
     #endregion
 
@@ -421,6 +478,13 @@ public sealed class GameSession {
         PlantOutcome.Wilted => TapOutcome.Wilted,
         _ => TapOutcome.Ignored,
     };
+
+    // Spends one of a power-up, unless the developer option makes them unlimited.
+    private void Spend(PowerUp powerUp) {
+        if (!UnlimitedTools) {
+            PowerUps = PowerUps.Spend(powerUp);
+        }
+    }
 
     // Ends any half-finished double tap, so the next tap starts fresh.
     private void ForgetLastTap() {

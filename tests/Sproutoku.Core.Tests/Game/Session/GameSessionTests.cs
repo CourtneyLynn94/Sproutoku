@@ -53,6 +53,13 @@ public class GameSessionTests {
         where !puzzle.IsSolutionCell(cell)
         select cell;
 
+    private static List<Cell> CellsIn(GameSession session, CellState state) => (
+        from row in Enumerable.Range(0, session.Board.Size)
+        from column in Enumerable.Range(0, session.Board.Size)
+        let cell = new Cell(row, column)
+        where session.Board[cell] == state
+        select cell).ToList();
+
     #region Starting
     [Fact]
     public void NewGame_StartsAtGarden1_Fresh() {
@@ -601,10 +608,10 @@ public class GameSessionTests {
 
     [Fact]
     public void APowerUp_CanBeUsed_OnlyWithOneLeft_AndBeforeTheGardenEnds() {
-        var session = NewGame();
+        var session = GameWithOneWormLeft();
 
         Assert.True(session.CanUse(PowerUp.Worm));
-        Assert.False(session.CanUse(PowerUp.Seeds));
+        Assert.False(session.CanUse(PowerUp.Seedling));
 
         Solve(session);
         Assert.False(session.CanUse(PowerUp.Worm));
@@ -720,7 +727,7 @@ public class GameSessionTests {
     }
 
     [Fact]
-    public void ApplyHint_MarksTheRuleOuts_AndClosesTheHint() {
+    public void ApplyHint_RevealsTheRuleOuts_AndClosesTheHint() {
         var session = NewGame();
         session.PlayExtraGarden(ExtraGarden());
         var hint = session.UseWorm();
@@ -729,8 +736,8 @@ public class GameSessionTests {
 
         var result = session.ApplyHint();
 
-        Assert.Equal(TapOutcome.MarkToggled, result.Outcome);
-        Assert.All(hint.RuleOuts, cell => Assert.Equal(CellState.Marked, session.Board[cell]));
+        Assert.Equal(TapOutcome.Revealed, result.Outcome);
+        Assert.All(hint.RuleOuts, cell => Assert.Equal(CellState.RevealedEmpty, session.Board[cell]));
         Assert.Null(session.OpenHint);
         Assert.False(session.IsHintFocused);
         Assert.Equal(TapOutcome.Ignored, session.ApplyHint().Outcome); // Nothing left to apply.
@@ -842,10 +849,11 @@ public class GameSessionTests {
 
         var result = session.ApplyHint();
 
-        // (0,2) keeps the player's ✕ instead of being toggled back off.
-        Cell[] ruleOuts = [new(0, 2), new(0, 3), new(0, 4)];
-        Assert.Equal(TapOutcome.MarkToggled, result.Outcome);
-        Assert.All(ruleOuts, cell => Assert.Equal(CellState.Marked, session.Board[cell]));
+        // (0,2) keeps the player's ✕; the rest are revealed.
+        Assert.Equal(TapOutcome.Revealed, result.Outcome);
+        Assert.Equal(CellState.Marked, session.Board[new Cell(0, 2)]);
+        Assert.Equal(CellState.RevealedEmpty, session.Board[new Cell(0, 3)]);
+        Assert.Equal(CellState.RevealedEmpty, session.Board[new Cell(0, 4)]);
     }
 
     [Fact]
@@ -931,8 +939,101 @@ public class GameSessionTests {
 
         // The second tap is a fresh tap, not a double tap rebuilt from the board before the hint.
         Cell[] ruleOuts = [new(0, 2), new(0, 3), new(0, 4)];
-        Assert.All(ruleOuts, ruleOut => Assert.Equal(CellState.Marked, session.Board[ruleOut]));
+        Assert.All(ruleOuts, ruleOut => Assert.Equal(CellState.RevealedEmpty, session.Board[ruleOut]));
     }
     #endregion
+
+    #region Seedling
+    [Fact]
+    public void Seedlings_GrowACorrectPlant_WithoutSpendingASun() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+
+        var result = session.UseSeedling();
+
+        Assert.Equal(TapOutcome.Grew, result.Outcome);
+        var planted = Assert.Single(CellsIn(session, CellState.Planted));
+        Assert.True(session.Board.Puzzle.IsSolutionCell(planted));
+        Assert.Equal(session.Board.StartingSuns, session.Board.SunsLeft);
+        Assert.Equal(PowerUpSupply.Starting.Seedling - 1, session.PowerUps.Seedling);
+    }
+
+    [Fact]
+    public void Seedlings_WithNoneLeft_DoNothing() {
+        var session = GameWithOneWormLeft(); // No Seeds.
+
+        Assert.Equal(TapOutcome.Ignored, session.UseSeedling().Outcome);
+        Assert.Equal(0, session.Board.CountOf(CellState.Planted));
+    }
+    #endregion
+
+    #region Watering can
+    [Fact]
+    public void Water_RevealsCells_AndLocksThem() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+
+        var result = session.UseWater();
+
+        var revealed = CellsIn(session, CellState.RevealedEmpty);
+        Assert.Equal(TapOutcome.Revealed, result.Outcome);
+        Assert.Equal(WateringCanTool.MaxCells, revealed.Count);
+        Assert.All(revealed, cell => Assert.False(session.Board.Puzzle.IsSolutionCell(cell)));
+        Assert.Equal(TapOutcome.Ignored, SingleTap(session, revealed[0]).Outcome);
+        Assert.Equal(PowerUpSupply.Starting.Water - 1, session.PowerUps.Water);
+    }
+
+    [Fact]
+    public void Water_WithNoEmptyCellLeft_SpendsNothing() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        foreach (var cell in WrongCells(session.Board.Puzzle)) {
+            session.ToggleMark(cell); // Every empty cell is already marked correctly.
+        }
+
+        Assert.Equal(TapOutcome.Ignored, session.UseWater().Outcome);
+        Assert.Equal(PowerUpSupply.Starting.Water, session.PowerUps.Water);
+    }
+    #endregion
+
+    #region Rake
+    [Fact]
+    public void Rake_ClearsThePlayersMarks_KeepsRevealedCells_AndClosesTheHint() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        session.ToggleMark(new Cell(4, 0)); // Before watering: the can only picks empty cells, so this ✕ is safe.
+        session.UseWater();
+        Assert.NotNull(session.UseWorm());
+
+        var result = session.Rake();
+
+        Assert.Equal(TapOutcome.Raked, result.Outcome);
+        Assert.Equal(0, session.Board.CountOf(CellState.Marked));
+        Assert.Equal(WateringCanTool.MaxCells, session.Board.CountOf(CellState.RevealedEmpty));
+        Assert.Null(session.OpenHint);
+        Assert.False(session.CanRake); // No ✕ left to clear.
+    }
+
+    [Fact]
+    public void Rake_HasNoCount() {
+        var session = NewGame();
+
+        session.ToggleMark(new Cell(4, 0));
+        Assert.Equal(TapOutcome.Raked, session.Rake().Outcome);
+        session.ToggleMark(new Cell(4, 0));
+        Assert.Equal(TapOutcome.Raked, session.Rake().Outcome);
+    }
+
+    [Fact]
+    public void Rake_WithNoMarks_DoesNothing() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        session.UseWater(); // Revealed cells alone give the rake nothing to do.
+
+        Assert.False(session.CanRake);
+        Assert.Equal(TapOutcome.Ignored, session.Rake().Outcome);
+    }
+    #endregion
+
     #endregion
 }
