@@ -3,6 +3,11 @@ using Sproutoku.App.Pages;
 namespace Sproutoku.App;
 
 public partial class AppShell : Shell {
+#if WINDOWS
+    // Esc works like Android's back. Filled in by Platforms/Windows/AppShell.Windows.cs.
+    partial void HookUpEscapeKey();
+#endif
+
     public AppShell() {
         InitializeComponent();
 
@@ -11,5 +16,9 @@ public partial class AppShell : Shell {
         Routing.RegisterRoute(Routes.Journal, typeof(JournalPage));
         Routing.RegisterRoute(Routes.Settings, typeof(SettingsPage));
         Routing.RegisterRoute(Routes.HowToPlay, typeof(HowToPlayPage));
+
+#if WINDOWS
+        HookUpEscapeKey();
+#endif
     }
 }
