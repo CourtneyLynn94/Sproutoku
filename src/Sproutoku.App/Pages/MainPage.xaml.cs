@@ -3,6 +3,7 @@ using Sproutoku.App.Controls.Garden;
 using Sproutoku.App.Resources.Styles;
 using Sproutoku.App.ViewModels;
 using Sproutoku.Core.Game.Input;
+using static Sproutoku.App.Controls.GridLayout;
 using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;
 
 namespace Sproutoku.App.Pages;
@@ -79,41 +80,8 @@ public partial class MainPage : ContentPage {
             Place(ToolShelf, row: 2, column: 0);
         }
 
-        ArrangeToolShelf(vertical: wide);
+        ToolShelf.Arrange(vertical: wide);
     }
-
-    // Phone: tools share one row, so they shrink to fit a 360px screen.
-    // Desktop: tools stack in one column.
-    private void ArrangeToolShelf(bool vertical) {
-        View[] tools = [SeedsButton, WormButton, WaterButton, ShelfDivider, RakeButton];
-
-        if (vertical) {
-            ToolShelf.ColumnDefinitions = Columns(GridLength.Star);
-            ToolShelf.RowDefinitions = Rows(GridLength.Auto, GridLength.Auto, GridLength.Auto, GridLength.Auto, GridLength.Auto);
-        } else {
-            ToolShelf.ColumnDefinitions = Columns(GridLength.Star, GridLength.Star, GridLength.Star, GridLength.Auto, GridLength.Star);
-            ToolShelf.RowDefinitions = Rows(GridLength.Auto);
-        }
-
-        for (int i = 0; i < tools.Length; i++) {
-            Place(tools[i], row: vertical ? i : 0, column: vertical ? 0 : i);
-        }
-
-        // The divider is a thin vertical line in a row, a thin horizontal line in a column. -1 means "not set".
-        ShelfDivider.WidthRequest = vertical ? -1 : 2;
-        ShelfDivider.HeightRequest = vertical ? 2 : -1;
-    }
-
-    private static void Place(BindableObject view, int row, int column) {
-        Grid.SetRow(view, row);
-        Grid.SetColumn(view, column);
-    }
-
-    private static RowDefinitionCollection Rows(params GridLength[] heights) =>
-        new(heights.Select(height => new RowDefinition(height)).ToArray());
-
-    private static ColumnDefinitionCollection Columns(params GridLength[] widths) =>
-        new(widths.Select(width => new ColumnDefinition(width)).ToArray());
     #endregion
 
     #region Garden view
