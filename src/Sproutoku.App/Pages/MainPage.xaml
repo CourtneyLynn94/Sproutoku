@@ -56,35 +56,9 @@
                                    VerticalOptions="Start" />
 
             <!-- The worm's note: shown in the planting list's place while a hint is open. -->
-            <Border x:Name="WormNote"
-                    IsVisible="{Binding IsHintOpen}"
-                    BackgroundColor="{StaticResource Cream}"
-                    Stroke="{StaticResource InkBrush}"
-                    StrokeThickness="2"
-                    Padding="12"
-                    VerticalOptions="Start">
-                <VerticalStackLayout Spacing="8">
-                    <Label Text="Your worm says"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource Ink}" />
-                    <Label Text="{Binding HintMessage}"
-                           TextColor="{StaticResource Ink}" />
-                    <HorizontalStackLayout Spacing="8">
-                        <Button Text="Apply"
-                                Command="{Binding ApplyHintCommand}"
-                                IsVisible="{Binding IsHintFocused}" />
-                        <Button Text="Hide"
-                                Command="{Binding HideHintCommand}"
-                                IsVisible="{Binding IsHintFocused}" />
-                        <Button Text="Show"
-                                Command="{Binding ShowHintCommand}"
-                                IsVisible="{Binding IsHintHidden}" />
-                        <Button Text="Close"
-                                Command="{Binding CloseHintCommand}"
-                                IsVisible="{Binding IsHintHidden}" />
-                    </HorizontalStackLayout>
-                </VerticalStackLayout>
-            </Border>
+            <controls:WormNote x:Name="WormNote"
+                               IsVisible="{Binding IsHintOpen}"
+                               VerticalOptions="Start" />
 
             <!-- Tool shelf placeholder: Seeds, Worm, Water | Rake. -->
             <controls:ToolShelf x:Name="ToolShelf"

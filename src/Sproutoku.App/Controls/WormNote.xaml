@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:Sproutoku.App.ViewModels"
+             x:Class="Sproutoku.App.Controls.WormNote"
+             x:DataType="viewModels:GardenViewModel">
+
+    <!-- Focused: Apply and Hide. Hidden (the board back to normal): Show and Close. -->
+    <Border BackgroundColor="{StaticResource Cream}"
+            Stroke="{StaticResource InkBrush}"
+            StrokeThickness="2"
+            Padding="12">
+        <VerticalStackLayout Spacing="8">
+            <Label Text="Your worm says"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource Ink}" />
+            <Label Text="{Binding HintMessage}"
+                   TextColor="{StaticResource Ink}" />
+            <HorizontalStackLayout Spacing="8">
+                <Button Text="Apply"
+                        Command="{Binding ApplyHintCommand}"
+                        IsVisible="{Binding IsHintFocused}" />
+                <Button Text="Hide"
+                        Command="{Binding HideHintCommand}"
+                        IsVisible="{Binding IsHintFocused}" />
+                <Button Text="Show"
+                        Command="{Binding ShowHintCommand}"
+                        IsVisible="{Binding IsHintHidden}" />
+                <Button Text="Close"
+                        Command="{Binding CloseHintCommand}"
+                        IsVisible="{Binding IsHintHidden}" />
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </Border>
+</ContentView>
