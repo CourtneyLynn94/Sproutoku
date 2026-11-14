@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Sproutoku.App.Services;
 
-namespace Sproutoku.App.ViewModels;
+namespace Sproutoku.App.Pages;
 
 /// <summary>
 /// Home: the game's name, one big button into the garden, and the smaller ones.

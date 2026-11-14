@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Sproutoku.App.Pages;
 using Sproutoku.App.Services;
-using Sproutoku.App.ViewModels;
 using Sproutoku.Core.Game.Levels;
 
 namespace Sproutoku.App;

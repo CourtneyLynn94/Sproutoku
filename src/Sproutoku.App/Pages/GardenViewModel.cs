@@ -8,7 +8,7 @@ using Sproutoku.Core.Game.Session;
 using System.Diagnostics;
 using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;
 
-namespace Sproutoku.App.ViewModels;
+namespace Sproutoku.App.Pages;
 
 /// <summary>
 /// The garden screen's state and actions: everything about the game the page shows, and none of how it looks.
