@@ -3,17 +3,19 @@ using Sproutoku.App.Services;
 namespace Sproutoku.App.Pages;
 
 /// <summary>
-/// The Settings sheet, opened from the Garden journal. Changes are saved as soon as a switch flips.
+/// The Settings sheet, opened from Home or the Garden journal. Changes are saved as soon as a switch flips.
 /// </summary>
 public partial class SettingsPage : ContentPage {
     private readonly GameSettings _settings;
+    private readonly GardenPageViewModel _garden;
 
     /// <summary>
     /// Shows the saved settings and saves each change as soon as a switch flips.
     /// </summary>
-    public SettingsPage(GameSettings settings) {
+    public SettingsPage(GameSettings settings, GardenPageViewModel garden) {
         InitializeComponent();
         _settings = settings;
+        _garden = garden;
 
         VibrationSwitch.IsToggled = settings.Vibration;
         BedPatternsSwitch.IsToggled = settings.BedPatterns;
@@ -34,4 +36,11 @@ public partial class SettingsPage : ContentPage {
     }
 
     private async void OnDoneClicked(object? sender, EventArgs e) => await Shell.Current.GoToAsync("..");
+
+    // Asks first. After a reset, Settings closes, so the player sees where they now are (Garden 1, or Home).
+    private async void OnResetClicked(object? sender, EventArgs e) {
+        if (await _garden.ResetProgressAsync()) {
+            await Shell.Current.GoToAsync("..");
+        }
+    }
 }

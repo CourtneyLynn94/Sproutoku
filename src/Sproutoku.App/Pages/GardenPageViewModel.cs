@@ -92,7 +92,7 @@ public sealed partial class GardenPageViewModel : ObservableObject {
 
     // Jumps to a level, fresh.
     // A level that isn't ready grows in the background with a gentle note meanwhile.
-    // With eraseProgress, the saved progress is erased once the level is ready (see ResetAsync).
+    // With eraseProgress, the saved progress is erased once the level is ready (see ResetProgressAsync).
     private async Task JumpToLevelAsync(int level, bool eraseProgress = false) {
         if (!_levels.IsReady(level)) {
             Info = $"Growing Garden {level}…";
@@ -132,17 +132,22 @@ public sealed partial class GardenPageViewModel : ObservableObject {
         }
     }
 
-    // A complete progress reset. Asks first, because it can't be undone.
-    private async Task ResetAsync() {
+    /// <summary>
+    /// Erases all progress and starts again at Garden 1, after asking. Settings are kept.
+    /// Returns true if the player went ahead.
+    /// </summary>
+    public async Task<bool> ResetProgressAsync() {
         bool erase = await _dialogs.ConfirmAsync(
             "Reset all progress?",
             "This erases every garden you've grown and everything you've earned, and starts you again at Garden 1. Your settings stay as they are. It can't be undone.",
             "Erase my progress",
             "Keep my progress");
 
-        if (!erase) return;
+        if (!erase) return false;
 
+        await LoadAsync(); // From Home, the game may still be loading.
         await JumpToLevelAsync(1, eraseProgress: true);
+        return true;
     }
     #endregion
 
