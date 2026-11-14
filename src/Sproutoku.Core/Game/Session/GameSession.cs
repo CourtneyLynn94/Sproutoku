@@ -396,11 +396,11 @@ public sealed class GameSession {
     }
 
     /// <summary>
-    /// Water: reveals up to three empty cells logic can prove hold no plant (see <see cref="WateringCanTool"/>). They lock.
-    /// Does nothing and spends nothing if none are left, the garden is over, or there's nothing left to prove.
+    /// Water: reveals up to three random cells that hold no plant (see <see cref="WateringCanTool"/>). They lock.
+    /// Does nothing and spends nothing if none are left, the garden is over, or no empty cell without a plant is left.
     /// </summary>
     public TapResult UseWater() {
-        var cells = CanUse(PowerUp.Water) ? WateringCanTool.CellsFor(Board) : [];
+        var cells = CanUse(PowerUp.Water) ? WateringCanTool.CellsFor(Board, Random.Shared) : [];
         if (cells.Count == 0) {
             return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }

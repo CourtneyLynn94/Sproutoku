@@ -463,7 +463,7 @@ public sealed partial class GardenPageViewModel : ObservableObject {
     private void UseWater() {
         var result = Session.UseWater();
         if (result.Outcome == TapOutcome.Ignored) {
-            Info = "Your watering can has nothing new to show.";
+            Info = "Every empty cell is already marked.";
             return;
         }
 

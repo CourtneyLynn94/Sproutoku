@@ -974,15 +974,16 @@ public class GameSessionTests {
 
         var result = session.UseWater();
 
-        Cell[] revealed = [new(0, 2), new(0, 3), new(0, 4)];
+        var revealed = CellsIn(session, CellState.RevealedEmpty);
         Assert.Equal(TapOutcome.Revealed, result.Outcome);
-        Assert.All(revealed, cell => Assert.Equal(CellState.RevealedEmpty, session.Board[cell]));
-        Assert.Equal(TapOutcome.Ignored, SingleTap(session, new Cell(0, 2)).Outcome);
+        Assert.Equal(WateringCanTool.MaxCells, revealed.Count);
+        Assert.All(revealed, cell => Assert.False(session.Board.Puzzle.IsSolutionCell(cell)));
+        Assert.Equal(TapOutcome.Ignored, SingleTap(session, revealed[0]).Outcome);
         Assert.Equal(PowerUpSupply.Starting.Water - 1, session.PowerUps.Water);
     }
 
     [Fact]
-    public void Water_WithNothingLeftToProve_SpendsNothing() {
+    public void Water_WithNoEmptyCellLeft_SpendsNothing() {
         var session = NewGame();
         session.PlayExtraGarden(ExtraGarden());
         foreach (var cell in WrongCells(session.Board.Puzzle)) {

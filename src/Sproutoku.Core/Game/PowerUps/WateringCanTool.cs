@@ -1,13 +1,13 @@
 using Sproutoku.Core.Game.Boards;
 using Sproutoku.Core.Gardens.Puzzles;
-using Sproutoku.Core.Gardens.Solving;
 
 namespace Sproutoku.Core.Game.PowerUps;
 
 /// <summary>
-/// Which cells the watering can reveals: up to <see cref="MaxCells"/> empty cells that logic can prove hold no plant,
-/// in the order the logic solver rules them out, from the board's facts and the player's correct ✕ marks (the Worm's view).
-/// It never peeks at the answer, so every revealed cell can be explained.
+/// Which cells the watering can reveals: up to <see cref="MaxCells"/> random cells that hold no plant.
+/// The can knows the answer, so it never picks a solution cell, and it only picks cells that are still empty:
+/// never the player's ✕, a wilt, or a cell already revealed. It doesn't follow the order logic would find them in,
+/// so watering again and again doesn't just cross off rows and beds the way the Worm does.
 /// </summary>
 public static class WateringCanTool {
     /// <summary>
@@ -16,21 +16,25 @@ public static class WateringCanTool {
     public const int MaxCells = 3;
 
     /// <summary>
-    /// The cells to reveal, or none if logic can't prove any more empty cells (or the garden is over).
+    /// The cells to reveal, in no particular order, or none if no empty cell without a plant is left (or the garden is over).
     /// </summary>
-    public static IReadOnlyList<Cell> CellsFor(Board board) {
+    public static IReadOnlyList<Cell> CellsFor(Board board, Random random) {
         if (board.IsFinished) return [];
 
-        var cells = new List<Cell>();
-        foreach (var step in LogicSolver.Solve(WormHelperTool.FactsWithCorrectMarks(board)).Steps) {
-            foreach (var cell in step.RuledOut) {
-                if (board[cell] != CellState.Empty || cells.Contains(cell)) continue;
+        var candidates = (
+            from row in Enumerable.Range(0, board.Size)
+            from column in Enumerable.Range(0, board.Size)
+            let cell = new Cell(row, column)
+            where board[cell] == CellState.Empty && !board.Puzzle.IsSolutionCell(cell)
+            select cell).ToList();
 
-                cells.Add(cell);
-                if (cells.Count == MaxCells) return cells;
-            }
+        var picked = new List<Cell>();
+        while (picked.Count < MaxCells && candidates.Count > 0) {
+            int index = random.Next(candidates.Count);
+            picked.Add(candidates[index]);
+            candidates.RemoveAt(index);
         }
 
-        return cells;
+        return picked;
     }
 }
