@@ -60,11 +60,14 @@ public sealed partial class GardenView : ContentView {
         }
     }
 
-    // A new garden: forget the last one's hover and focus.
+    // A new garden: forget the last one's hover and focus, and any press still in progress,
+    // so lifting a finger that went down on the old garden does nothing to the new one.
     private void OnGardenStarted(object? sender, EventArgs e) {
         _garden.HoverCell = null;
         _garden.FocusCell = null;
         _garden.ShowFocus = false;
+        _pressedCell = null;
+        _drag = null;
         Draw();
     }
 

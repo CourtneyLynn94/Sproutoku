@@ -91,8 +91,10 @@ public sealed partial class GardenViewModel : ObservableObject {
         Refresh();
     }
 
-    // Jumps to a level, fresh. A level that isn't ready grows in the background with a gentle note meanwhile.
-    private async Task JumpToLevelAsync(int level) {
+    // Jumps to a level, fresh.
+    // A level that isn't ready grows in the background with a gentle note meanwhile.
+    // With eraseProgress, the saved progress is erased once the level is ready (see ResetAsync).
+    private async Task JumpToLevelAsync(int level, bool eraseProgress = false) {
         if (!_levels.IsReady(level)) {
             Info = $"Growing Garden {level}…";
         }
@@ -101,6 +103,13 @@ public sealed partial class GardenViewModel : ObservableObject {
         var timer = Stopwatch.StartNew();
 #endif
         var levelGarden = await _levels.GetAsync(level);
+
+        // Erased only now, right before the new garden is shown and saved, with nothing in between.
+        // The old garden can still be played while the level grows, and any save it makes is erased here too.
+        if (eraseProgress) {
+            _gameStorage.ResetProgress();
+        }
+
         Session.GoToLevel(levelGarden);
 #if DEBUG
         ShowNewGarden($"{GardenInfo()} · {timer.ElapsedMilliseconds} ms");
@@ -134,8 +143,7 @@ public sealed partial class GardenViewModel : ObservableObject {
 
         if (!erase) return;
 
-        _gameStorage.ResetProgress();
-        await JumpToLevelAsync(1);
+        await JumpToLevelAsync(1, eraseProgress: true);
     }
     #endregion
 
