@@ -380,11 +380,11 @@ public sealed class GameSession {
     }
 
     /// <summary>
-    /// Seedling: grows one correct plant, in the bed <see cref="SeedlingTool"/> picks. Costs no sun and places no ✕ marks.
+    /// Seedling: grows the correct plant of a random bed that doesn't have one yet. Costs no sun and places no ✕ marks.
     /// Does nothing and spends nothing if none are left or the garden is over.
     /// </summary>
     public TapResult UseSeedling() {
-        if (!CanUse(PowerUp.Seedling) || SeedlingTool.CellFor(Board) is not { } cell) {
+        if (!CanUse(PowerUp.Seedling) || SeedlingTool.CellFor(Board, Random.Shared) is not { } cell) {
             return new TapResult(TapOutcome.Ignored, EndedGarden: false);
         }
 

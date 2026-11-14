@@ -1,35 +1,31 @@
 namespace Sproutoku.Core.Tests.Game.PowerUps;
 
 public class SeedlingToolTests {
-    // TestGardens' 5×5. Beds 0 and 2 have two cells each; bed 0 comes first in reading order.
-    // Its solution: (0,0) (1,2) (2,4) (3,1) (4,3).
+    // TestGardens' 5×5. Its solution: (0,0) (1,2) (2,4) (3,1) (4,3).
     private static Board NewBoard() =>
         Board.Start(Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution()));
 
+    private static IEnumerable<Random> ManyRandoms() => Enumerable.Range(0, 50).Select(seed => new Random(seed));
+
     [Fact]
-    public void OnAFreshGarden_ItGrowsTheSmallestBed_FirstInReadingOrder() {
-        Assert.Equal(new Cell(0, 0), SeedlingTool.CellFor(NewBoard()));
+    public void ItAlwaysPicksACorrectPlant() {
+        var board = NewBoard();
+
+        Assert.All(ManyRandoms(), random => Assert.True(board.Puzzle.IsSolutionCell(SeedlingTool.CellFor(board, random)!.Value)));
     }
 
     [Fact]
-    public void ABedWithFewerOpenCells_ComesFirst() {
-        var board = NewBoard().TryPlant(new Cell(2, 3)).Board; // A wilt leaves bed 2 one open cell.
-
-        Assert.Equal(new Cell(2, 4), SeedlingTool.CellFor(board));
-    }
-
-    [Fact]
-    public void AMark_StillCountsAsOpen() {
-        var board = NewBoard().ToggleMark(new Cell(0, 1)); // A ✕ might be wrong, so bed 0 still has two open cells.
-
-        Assert.Equal(new Cell(0, 0), SeedlingTool.CellFor(board));
-    }
-
-    [Fact]
-    public void ABedThatHasItsPlant_IsSkipped() {
+    public void ABedThatHasItsPlant_IsNeverPicked() {
         var board = NewBoard().TryPlant(new Cell(0, 0)).Board;
 
-        Assert.Equal(new Cell(2, 4), SeedlingTool.CellFor(board));
+        Assert.All(ManyRandoms(), random => Assert.NotEqual(new Cell(0, 0), SeedlingTool.CellFor(board, random)));
+    }
+
+    [Fact]
+    public void ItPicksDifferentBeds() {
+        var picks = ManyRandoms().Select(random => SeedlingTool.CellFor(NewBoard(), random)).Distinct();
+
+        Assert.True(picks.Count() > 1);
     }
 
     [Fact]
@@ -39,6 +35,6 @@ public class SeedlingToolTests {
             board = board.TryPlant(cell).Board;
         }
 
-        Assert.Null(SeedlingTool.CellFor(board));
+        Assert.Null(SeedlingTool.CellFor(board, new Random(1)));
     }
 }

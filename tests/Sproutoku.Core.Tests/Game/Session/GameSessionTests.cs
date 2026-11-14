@@ -53,6 +53,13 @@ public class GameSessionTests {
         where !puzzle.IsSolutionCell(cell)
         select cell;
 
+    private static List<Cell> CellsIn(GameSession session, CellState state) => (
+        from row in Enumerable.Range(0, session.Board.Size)
+        from column in Enumerable.Range(0, session.Board.Size)
+        let cell = new Cell(row, column)
+        where session.Board[cell] == state
+        select cell).ToList();
+
     #region Starting
     [Fact]
     public void NewGame_StartsAtGarden1_Fresh() {
@@ -944,7 +951,8 @@ public class GameSessionTests {
         var result = session.UseSeedling();
 
         Assert.Equal(TapOutcome.Grew, result.Outcome);
-        Assert.Equal(CellState.Planted, session.Board[new Cell(0, 0)]);
+        var planted = Assert.Single(CellsIn(session, CellState.Planted));
+        Assert.True(session.Board.Puzzle.IsSolutionCell(planted));
         Assert.Equal(session.Board.StartingSuns, session.Board.SunsLeft);
         Assert.Equal(PowerUpSupply.Starting.Seedling - 1, session.PowerUps.Seedling);
     }
