@@ -4,9 +4,9 @@ namespace Sproutoku.App.Pages;
 /// The first screen: the game's name and the way into the garden.
 /// </summary>
 public partial class HomePage : ContentPage {
-    private readonly HomeViewModel _viewModel;
+    private readonly HomePageViewModel _viewModel;
 
-    public HomePage(HomeViewModel viewModel) {
+    public HomePage(HomePageViewModel viewModel) {
         _viewModel = viewModel;
         BindingContext = viewModel;
         InitializeComponent();

@@ -5,7 +5,7 @@ using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;
 namespace Sproutoku.App.Controls.Garden;
 
 /// <summary>
-/// The garden board: draws the board and the worm's hint, and turns touches, drags, hover and keys into cells for <see cref="GardenViewModel"/>.
+/// The garden board: draws the board and the worm's hint, and turns touches, drags, hover and keys into cells for <see cref="GardenPageViewModel"/>.
 /// It finds the view model through its <c>BindingContext</c> (the page's).
 /// </summary>
 public sealed partial class GardenView : ContentView {
@@ -17,7 +17,7 @@ public sealed partial class GardenView : ContentView {
 
     private readonly GraphicsView _canvas = new();
     private readonly GardenDrawable _garden = new() { ShouldDrawRegionBorders = false };
-    private GardenViewModel? _viewModel;
+    private GardenPageViewModel? _viewModel;
 
     // The press in progress: the cell it started on (null if it started off the board), and its drag tracker.
     private Cell? _pressedCell;
@@ -51,7 +51,7 @@ public sealed partial class GardenView : ContentView {
             _viewModel.BoardChanged -= OnBoardChanged;
         }
 
-        _viewModel = BindingContext as GardenViewModel;
+        _viewModel = BindingContext as GardenPageViewModel;
 
         if (_viewModel is not null) {
             _viewModel.GardenStarted += OnGardenStarted;

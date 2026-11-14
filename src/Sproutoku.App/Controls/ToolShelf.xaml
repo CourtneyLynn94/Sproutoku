@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:pages="clr-namespace:Sproutoku.App.Pages"
              x:Class="Sproutoku.App.Controls.ToolShelf"
-             x:DataType="pages:GardenViewModel">
+             x:DataType="pages:GardenPageViewModel">
 
     <!-- Seeds, Worm, Water | Rake. Arrange lays them out in a row (phone) or a column (desktop). -->
     <Grid x:Name="Shelf"

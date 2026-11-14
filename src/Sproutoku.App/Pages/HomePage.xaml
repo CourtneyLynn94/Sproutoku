@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:Sproutoku.App.Pages"
              x:Class="Sproutoku.App.Pages.HomePage"
-             x:DataType="local:HomeViewModel"
+             x:DataType="local:HomePageViewModel"
              BackgroundColor="{StaticResource Paper}"
              Shell.NavBarIsVisible="False">
 

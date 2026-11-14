@@ -8,11 +8,11 @@ namespace Sproutoku.App.Pages;
 /// Home: the game's name, one big button into the garden, and the smaller ones.
 /// The main button says "Start gardening" on a first launch and "Keep gardening" after that, with the garden it opens.
 /// </summary>
-public sealed partial class HomeViewModel : ObservableObject {
+public sealed partial class HomePageViewModel : ObservableObject {
     private readonly GameStorage _gameStorage;
-    private readonly GardenViewModel _garden;
+    private readonly GardenPageViewModel _garden;
 
-    public HomeViewModel(GameStorage gameStorage, GardenViewModel garden) {
+    public HomePageViewModel(GameStorage gameStorage, GardenPageViewModel garden) {
         _gameStorage = gameStorage;
         _garden = garden;
     }

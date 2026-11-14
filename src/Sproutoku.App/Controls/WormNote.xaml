@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:pages="clr-namespace:Sproutoku.App.Pages"
              x:Class="Sproutoku.App.Controls.WormNote"
-             x:DataType="pages:GardenViewModel">
+             x:DataType="pages:GardenPageViewModel">
 
     <!-- Focused: Apply and Hide. Hidden (the board back to normal): Show and Close. -->
     <Border BackgroundColor="{StaticResource Cream}"

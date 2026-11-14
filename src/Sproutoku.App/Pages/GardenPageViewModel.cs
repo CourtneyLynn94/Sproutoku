@@ -16,13 +16,13 @@ namespace Sproutoku.App.Pages;
 /// The page binds to its properties and commands, and passes in the cells the player taps, drags and keys.
 /// Each region is one part of the screen, so it can move with that part when it becomes its own control.
 /// </summary>
-public sealed partial class GardenViewModel : ObservableObject {
+public sealed partial class GardenPageViewModel : ObservableObject {
     private readonly GameStorage _gameStorage;
     private readonly Haptics _haptics;
     private readonly LevelPreparer _levels;
     private readonly Dialogs _dialogs;
 
-    public GardenViewModel(GameStorage gameStorage, Haptics haptics, LevelPreparer levels, Dialogs dialogs) {
+    public GardenPageViewModel(GameStorage gameStorage, Haptics haptics, LevelPreparer levels, Dialogs dialogs) {
         _gameStorage = gameStorage;
         _haptics = haptics;
         _levels = levels;
