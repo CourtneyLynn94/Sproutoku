@@ -4,8 +4,9 @@
              xmlns:viewModels="clr-namespace:Sproutoku.App.ViewModels"
              xmlns:controls="clr-namespace:Sproutoku.App.Controls"
              xmlns:garden="clr-namespace:Sproutoku.App.Controls.Garden"
-             x:Class="Sproutoku.App.Pages.MainPage"
+             x:Class="Sproutoku.App.Pages.GardenPage"
              x:DataType="viewModels:GardenViewModel"
+             Shell.NavBarIsVisible="False"
              BackgroundColor="{StaticResource Paper}">
 
     <Grid RowDefinitions="Auto,*">

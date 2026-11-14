@@ -28,8 +28,8 @@ public static class MauiProgram {
         builder.Services.AddSingleton<Dialogs>();
         builder.Services.AddSingleton<GardenViewModel>();
 
-        // Pages: a fresh one each time one opens. Shell builds MainPage through this too.
-        builder.Services.AddTransient<MainPage>();
+        // Pages: a fresh one each time one opens. Shell builds them through this too.
+        builder.Services.AddTransient<GardenPage>();
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<HowToPlayPage>();
 

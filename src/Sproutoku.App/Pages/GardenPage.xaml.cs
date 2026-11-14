@@ -7,8 +7,8 @@ namespace Sproutoku.App.Pages;
 /// The garden screen: lays out the sky band, the garden, the planting list or worm's note, and the tool shelf, for a phone or a desktop.
 /// Each part is its own control, and everything about the game lives in <see cref="GardenViewModel"/>.
 /// </summary>
-public partial class MainPage : ContentPage {
-    public MainPage(GardenViewModel viewModel) {
+public partial class GardenPage : ContentPage {
+    public GardenPage(GardenViewModel viewModel) {
         BindingContext = viewModel;
         InitializeComponent();
 
