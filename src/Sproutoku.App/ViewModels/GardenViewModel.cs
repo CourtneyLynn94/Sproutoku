@@ -49,17 +49,16 @@ public sealed partial class GardenViewModel : ObservableObject {
     /// </summary>
     public bool IsLoaded => _session is not null;
 
+    // The one load of the saved game, started by Home as soon as the app opens.
+    private Task? _loading;
+
     /// <summary>
     /// Picks up where the player left off, or starts at Garden 1. The saved level may need growing, so it loads off the main thread.
-    /// If the game is already loaded (a new page showing the same game), it just shows the garden again.
+    /// Safe to call from every screen: the game loads once, and later callers wait for that same load.
     /// </summary>
-    public async Task LoadAsync() {
-        if (_session is not null) {
-            GardenStarted?.Invoke(this, EventArgs.Empty);
-            Refresh();
-            return;
-        }
+    public Task LoadAsync() => _loading ??= LoadSavedGameAsync();
 
+    private async Task LoadSavedGameAsync() {
         Info = "Growing your garden…";
         var save = _gameStorage.Load();
         _session = await Task.Run(() => GameSession.Resume(save));
