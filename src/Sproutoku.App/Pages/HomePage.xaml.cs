@@ -13,8 +13,8 @@ public partial class HomePage : ContentPage {
     }
 
     // Each time Home shows, it reads where the player is.
-    protected override void OnAppearing() {
+    protected override async void OnAppearing() {
         base.OnAppearing();
-        _viewModel.Appearing();
+        await _viewModel.AppearingAsync();
     }
 }

@@ -207,6 +207,11 @@ public sealed partial class GardenPageViewModel : ObservableObject {
     /// </summary>
     public string GardenName => _session is null ? "" : Session.IsExtraGarden ? "Test garden" : $"Garden {Session.Level}";
 
+    /// <summary>
+    /// The level being played, or 1 while loading. A saved garden that was already finished resumes on the next level.
+    /// </summary>
+    public int Level => _session?.Level ?? 1;
+
     private string _info = "";
 
     /// <summary>

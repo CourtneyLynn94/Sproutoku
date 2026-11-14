@@ -32,6 +32,10 @@ public sealed partial class GardenView : ContentView {
         _canvas.EndInteraction += OnRelease;
         _canvas.CancelInteraction += (_, _) => FinishPress();
 
+        // Listens to the shared view model only while on screen, so old garden pages can be let go.
+        Loaded += (_, _) => Listen(BindingContext as GardenPageViewModel);
+        Unloaded += (_, _) => Listen(null);
+
 #if WINDOWS || MACCATALYST
         // Desktop hover. Touch screens don't send hover events, so this does nothing on a phone.
         _canvas.MoveHoverInteraction += (_, e) => SetHover(_garden.CellAt(e.Touches[0]));
@@ -46,12 +50,19 @@ public sealed partial class GardenView : ContentView {
     protected override void OnBindingContextChanged() {
         base.OnBindingContextChanged();
 
+        if (IsLoaded) {
+            Listen(BindingContext as GardenPageViewModel);
+        }
+    }
+
+    // Stops listening to the old view model, and starts on the new one (null: none).
+    private void Listen(GardenPageViewModel? viewModel) {
         if (_viewModel is not null) {
             _viewModel.GardenStarted -= OnGardenStarted;
             _viewModel.BoardChanged -= OnBoardChanged;
         }
 
-        _viewModel = BindingContext as GardenPageViewModel;
+        _viewModel = viewModel;
 
         if (_viewModel is not null) {
             _viewModel.GardenStarted += OnGardenStarted;

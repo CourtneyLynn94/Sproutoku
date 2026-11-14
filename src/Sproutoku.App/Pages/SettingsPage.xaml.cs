@@ -38,9 +38,13 @@ public partial class SettingsPage : ContentPage {
     private async void OnDoneClicked(object? sender, EventArgs e) => await Shell.Current.GoToAsync("..");
 
     // Asks first. After a reset, Settings closes, so the player sees where they now are (Garden 1, or Home).
+    // Done stays usable while Garden 1 grows; if it already closed Settings, there's nothing left to close.
     private async void OnResetClicked(object? sender, EventArgs e) {
-        if (await _garden.ResetProgressAsync()) {
-            await Shell.Current.GoToAsync("..");
+        if (!await _garden.ResetProgressAsync()) return;
+
+        var navigation = Shell.Current.Navigation;
+        if (navigation.ModalStack.LastOrDefault() == this) {
+            await navigation.PopModalAsync();
         }
     }
 }

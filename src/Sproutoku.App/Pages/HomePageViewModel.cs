@@ -50,14 +50,19 @@ public sealed partial class HomePageViewModel : ObservableObject {
 
     /// <summary>
     /// Home is showing (at launch, and coming back from the garden or a sheet):
-    /// read where the player is, and start growing their garden so it's ready when they tap.
+    /// read where the player is, and grow their garden so it's ready when they tap.
     /// </summary>
-    public void Appearing() {
-        var save = _gameStorage.Load(); // Saved after every change, so this is always current.
+    public async Task AppearingAsync() {
+        var save = _gameStorage.Load();
         HasProgress = save is not null;
         Level = save?.Level ?? 1;
         OnPropertyChanged(string.Empty);
 
-        _ = _garden.LoadAsync();
+        await _garden.LoadAsync();
+
+        // A saved garden that was already finished opens on the next level, so show the one the button really opens.
+        Level = _garden.Level;
+        OnPropertyChanged(nameof(Level));
+        OnPropertyChanged(nameof(MainButtonDetail));
     }
 }
