@@ -727,7 +727,7 @@ public class GameSessionTests {
     }
 
     [Fact]
-    public void ApplyHint_MarksTheRuleOuts_AndClosesTheHint() {
+    public void ApplyHint_RevealsTheRuleOuts_AndClosesTheHint() {
         var session = NewGame();
         session.PlayExtraGarden(ExtraGarden());
         var hint = session.UseWorm();
@@ -736,8 +736,8 @@ public class GameSessionTests {
 
         var result = session.ApplyHint();
 
-        Assert.Equal(TapOutcome.MarkToggled, result.Outcome);
-        Assert.All(hint.RuleOuts, cell => Assert.Equal(CellState.Marked, session.Board[cell]));
+        Assert.Equal(TapOutcome.Revealed, result.Outcome);
+        Assert.All(hint.RuleOuts, cell => Assert.Equal(CellState.RevealedEmpty, session.Board[cell]));
         Assert.Null(session.OpenHint);
         Assert.False(session.IsHintFocused);
         Assert.Equal(TapOutcome.Ignored, session.ApplyHint().Outcome); // Nothing left to apply.
@@ -849,10 +849,11 @@ public class GameSessionTests {
 
         var result = session.ApplyHint();
 
-        // (0,2) keeps the player's ✕ instead of being toggled back off.
-        Cell[] ruleOuts = [new(0, 2), new(0, 3), new(0, 4)];
-        Assert.Equal(TapOutcome.MarkToggled, result.Outcome);
-        Assert.All(ruleOuts, cell => Assert.Equal(CellState.Marked, session.Board[cell]));
+        // (0,2) keeps the player's ✕; the rest are revealed.
+        Assert.Equal(TapOutcome.Revealed, result.Outcome);
+        Assert.Equal(CellState.Marked, session.Board[new Cell(0, 2)]);
+        Assert.Equal(CellState.RevealedEmpty, session.Board[new Cell(0, 3)]);
+        Assert.Equal(CellState.RevealedEmpty, session.Board[new Cell(0, 4)]);
     }
 
     [Fact]
@@ -938,7 +939,7 @@ public class GameSessionTests {
 
         // The second tap is a fresh tap, not a double tap rebuilt from the board before the hint.
         Cell[] ruleOuts = [new(0, 2), new(0, 3), new(0, 4)];
-        Assert.All(ruleOuts, ruleOut => Assert.Equal(CellState.Marked, session.Board[ruleOut]));
+        Assert.All(ruleOuts, ruleOut => Assert.Equal(CellState.RevealedEmpty, session.Board[ruleOut]));
     }
     #endregion
 

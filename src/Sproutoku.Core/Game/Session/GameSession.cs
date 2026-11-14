@@ -322,7 +322,7 @@ public sealed class GameSession {
     }
 
     /// <summary>
-    /// Makes what's left of the open hint: grows its plants (always correct, so no sun is spent) and marks its rule-outs with ✕.
+    /// Makes what's left of the open hint: grows its plants (always correct, so no sun is spent) and reveals its rule-outs.
     /// Closes the hint. Does nothing if no hint is open.
     /// </summary>
     public TapResult ApplyHint() {
@@ -339,11 +339,11 @@ public sealed class GameSession {
         }
 
         foreach (var cell in hint.RuleOuts) {
-            board = board.ToggleMark(cell); // Only cells still empty: OpenHint keeps up with the board.
+            board = board.RevealEmpty(cell); // Only cells still empty: OpenHint keeps up with the board, so the player's own ✕ stays a ✕.
         }
 
         Board = board;
-        var outcome = hint.Plants.Count > 0 ? TapOutcome.Grew : TapOutcome.MarkToggled;
+        var outcome = hint.Plants.Count > 0 ? TapOutcome.Grew : TapOutcome.Revealed;
         return new TapResult(outcome, Board.IsFinished);
     }
 

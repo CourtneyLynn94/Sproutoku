@@ -30,7 +30,7 @@ plants never touch, not even diagonally. Gardens are N×N with N beds.
 - No license file, on purpose: all rights reserved.
 - No Undo, Redo or Restart buttons.
 - Double-tap plants, including on a ✕ cell. A single tap toggles ✕. Double-tap timing is 250 ms.
-- The game never places ✕ marks automatically (no auto rule-outs after a plant). The only exceptions are the player applying a Worm hint and the Water can power-up revealing empty cells.
+- The game never places ✕ marks automatically (no auto rule-outs after a plant). The watering can and an applied Worm hint reveal cells instead: they look different from the player's ✕, are locked, and the Rake keeps them.
 - "Reset all progress" clears only the `sproutoku.progress` Preferences container. Settings are kept on purpose.
 - Dialogs, buttons and colors are placeholder UI until the real design is built.
 - Starting over is only offered after losing ("Try again"). There is no last garden: levels are endless.

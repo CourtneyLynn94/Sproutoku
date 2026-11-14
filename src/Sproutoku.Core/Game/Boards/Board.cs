@@ -128,7 +128,7 @@ public sealed class Board {
     }
 
     /// <summary>
-    /// The watering can shows this cell can't hold a plant: an empty or ✕ cell becomes revealed empty and locks.
+    /// The watering can or an applied Worm hint shows this cell can't hold a plant: an empty or ✕ cell becomes revealed empty and locks.
     /// Solution cells, locked cells and finished gardens don't change, so a mistake in the caller can never hide a plant.
     /// </summary>
     public Board RevealEmpty(Cell cell) {
