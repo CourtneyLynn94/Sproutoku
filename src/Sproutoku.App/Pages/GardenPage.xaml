@@ -61,7 +61,7 @@
                                IsVisible="{Binding IsHintOpen}"
                                VerticalOptions="Start" />
 
-            <!-- Tool shelf placeholder: Seeds, Worm, Water | Rake. -->
+            <!-- Tool shelf placeholder: Seedling, Worm, Water | Rake. -->
             <controls:ToolShelf x:Name="ToolShelf"
                                 VerticalOptions="Start" />
         </Grid>

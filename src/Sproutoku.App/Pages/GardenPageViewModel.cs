@@ -425,16 +425,16 @@ public sealed partial class GardenPageViewModel : ObservableObject {
 
     #region Tool shelf
     // Each tool shows its name and count (∞ with the dev option); a tool works when there's one left and the garden isn't over.
-    // Seeds and Water do nothing yet (#45, #46), and the Rake arrives with #49.
-    public string SeedsText => ToolText("Seeds", PowerUp.Seeds);
+    // Seedling and Water do nothing yet (#45, #46), and the Rake arrives with #49.
+    public string SeedlingText => ToolText("Seedling", PowerUp.Seedling);
     public string WormText => ToolText("Worm", PowerUp.Worm);
     public string WaterText => ToolText("Water", PowerUp.Water);
 
-    public string SeedsDescription => ToolDescription("Seeds", PowerUp.Seeds);
+    public string SeedlingDescription => ToolDescription("Seedling", PowerUp.Seedling);
     public string WormDescription => ToolDescription("Worm", PowerUp.Worm);
     public string WaterDescription => ToolDescription("Water", PowerUp.Water);
 
-    public bool CanUseSeeds => _session?.CanUse(PowerUp.Seeds) == true;
+    public bool CanUseSeedling => _session?.CanUse(PowerUp.Seedling) == true;
     public bool CanUseWater => _session?.CanUse(PowerUp.Water) == true;
     private bool CanUseWorm => _session?.CanUse(PowerUp.Worm) == true;
 

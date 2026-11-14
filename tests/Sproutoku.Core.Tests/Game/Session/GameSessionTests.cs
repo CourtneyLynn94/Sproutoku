@@ -604,7 +604,7 @@ public class GameSessionTests {
         var session = GameWithOneWormLeft();
 
         Assert.True(session.CanUse(PowerUp.Worm));
-        Assert.False(session.CanUse(PowerUp.Seeds));
+        Assert.False(session.CanUse(PowerUp.Seedling));
 
         Solve(session);
         Assert.False(session.CanUse(PowerUp.Worm));

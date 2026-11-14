@@ -5,18 +5,18 @@
              x:Class="Sproutoku.App.Controls.ToolShelf"
              x:DataType="pages:GardenPageViewModel">
 
-    <!-- Seeds, Worm, Water | Rake. Arrange lays them out in a row (phone) or a column (desktop). -->
+    <!-- Seedling, Worm, Water | Rake. Arrange lays them out in a row (phone) or a column (desktop). -->
     <Grid x:Name="Shelf"
           RowSpacing="8"
           ColumnSpacing="8">
-        <Button x:Name="SeedsButton"
-                Text="{Binding SeedsText}"
-                IsEnabled="{Binding CanUseSeeds}"
+        <Button x:Name="SeedlingButton"
+                Text="{Binding SeedlingText}"
+                IsEnabled="{Binding CanUseSeedling}"
                 Padding="4"
                 LineBreakMode="WordWrap"
-                SemanticProperties.Description="{Binding SeedsDescription}"
-                SemanticProperties.Hint="Plants one correct seed for you."
-                ToolTipProperties.Text="Seeds: plants one correct seed for you." />
+                SemanticProperties.Description="{Binding SeedlingDescription}"
+                SemanticProperties.Hint="Plants one correct seedling for you."
+                ToolTipProperties.Text="Seedling: plants one correct seed for you." />
         <Button x:Name="WormButton"
                 Text="{Binding WormText}"
                 Command="{Binding UseWormCommand}"

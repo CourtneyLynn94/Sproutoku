@@ -2,35 +2,35 @@ namespace Sproutoku.Core.Tests.Game.PowerUps;
 
 public class PowerUpSupplyTests {
     [Fact]
-    public void EveryGarden_StartsWithTwoWorms_AndNoSeedsOrWater() {
-        Assert.Equal(new PowerUpSupply(Seeds: 2, Worm: 2, Water: 2), PowerUpSupply.Starting);
+    public void EveryGarden_StartsWithTwoWorms_AndNoSeedlingsOrWater() {
+        Assert.Equal(new PowerUpSupply(Seedling: 2, Worm: 2, Water: 2), PowerUpSupply.Starting);
     }
 
     [Fact]
     public void Counts_CanBeReadByPowerUp() {
-        var supply = new PowerUpSupply(Seeds: 1, Worm: 2, Water: 3);
+        var supply = new PowerUpSupply(Seedling: 1, Worm: 2, Water: 3);
 
-        Assert.Equal(1, supply[PowerUp.Seeds]);
+        Assert.Equal(1, supply[PowerUp.Seedling]);
         Assert.Equal(2, supply[PowerUp.Worm]);
         Assert.Equal(3, supply[PowerUp.Water]);
     }
 
     [Fact]
     public void Spending_TakesOneOfThatPowerUpOnly() {
-        var supply = new PowerUpSupply(Seeds: 1, Worm: 2, Water: 3);
+        var supply = new PowerUpSupply(Seedling: 1, Worm: 2, Water: 3);
 
         Assert.Equal(new PowerUpSupply(1, 1, 3), supply.Spend(PowerUp.Worm));
-        Assert.Equal(new PowerUpSupply(0, 2, 3), supply.Spend(PowerUp.Seeds));
+        Assert.Equal(new PowerUpSupply(0, 2, 3), supply.Spend(PowerUp.Seedling));
         Assert.Equal(new PowerUpSupply(1, 2, 2), supply.Spend(PowerUp.Water));
         Assert.Equal(new PowerUpSupply(1, 2, 3), supply); // The original doesn't change.
     }
 
     [Fact]
     public void Spending_WithNoneLeft_Throws() {
-        var supply = new PowerUpSupply(Seeds: 0, Worm: 2, Water: 2);
+        var supply = new PowerUpSupply(Seedling: 0, Worm: 2, Water: 2);
 
-        Assert.False(supply.Has(PowerUp.Seeds));
-        Assert.Throws<InvalidOperationException>(() => supply.Spend(PowerUp.Seeds));
+        Assert.False(supply.Has(PowerUp.Seedling));
+        Assert.Throws<InvalidOperationException>(() => supply.Spend(PowerUp.Seedling));
     }
 
     [Fact]

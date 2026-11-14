@@ -5,9 +5,9 @@ namespace Sproutoku.Core.Game.PowerUps;
 /// </summary>
 public enum PowerUp {
     /// <summary>
-    /// Plants one correct seed.
+    /// Plants one correct seedling.
     /// </summary>
-    Seeds,
+    Seedling,
 
     /// <summary>
     /// The worm shows where to look next and explains why.
@@ -23,14 +23,14 @@ public enum PowerUp {
 /// <summary>
 /// How many of each power-up are left for the current garden.
 /// </summary>
-public sealed record PowerUpSupply(int Seeds, int Worm, int Water) {
+public sealed record PowerUpSupply(int Seedling, int Worm, int Water) {
     /// <summary>
     /// What every garden starts with until the tool shed exists: two of each power-up.
     /// </summary>
-    public static PowerUpSupply Starting { get; } = new(Seeds: 2, Worm: 2, Water: 2);
+    public static PowerUpSupply Starting { get; } = new(Seedling: 2, Worm: 2, Water: 2);
 
     public int this[PowerUp powerUp] => powerUp switch {
-        PowerUp.Seeds => Seeds,
+        PowerUp.Seedling => Seedling,
         PowerUp.Worm => Worm,
         PowerUp.Water => Water,
         _ => throw new ArgumentOutOfRangeException(nameof(powerUp), powerUp, "Not a power-up."),
@@ -47,7 +47,7 @@ public sealed record PowerUpSupply(int Seeds, int Worm, int Water) {
         }
 
         return powerUp switch {
-            PowerUp.Seeds => this with { Seeds = Seeds - 1 },
+            PowerUp.Seedling => this with { Seedling = Seedling - 1 },
             PowerUp.Worm => this with { Worm = Worm - 1 },
             _ => this with { Water = Water - 1 },
         };
@@ -57,5 +57,5 @@ public sealed record PowerUpSupply(int Seeds, int Worm, int Water) {
     /// False for a supply that can't happen in play, such as a corrupted save with negative counts.
     /// </summary>
     public static bool IsValid(PowerUpSupply? supply) =>
-        supply is { Seeds: >= 0, Worm: >= 0, Water: >= 0 };
+        supply is { Seedling: >= 0, Worm: >= 0, Water: >= 0 };
 }
