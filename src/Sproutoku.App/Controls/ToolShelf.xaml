@@ -11,12 +11,12 @@
           ColumnSpacing="8">
         <Button x:Name="SeedlingButton"
                 Text="{Binding SeedlingText}"
-                IsEnabled="{Binding CanUseSeedling}"
+                Command="{Binding UseSeedlingCommand}"
                 Padding="4"
                 LineBreakMode="WordWrap"
                 SemanticProperties.Description="{Binding SeedlingDescription}"
-                SemanticProperties.Hint="Plants one correct seedling for you."
-                ToolTipProperties.Text="Seedling: plants one correct seed for you." />
+                SemanticProperties.Hint="Grows one correct plant for you."
+                ToolTipProperties.Text="Seedling: grows one correct plant for you." />
         <Button x:Name="WormButton"
                 Text="{Binding WormText}"
                 Command="{Binding UseWormCommand}"

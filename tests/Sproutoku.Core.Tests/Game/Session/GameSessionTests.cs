@@ -934,5 +934,29 @@ public class GameSessionTests {
         Assert.All(ruleOuts, ruleOut => Assert.Equal(CellState.Marked, session.Board[ruleOut]));
     }
     #endregion
+
+    #region Seedling
+    [Fact]
+    public void Seedlings_GrowACorrectPlant_WithoutSpendingASun() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+
+        var result = session.UseSeedling();
+
+        Assert.Equal(TapOutcome.Grew, result.Outcome);
+        Assert.Equal(CellState.Planted, session.Board[new Cell(0, 0)]);
+        Assert.Equal(session.Board.StartingSuns, session.Board.SunsLeft);
+        Assert.Equal(PowerUpSupply.Starting.Seedling - 1, session.PowerUps.Seedling);
+    }
+
+    [Fact]
+    public void Seedlings_WithNoneLeft_DoNothing() {
+        var session = GameWithOneWormLeft(); // No Seeds.
+
+        Assert.Equal(TapOutcome.Ignored, session.UseSeedling().Outcome);
+        Assert.Equal(0, session.Board.CountOf(CellState.Planted));
+    }
+    #endregion
+
     #endregion
 }

@@ -378,6 +378,22 @@ public sealed class GameSession {
             CloseHint();
         }
     }
+
+    /// <summary>
+    /// Seedling: grows one correct plant, in the bed <see cref="SeedlingTool"/> picks. Costs no sun and places no ✕ marks.
+    /// Does nothing and spends nothing if none are left or the garden is over.
+    /// </summary>
+    public TapResult UseSeedling() {
+        if (!CanUse(PowerUp.Seedling) || SeedlingTool.CellFor(Board) is not { } cell) {
+            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
+        }
+
+        ForgetLastTap();
+        Spend(PowerUp.Seedling);
+        Board = Board.TryPlant(cell).Board;
+        UpdateHint();
+        return new TapResult(TapOutcome.Grew, Board.IsFinished);
+    }
     #endregion
 
     #region Keyboard Actions

@@ -1,9 +1,8 @@
-using Sproutoku.Core.Game.Levels;
 using Sproutoku.Core.Gardens.Solving;
 
 namespace Sproutoku.Core.Tests.Game.PowerUps;
 
-public class WormHelperTests {
+public class WormToolTests {
     // Rows 00111 / 11111 / 33122 / 33344 / 33444; its logic steps were worked out with a reference copy of the solver.
     private static readonly Puzzle Garden = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
 
