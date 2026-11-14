@@ -9,9 +9,12 @@ plants never touch, not even diagonally. Gardens are N×N with N beds.
   `Gardens` (`Puzzles`: what a garden is; `Solving`; `Generation`) and
   `Game` (`Session`: `GameSession`; `Boards`: what the player sees, `Board` is immutable; `Levels`; `PowerUps`; `Input`; `Saving`).
   Tests mirror these folders.
-- `Sproutoku.App`: MAUI UI only. Pages hold view code (layout, drawing, turning touches and keys into cells); `ViewModels/` (CommunityToolkit.Mvvm) wrap `GameSession`, save, move between gardens and ask the player through the `Dialogs` service. `GardenViewModel` is a singleton: one game for the whole app. Each ViewModel and page is split into `#region`s by part of the screen, so a region can move into its own control.
+- `Sproutoku.App`: MAUI UI only, no game rules.
+  - `Pages/` lay out the screen; `Controls/` hold one control per part of the screen (`GardenView` with the drawing and touch, drag and keyboard input, `SunMeter`, `ToolShelf`, `PlantingList`, `WormNote`), which bind to the page's ViewModel.
+  - `ViewModels/` (CommunityToolkit.Mvvm) wrap `GameSession`, save, move between gardens and ask the player through the `Dialogs` service. `GardenViewModel` is a singleton: one game for the whole app. Each ViewModel is split into `#region`s by part of the screen, matching the controls.
+  - `Services/` (haptics, settings, storage, dialogs, preparing the next garden in the background) are registered in `MauiProgram` for dependency injection and arrive through constructors. Pages open by Shell route (`Routes`).
+  - Android-only code lives in `Platforms/Android/`, Windows-only code in `Platforms/Windows/`, each as the other half of a partial class (for example `Haptics.Android.cs`, `GardenView.Keyboard.cs`), keeping the shared namespace.
 - `GameSession` (Core) owns the level, board, tap meaning, progression, restarting and saving.
-- `Sproutoku.App`: MAUI UI only. Pages pass input to `GameSession` and show the results.
 - Saves: `GameSave` (Core, JSON) and `GameStorage` (App, MAUI Preferences).
 - Core is unit tested with xUnit. App code isn't unit tested; it's tested by hand on a phone and Windows.
 
@@ -24,7 +27,7 @@ plants never touch, not even diagonally. Gardens are N×N with N beds.
 
 ## Deliberate decisions: please don't flag these
 - No license file, on purpose: all rights reserved.
-- No Undo, Redo or Restart buttons. Starting over is only offered after losing or after the last available garden.
+- No Undo, Redo or Restart buttons.
 - Double-tap plants, including on a ✕ cell. A single tap toggles ✕. Double-tap timing is 250 ms.
 - The game never places ✕ marks automatically (no auto rule-outs after a plant). The only exceptions are the player applying a Worm hint and, later, the Water power-up revealing empty cells.
 - "Reset all progress" clears only the `sproutoku.progress` Preferences container. Settings are kept on purpose.

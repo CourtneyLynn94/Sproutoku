@@ -46,8 +46,8 @@
                            FontAttributes="Bold" />
                 </Border>
 
-                <GraphicsView x:Name="GardenView"
-                              Grid.Row="1" />
+                <garden:GardenView x:Name="Garden"
+                                   Grid.Row="1" />
             </Grid>
 
             <!-- Planting list placeholder. -->
