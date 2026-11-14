@@ -42,6 +42,7 @@ plants never touch, not even diagonally. Gardens are N×N with N beds.
 - A drag starts after a third of a cell, and one that starts along a row or column stays in it until the finger is past the middle of the next line. A press that slides off the board without reaching another cell stays a press.
 - Settings live in the default Preferences container; Reset all progress never touches them.
 - When it's built, the Rake clears every ✕ on the board, including ones from the Worm and Water. Only plants and wilts stay.
+- Home, the garden, the Journal and the end screens don't scroll, by design; only Settings and How to play may. How large system text fits them is decided with the cozy UI (#131).
 
 ## Please do flag
 - Game rules or state changes in App code that belong in `Sproutoku.Core`.
