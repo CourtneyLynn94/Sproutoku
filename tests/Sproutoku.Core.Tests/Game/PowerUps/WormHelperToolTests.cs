@@ -2,7 +2,7 @@ using Sproutoku.Core.Gardens.Solving;
 
 namespace Sproutoku.Core.Tests.Game.PowerUps;
 
-public class WormToolTests {
+public class WormHelperToolTests {
     // Rows 00111 / 11111 / 33122 / 33344 / 33444; its logic steps were worked out with a reference copy of the solver.
     private static readonly Puzzle Garden = Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution());
 
@@ -11,7 +11,7 @@ public class WormToolTests {
 
     [Fact]
     public void OnAFreshGarden_TheWormGivesTheFirstStep() {
-        var hint = WormTool.HintFor(Board.Start(Garden));
+        var hint = WormHelperTool.HintFor(Board.Start(Garden));
 
         // Bed 0 (Soil) only has cells in row 1, so the rest of row 1 can't hold a plant.
         Assert.NotNull(hint);
@@ -25,7 +25,7 @@ public class WormToolTests {
 
     [Fact]
     public void StepsAlreadyOnTheBoard_AreSkipped() {
-        var hint = WormTool.HintFor(MarkedAt(new(0, 2), new(0, 3), new(0, 4)));
+        var hint = WormHelperTool.HintFor(MarkedAt(new(0, 2), new(0, 3), new(0, 4)));
 
         Assert.NotNull(hint);
         Assert.Equal($"{BedNames.For(2)} only has open cells in row 3. Rule out the other beds there.", hint.Message);
@@ -34,7 +34,7 @@ public class WormToolTests {
 
     [Fact]
     public void OnlyCellsNotYetMarked_GetPreviewMarks() {
-        var hint = WormTool.HintFor(MarkedAt(new Cell(0, 2)));
+        var hint = WormHelperTool.HintFor(MarkedAt(new Cell(0, 2)));
 
         Assert.NotNull(hint);
         Assert.Equal([new Cell(0, 3), new Cell(0, 4)], hint.RuleOuts);
@@ -42,7 +42,7 @@ public class WormToolTests {
 
     [Fact]
     public void AWouldStarveHint_NamesTheRulesThatApply() {
-        var hint = WormTool.HintFor(MarkedAt(new(0, 2), new(0, 3), new(0, 4), new(2, 0), new(2, 1), new(2, 2)));
+        var hint = WormHelperTool.HintFor(MarkedAt(new(0, 2), new(0, 3), new(0, 4), new(2, 0), new(2, 1), new(2, 2)));
 
         // A plant at (1,0) or (1,1) would block Soil's open cells (0,0) and (0,1): same column, or touching diagonally.
         Assert.NotNull(hint);
@@ -58,7 +58,7 @@ public class WormToolTests {
     public void ACorrectMark_CountsAsAFact() {
         // (0,1) is Soil but not its plant, so the ✕ is right: Soil now has only (0,0) left.
         // Without trusting the ✕, the worm would have said "Soil only has open cells in row 1" instead.
-        var hint = WormTool.HintFor(MarkedAt(new Cell(0, 1)));
+        var hint = WormHelperTool.HintFor(MarkedAt(new Cell(0, 1)));
 
         Assert.NotNull(hint);
         Assert.Equal($"{BedNames.For(0)} has only one cell left for a plant: A1.", hint.Message);
@@ -68,7 +68,7 @@ public class WormToolTests {
 
     [Fact]
     public void AWrongMark_TheStepDoesntTouch_IsLeftAlone() {
-        var hint = WormTool.HintFor(MarkedAt(new Cell(0, 0)));
+        var hint = WormHelperTool.HintFor(MarkedAt(new Cell(0, 0)));
 
         Assert.NotNull(hint);
         Assert.Equal([new Cell(0, 2), new Cell(0, 3), new Cell(0, 4)], hint.RuleOuts);
@@ -84,7 +84,7 @@ public class WormToolTests {
             new(2, 3),
             new(2, 4));
 
-        var hint = WormTool.HintFor(board);
+        var hint = WormHelperTool.HintFor(board);
 
         Assert.NotNull(hint);
         Assert.Equal($"{BedNames.For(2)} has only one cell left for a plant: E3. Your ✕ there is a mistake.", hint.Message);
@@ -96,7 +96,7 @@ public class WormToolTests {
 
     [Fact]
     public void APlant_RulesOutItsRowColumnBedAndNeighbors() {
-        var hint = WormTool.HintFor(Board.Start(Garden).TryPlant(new Cell(0, 0)).Board);
+        var hint = WormHelperTool.HintFor(Board.Start(Garden).TryPlant(new Cell(0, 0)).Board);
 
         Assert.NotNull(hint);
         Assert.Equal("No other plant can share a row, column or bed with the plant on A1, or touch it. Rule those cells out.", hint.Message);
@@ -112,6 +112,6 @@ public class WormToolTests {
     public void AFinishedGarden_GetsNoHint() {
         var board = Garden.Solution.Aggregate(Board.Start(Garden), (current, cell) => current.TryPlant(cell).Board);
 
-        Assert.Null(WormTool.HintFor(board));
+        Assert.Null(WormHelperTool.HintFor(board));
     }
 }
