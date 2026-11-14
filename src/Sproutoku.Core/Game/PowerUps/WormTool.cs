@@ -47,7 +47,7 @@ public sealed record WormHint(
 /// The Worm's thinking. It only uses what the player can see: the bed shapes, the board's facts and the player's correct ✕ marks.
 /// It never peeks at the answer; a ✕ the next step proves wrong is called out in that hint.
 /// </summary>
-public static class WormHelper {
+public static class WormTool {
     // A "would starve" hint names its cells up to this many; past that, the preview marks show them.
     private const int MaxCellsNamed = 4;
 

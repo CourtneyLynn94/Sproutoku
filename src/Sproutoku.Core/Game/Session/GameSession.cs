@@ -310,7 +310,7 @@ public sealed class GameSession {
         }
         if (!CanUse(PowerUp.Worm)) return null;
 
-        var hint = WormHelper.HintFor(Board);
+        var hint = WormTool.HintFor(Board);
         if (hint is null) return null;
 
         Spend(PowerUp.Worm);
