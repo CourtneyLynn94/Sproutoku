@@ -5,6 +5,7 @@ namespace Sproutoku.App;
 /// </summary>
 public static class Routes {
     public const string Garden = "garden";
+    public const string Journal = "journal";
     public const string Settings = "settings";
     public const string HowToPlay = "howToPlay";
 }

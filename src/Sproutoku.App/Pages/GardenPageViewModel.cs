@@ -212,14 +212,22 @@ public sealed partial class GardenPageViewModel : ObservableObject {
         private set => SetProperty(ref _info, value);
     }
 
-    // The info line for a level: size, plus Hard, Super hard and One sun until the real tags exist. Debug adds the grade, style and seed.
+    // The garden's tags until the real ones exist (#91): Hard, Super hard, One sun. None for a test garden.
+    private List<string> Tags() {
+        if (Session.IsExtraGarden) return [];
+
+        var recipe = Session.LevelGarden.Recipe;
+        List<string> tags = [];
+        if (recipe.Tier == GardenTier.Hard) tags.Add("Hard");
+        if (recipe.Tier == GardenTier.SuperHard) tags.Add("Super hard");
+        if (recipe.IsOneSun) tags.Add("One sun");
+        return tags;
+    }
+
+    // The info line for a level: size and tags. Debug adds the grade, style and seed.
     private string GardenInfo() {
         var recipe = Session.LevelGarden.Recipe;
-        List<string> parts = [$"{recipe.Size} × {recipe.Size}"];
-
-        if (recipe.Tier == GardenTier.Hard) parts.Add("Hard");
-        if (recipe.Tier == GardenTier.SuperHard) parts.Add("Super hard");
-        if (recipe.IsOneSun) parts.Add("One sun");
+        List<string> parts = [$"{recipe.Size} × {recipe.Size}", .. Tags()];
 #if DEBUG
         parts.Add(Session.LevelGarden.Garden.Grade.ToString());
         parts.Add(Session.LevelGarden.Garden.Style.ToString());
@@ -442,56 +450,71 @@ public sealed partial class GardenPageViewModel : ObservableObject {
     #endregion
 
     #region Journal
-    // Rough Garden journal.
-    [RelayCommand]
-    private async Task OpenJournalAsync() {
-        if (_session is null) return; // Still loading.
+    /// <summary>
+    /// The Journal's garden facts, e.g. "Garden 42 · 7 beds · 2 of 3 suns left · Hard".
+    /// </summary>
+    public string JournalFacts {
+        get {
+            if (_session is null) return "";
 
-        List<string> options = ["How to play", "Settings", "Back to home"];
-#if DEBUG
-        options.Add("Go to level (dev)");
-        options.Add("Skip to next garden (dev)");
-        options.Add(Session.UnlimitedTools ? "Normal tools (dev)" : "Unlimited tools (dev)");
-        options.Add(ShowSolution ? "Hide solution (dev)" : "Show solution (dev)");
-#endif
-
-        string? choice = await _dialogs.ChooseAsync("Garden journal", "Keep gardening", "Reset all progress", [.. options]);
-
-        switch (choice) {
-            case "Reset all progress":
-                await ResetAsync();
-                break;
-            case "How to play":
-                await Shell.Current.GoToAsync(Routes.HowToPlay);
-                break;
-            case "Settings":
-                await Shell.Current.GoToAsync(Routes.Settings);
-                break;
-            case "Back to home":
-                await Shell.Current.GoToAsync("..");
-                break;
-#if DEBUG
-            case "Go to level (dev)":
-                await GoToLevelAsync();
-                break;
-            case "Skip to next garden (dev)":
-                await JumpToLevelAsync(Session.Level + 1);
-                break;
-            case "Unlimited tools (dev)":
-            case "Normal tools (dev)":
-                Session.UnlimitedTools = !Session.UnlimitedTools;
-                Refresh();
-                break;
-            case "Show solution (dev)":
-            case "Hide solution (dev)":
-                ShowSolution = !ShowSolution;
-                Refresh();
-                break;
-#endif
+            var board = Session.Board;
+            List<string> parts = [
+                GardenName,
+                $"{board.Size} beds",
+                $"{board.SunsLeft} of {board.StartingSuns} suns left",
+                .. Tags(),
+            ];
+            return string.Join(" · ", parts);
         }
     }
 
+    // Opens the Journal sheet: from the Journal button, or the back gesture on the garden. Ignored while the game is loading.
+    [RelayCommand]
+    private Task OpenJournalAsync() => _session is null ? Task.CompletedTask : Shell.Current.GoToAsync(Routes.Journal);
+
+    [RelayCommand]
+    private Task KeepGardeningAsync() => CloseJournalAsync();
+
+    // How to play and Settings open over the Journal, so closing them comes back to it.
+    [RelayCommand]
+    private Task OpenHowToPlayAsync() => Shell.Current.GoToAsync(Routes.HowToPlay);
+
+    [RelayCommand]
+    private Task OpenSettingsAsync() => Shell.Current.GoToAsync(Routes.Settings);
+
+    // Closes the Journal and leaves the garden for Home. The garden's progress is already saved.
+    [RelayCommand]
+    private Task GoHomeAsync() => Shell.Current.GoToAsync("../..");
+
+    private static Task CloseJournalAsync() => Shell.Current.GoToAsync("..");
+
 #if DEBUG
+    [RelayCommand]
+    private async Task GoToLevelDevAsync() {
+        await CloseJournalAsync();
+        await GoToLevelAsync();
+    }
+
+    [RelayCommand]
+    private async Task SkipLevelDevAsync() {
+        await CloseJournalAsync();
+        await JumpToLevelAsync(Session.Level + 1);
+    }
+
+    [RelayCommand]
+    private async Task ToggleUnlimitedToolsDevAsync() {
+        Session.UnlimitedTools = !Session.UnlimitedTools;
+        Refresh();
+        await CloseJournalAsync();
+    }
+
+    [RelayCommand]
+    private async Task ToggleSolutionDevAsync() {
+        ShowSolution = !ShowSolution;
+        Refresh();
+        await CloseJournalAsync();
+    }
+
     // Dev: jumps straight to any level by number. The garden is grown off the main thread, since big or Super hard ones can take a moment.
     private async Task GoToLevelAsync() {
         string? answer = await _dialogs.PromptAsync(
