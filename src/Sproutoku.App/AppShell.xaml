@@ -6,7 +6,7 @@
        Title="Sproutoku">
 
     <ShellContent Title="Sproutoku"
-                  ContentTemplate="{DataTemplate pages:GardenPage}"
-                  Route="garden" />
+                  ContentTemplate="{DataTemplate pages:HomePage}"
+                  Route="home" />
 
 </Shell>

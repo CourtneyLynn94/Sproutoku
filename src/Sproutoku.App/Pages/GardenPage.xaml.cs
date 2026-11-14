@@ -18,6 +18,16 @@ public partial class GardenPage : ContentPage {
         _ = viewModel.LoadAsync();
     }
 
+    // Android's back gesture opens the Journal instead of leaving the garden; Back to home is in the Journal.
+    protected override bool OnBackButtonPressed() {
+        var journal = ((GardenViewModel)BindingContext).OpenJournalCommand;
+        if (journal.CanExecute(null)) {
+            journal.Execute(null);
+        }
+
+        return true;
+    }
+
     #region Layout
     // At this width and up, the desktop layout puts the list, board and shelf side by side.
     private const double WideLayoutMinWidth = 960;

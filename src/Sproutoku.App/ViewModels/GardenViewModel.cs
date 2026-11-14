@@ -447,7 +447,7 @@ public sealed partial class GardenViewModel : ObservableObject {
     private async Task OpenJournalAsync() {
         if (_session is null) return; // Still loading.
 
-        List<string> options = ["How to play", "Settings"];
+        List<string> options = ["How to play", "Settings", "Back to home"];
 #if DEBUG
         options.Add("Go to level (dev)");
         options.Add("Skip to next garden (dev)");
@@ -466,6 +466,9 @@ public sealed partial class GardenViewModel : ObservableObject {
                 break;
             case "Settings":
                 await Shell.Current.GoToAsync(Routes.Settings);
+                break;
+            case "Back to home":
+                await Shell.Current.GoToAsync("..");
                 break;
 #if DEBUG
             case "Go to level (dev)":

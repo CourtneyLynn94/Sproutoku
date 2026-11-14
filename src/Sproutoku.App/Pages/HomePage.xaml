@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:Sproutoku.App.ViewModels"
+             x:Class="Sproutoku.App.Pages.HomePage"
+             x:DataType="viewModels:HomeViewModel"
+             BackgroundColor="{StaticResource Paper}"
+             Shell.NavBarIsVisible="False">
+
+    <!-- Placeholder look: the cozy Home comes with M7. -->
+    <Grid RowDefinitions="*,Auto,*"
+          Padding="24">
+        <VerticalStackLayout Grid.Row="1"
+                             Spacing="12"
+                             MaximumWidthRequest="320">
+            <Label Text="Sproutoku"
+                   FontSize="40"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource Ink}"
+                   HorizontalTextAlignment="Center"
+                   SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="A cozy garden logic puzzle"
+                   TextColor="{StaticResource InkSoft}"
+                   HorizontalTextAlignment="Center" />
+
+            <Button Text="{Binding MainButtonText}"
+                    Command="{Binding KeepGardeningCommand}"
+                    FontSize="20"
+                    Padding="16"
+                    Margin="0,32,0,0" />
+            <Label Text="{Binding MainButtonDetail}"
+                   IsVisible="{Binding HasProgress}"
+                   TextColor="{StaticResource InkSoft}"
+                   HorizontalTextAlignment="Center" />
+
+            <Button Text="Daily garden"
+                    IsEnabled="False"
+                    Margin="0,16,0,0"
+                    SemanticProperties.Hint="Coming soon."
+                    ToolTipProperties.Text="Daily garden: coming soon." />
+            <Grid ColumnDefinitions="*,*"
+                  ColumnSpacing="12">
+                <Button Text="How to play"
+                        Command="{Binding OpenHowToPlayCommand}" />
+                <Button Grid.Column="1"
+                        Text="Settings"
+                        Command="{Binding OpenSettingsCommand}" />
+            </Grid>
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>
