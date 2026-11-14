@@ -95,17 +95,36 @@ public class WormHelperToolTests {
     }
 
     [Fact]
-    public void APlant_RulesOutItsRowColumnBedAndNeighbors() {
+    public void APlant_RulesOutItsRowColumnAndNeighbors() {
         var hint = WormHelperTool.HintFor(Board.Start(Garden).TryPlant(new Cell(0, 0)).Board);
 
         Assert.NotNull(hint);
-        Assert.Equal("No other plant can share a row, column or bed with the plant on A1, or touch it. Rule those cells out.", hint.Message);
+        Assert.Equal("No other plant can share a row or column with the plant on A1, or touch it. Rule those cells out.", hint.Message);
         Assert.Equal([0], hint.NamedRows);
         Assert.Equal([0], hint.NamedColumns);
         Assert.Equal(
             [new(0, 1), new(0, 2), new(0, 3), new(0, 4), new(1, 0), new(1, 1), new(2, 0), new(3, 0), new(4, 0)],
             hint.RuleOuts);
         Assert.Equal(new Cell(0, 0), hint.Focus[0]);
+    }
+
+    [Fact]
+    public void APlantsBed_IsItsOwnHint_AfterItsLinesAndNeighbors() {
+        var board = Board.Start(Garden).TryPlant(new Cell(1, 2)).Board;
+
+        var lines = WormHelperTool.HintFor(board);
+        Assert.NotNull(lines);
+        Assert.Equal("No other plant can share a row or column with the plant on C2, or touch it. Rule those cells out.", lines.Message);
+        Assert.DoesNotContain(new Cell(0, 4), lines.RuleOuts); // E1 is ruled out only by the bed.
+
+        foreach (var cell in lines.RuleOuts) {
+            board = board.RevealEmpty(cell);
+        }
+
+        var bed = WormHelperTool.HintFor(board);
+        Assert.NotNull(bed);
+        Assert.Equal($"{BedNames.For(1)} already has its plant on C2. Rule out its other cells.", bed.Message);
+        Assert.Equal([new Cell(0, 4)], bed.RuleOuts);
     }
 
     [Fact]

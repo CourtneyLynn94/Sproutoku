@@ -64,6 +64,15 @@ public static class WormHelperTool {
             var ruleOuts = step.RuledOut.Where(cell => board[cell] == CellState.Empty).ToList();
             if (plants.Count == 0 && ruleOuts.Count == 0) continue;
 
+            // A plant's rule-outs come as two hints: first its row, column and touching cells, then the rest of its bed.
+            if (step.Technique == Technique.PlantRulesOut) {
+                var plant = step.Reasons[0];
+                var linesAndNeighbors = ruleOuts.Where(cell => SharesALineOrTouches(plant, cell)).ToList();
+                if (linesAndNeighbors.Count > 0) {
+                    ruleOuts = linesAndNeighbors;
+                }
+            }
+
             // A plant this step proves, sitting under a ✕: that ✕ is a mistake.
             var wrongMarks = plants.Where(cell => board[cell] == CellState.Marked).ToList();
 
@@ -108,8 +117,12 @@ public static class WormHelperTool {
         var lines = step.Areas.Where(area => area.Kind != AreaKind.Bed).ToList();
 
         switch (step.Technique) {
-            case Technique.PlantRulesOut:
-                return $"No other plant can share a row, column or bed with the plant on {step.Reasons[0].Label}, or touch it. Rule those cells out.";
+            case Technique.PlantRulesOut: {
+                var plant = step.Reasons[0];
+                return ruleOuts.Any(cell => SharesALineOrTouches(plant, cell))
+                    ? $"No other plant can share a row or column with the plant on {plant.Label}, or touch it. Rule those cells out."
+                    : $"{BedNames.For(puzzle.RegionAt(plant))} already has its plant on {plant.Label}. Rule out its other cells.";
+            }
 
             case Technique.OnlyCellLeft: {
                 var area = step.Areas[0];
@@ -137,6 +150,12 @@ public static class WormHelperTool {
             }
         }
     }
+
+    // Whether a cell shares the plant's row or column, or touches it (diagonals too).
+    private static bool SharesALineOrTouches(Cell plant, Cell cell) =>
+        cell.Row == plant.Row
+        || cell.Column == plant.Column
+        || (Math.Abs(cell.Row - plant.Row) <= 1 && Math.Abs(cell.Column - plant.Column) <= 1);
 
     // The rows and columns the message names: its rows and columns, plus the row and column of each cell it names (B5 names column B and row 5).
     // Matches Describe, so the app can darken just those labels.
