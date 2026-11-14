@@ -417,6 +417,26 @@ public sealed class GameSession {
         UpdateHint();
         return new TapResult(TapOutcome.Revealed, EndedGarden: false);
     }
+
+    /// <summary>
+    /// Whether the rake has anything to clear: a ✕ the player placed, on a garden that isn't over.
+    /// </summary>
+    public bool CanRake => !Board.IsFinished && Board.CountOf(CellState.Marked) > 0;
+
+    /// <summary>
+    /// The rake: clears every ✕ the player placed (see <see cref="Board.ClearMarks"/>), and closes an open Worm hint,
+    /// which may have relied on them. Revealed cells stay. Unlimited: it has no count.
+    /// </summary>
+    public TapResult Rake() {
+        if (!CanRake) {
+            return new TapResult(TapOutcome.Ignored, EndedGarden: false);
+        }
+
+        ForgetLastTap();
+        CloseHint();
+        Board = Board.ClearMarks();
+        return new TapResult(TapOutcome.Raked, EndedGarden: false);
+    }
     #endregion
 
     #region Keyboard Actions

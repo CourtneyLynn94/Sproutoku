@@ -140,8 +140,8 @@ public sealed class Board {
     }
 
     /// <summary>
-    /// The rake: every ✕ and every revealed-empty cell goes back to empty. Plants and wilts stay.
-    /// Nothing changes once the garden is finished.
+    /// The rake: every ✕ the player placed goes back to empty.
+    /// Cells the watering can or a Worm hint revealed stay, and so do plants and wilts. Nothing changes once the garden is finished.
     /// </summary>
     public Board ClearMarks() {
         if (IsFinished) {
@@ -151,7 +151,7 @@ public sealed class Board {
         var cells = (CellState[,])_cells.Clone();
         for (int row = 0; row < Size; row++) {
             for (int column = 0; column < Size; column++) {
-                if (cells[row, column] is CellState.Marked or CellState.RevealedEmpty) {
+                if (cells[row, column] == CellState.Marked) {
                     cells[row, column] = CellState.Empty;
                 }
             }

@@ -37,9 +37,10 @@
                  Color="{StaticResource Plank}" />
         <Button x:Name="RakeButton"
                 Text="Rake"
-                IsEnabled="False"
+                Command="{Binding RakeCommand}"
                 Padding="4"
-                SemanticProperties.Hint="Clears all your ✕ marks. Coming soon."
-                ToolTipProperties.Text="Rake: clears all your ✕ marks. Coming soon." />
+                SemanticProperties.Description="Rake, unlimited"
+                SemanticProperties.Hint="Clears every ✕ you placed. Revealed cells stay."
+                ToolTipProperties.Text="Rake: clears every ✕ you placed. Revealed cells stay." />
     </Grid>
 </ContentView>

@@ -996,5 +996,44 @@ public class GameSessionTests {
     }
     #endregion
 
+    #region Rake
+    [Fact]
+    public void Rake_ClearsThePlayersMarks_KeepsRevealedCells_AndClosesTheHint() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        session.UseWater();
+        session.ToggleMark(new Cell(4, 0));
+        Assert.NotNull(session.UseWorm());
+
+        var result = session.Rake();
+
+        Assert.Equal(TapOutcome.Raked, result.Outcome);
+        Assert.Equal(0, session.Board.CountOf(CellState.Marked));
+        Assert.Equal(WateringCanTool.MaxCells, session.Board.CountOf(CellState.RevealedEmpty));
+        Assert.Null(session.OpenHint);
+        Assert.False(session.CanRake); // No ✕ left to clear.
+    }
+
+    [Fact]
+    public void Rake_HasNoCount() {
+        var session = NewGame();
+
+        session.ToggleMark(new Cell(4, 0));
+        Assert.Equal(TapOutcome.Raked, session.Rake().Outcome);
+        session.ToggleMark(new Cell(4, 0));
+        Assert.Equal(TapOutcome.Raked, session.Rake().Outcome);
+    }
+
+    [Fact]
+    public void Rake_WithNoMarks_DoesNothing() {
+        var session = NewGame();
+        session.PlayExtraGarden(ExtraGarden());
+        session.UseWater(); // Revealed cells alone give the rake nothing to do.
+
+        Assert.False(session.CanRake);
+        Assert.Equal(TapOutcome.Ignored, session.Rake().Outcome);
+    }
+    #endregion
+
     #endregion
 }

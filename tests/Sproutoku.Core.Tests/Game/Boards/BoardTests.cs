@@ -127,7 +127,7 @@ public class BoardTests {
     }
 
     [Fact]
-    public void ClearMarks_ClearsEveryMarkAndRevealedCell_AndKeepsPlantsAndWilts() {
+    public void ClearMarks_ClearsThePlayersMarks_AndKeepsRevealedCellsPlantsAndWilts() {
         var revealed = new Cell(0, 3);
         var board = NewBoard()
             .TryPlant(SolutionCell).Board
@@ -140,7 +140,7 @@ public class BoardTests {
         Assert.Equal(CellState.Planted, raked[SolutionCell]);
         Assert.Equal(CellState.Wilted, raked[WrongCell]);
         Assert.Equal(CellState.Empty, raked[AnotherWrongCell]);
-        Assert.Equal(CellState.Empty, raked[revealed]);
+        Assert.Equal(CellState.RevealedEmpty, raked[revealed]);
         Assert.Equal(board.SunsLeft, raked.SunsLeft);
     }
     #endregion

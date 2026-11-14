@@ -41,7 +41,7 @@ plants never touch, not even diagonally. Gardens are N×N with N beds.
 - Haptics play as Android touch feedback (`VibrationAttributes` usage Touch), so they follow the phone's touch-vibration strength and go quiet if the player turns touch vibration off. Drag clicks closer than 35 ms apart wait their turn.
 - A drag starts after a third of a cell, and one that starts along a row or column stays in it until the finger is past the middle of the next line. A press that slides off the board without reaching another cell stays a press.
 - Settings live in the default Preferences container; Reset all progress never touches them.
-- When it's built, the Rake clears every ✕ on the board, including ones from the Worm and Water. Only plants and wilts stay.
+- The Rake clears only the player's own ✕ marks. Cells revealed by the watering can or an applied Worm hint stay, and so do plants and wilts. It asks first and closes an open Worm hint.
 - Home, the garden, the Journal and the end screens don't scroll, by design; only Settings and How to play may. How large system text fits them is decided with the cozy UI (#131).
 
 ## Please do flag

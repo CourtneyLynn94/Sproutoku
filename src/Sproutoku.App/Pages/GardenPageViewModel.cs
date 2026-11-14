@@ -73,6 +73,7 @@ public sealed partial class GardenPageViewModel : ObservableObject {
         UseWormCommand.NotifyCanExecuteChanged();
         UseSeedlingCommand.NotifyCanExecuteChanged();
         UseWaterCommand.NotifyCanExecuteChanged();
+        RakeCommand.NotifyCanExecuteChanged();
         BoardChanged?.Invoke(this, EventArgs.Empty);
     }
     #endregion
@@ -345,6 +346,7 @@ public sealed partial class GardenPageViewModel : ObservableObject {
         switch (outcome) {
             case TapOutcome.MarkToggled:
             case TapOutcome.Revealed:
+            case TapOutcome.Raked:
                 _haptics.Mark();
                 break;
             case TapOutcome.Grew:
@@ -439,6 +441,7 @@ public sealed partial class GardenPageViewModel : ObservableObject {
     public bool CanUseSeedling => _session?.CanUse(PowerUp.Seedling) == true;
     public bool CanUseWater => _session?.CanUse(PowerUp.Water) == true;
     private bool CanUseWorm => _session?.CanUse(PowerUp.Worm) == true;
+    private bool CanRake => _session?.CanRake == true;
 
     // The next step, focused on the board. With a hint already open, this focuses it again for free.
     [RelayCommand(CanExecute = nameof(CanUseWorm))]
@@ -468,6 +471,20 @@ public sealed partial class GardenPageViewModel : ObservableObject {
         }
 
         ShowResult(result);
+    }
+
+    // Clears every ✕ the player placed, after asking: there's no undo. Revealed cells stay.
+    [RelayCommand(CanExecute = nameof(CanRake))]
+    private async Task RakeAsync() {
+        string message = "Every ✕ you placed is cleared. Cells the watering can and the Worm revealed stay, and so do your plants.";
+        if (IsHintOpen) {
+            message += " The worm's note closes too.";
+        }
+
+        bool rake = await _dialogs.ConfirmAsync("Rake the garden?", message, "Rake", "Keep my marks");
+        if (!rake) return;
+
+        ShowResult(Session.Rake());
     }
 
     private string ToolText(string name, PowerUp powerUp) =>
