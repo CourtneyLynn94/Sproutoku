@@ -1,6 +1,4 @@
-using Microsoft.Maui.Controls.Shapes;
 using Sproutoku.App.Controls.Garden;
-using Sproutoku.App.Resources.Styles;
 using Sproutoku.App.ViewModels;
 using Sproutoku.Core.Game.Input;
 using static Sproutoku.App.Controls.GridLayout;
@@ -40,14 +38,10 @@ public partial class MainPage : ContentPage {
         _garden.HoverCell = null;
         _garden.FocusCell = null;
         _garden.ShowFocus = false;
-
-        BuildSunMeter(_viewModel.StartingSuns);
-        UpdateSunMeter(animate: false);
     }
 
     private void OnBoardChanged() {
         DrawGarden();
-        UpdateSunMeter(animate: true);
     }
 
     #region Layout
@@ -267,58 +261,5 @@ public partial class MainPage : ContentPage {
         GardenView.Invalidate();
     }
 #endif
-    #endregion
-
-    #region Sun meter
-    private static Color Ink => Palette.Ink;
-    private static Color SunColor => Palette.Sun;
-    private static Color SpentSunColor => Palette.SpentSun;
-
-    // The bright sun in each sun slot, left to right. Spending a sun fades one out.
-    private readonly List<View> _brightSuns = [];
-
-    // Each sun slot stacks a bright sun on top of a spent one (pale, dashed outline).
-    // A gentle arc: with more than one sun, the outer suns sit a little lower.
-    private void BuildSunMeter(int suns) {
-        SunMeter.Children.Clear();
-        _brightSuns.Clear();
-
-        for (int i = 0; i < suns; i++) {
-            var spent = new Ellipse {
-                Fill = new SolidColorBrush(SpentSunColor),
-                Stroke = new SolidColorBrush(Ink),
-                StrokeThickness = 2,
-                StrokeDashArray = new DoubleCollection { 3, 3 },
-            };
-            var bright = new Ellipse {
-                Fill = new SolidColorBrush(SunColor),
-                Stroke = new SolidColorBrush(Ink),
-                StrokeThickness = 2,
-            };
-
-            SunMeter.Children.Add(new Grid {
-                WidthRequest = 44,
-                HeightRequest = 44,
-                TranslationY = suns > 1 && (i == 0 || i == suns - 1) ? 6 : 0,
-                Children = { spent, bright },
-            });
-            _brightSuns.Add(bright);
-        }
-    }
-
-    // Shows as many bright suns as are left. The rightmost sun is spent first.
-    private void UpdateSunMeter(bool animate) {
-        for (int i = 0; i < _brightSuns.Count; i++) {
-            var bright = _brightSuns[i];
-            double target = i < _viewModel.SunsLeft ? 1 : 0;
-            if (bright.Opacity == target) continue;
-
-            if (animate) {
-                _ = bright.FadeToAsync(target, 300);
-            } else {
-                bright.Opacity = target;
-            }
-        }
-    }
     #endregion
 }
