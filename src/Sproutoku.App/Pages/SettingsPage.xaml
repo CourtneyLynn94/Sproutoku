@@ -26,6 +26,24 @@
                    FontAttributes="Bold" />
 
             <!-- One row per setting: the name and a note on the left, the switch on the right. -->
+            <VerticalStackLayout>
+                <Label Text="Light" FontAttributes="Bold" />
+                <Label Style="{StaticResource Note}" Text="Coming soon: Morning, Dusk, or match your device." />
+            </VerticalStackLayout>
+            
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <VerticalStackLayout>
+                    <Label Text="Sound" FontAttributes="Bold" />
+                    <Label Style="{StaticResource Note}" Text="Coming soon." />
+                </VerticalStackLayout>
+                <Switch x:Name="SoundSwitch"
+                        Grid.Column="1"
+                        VerticalOptions="Center"
+                        IsEnabled="False"
+                        SemanticProperties.Description="Sound"
+                        SemanticProperties.Hint="Coming soon." />
+            </Grid>
+
             <Grid x:Name="VibrationRow" ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <VerticalStackLayout>
                     <Label Text="Vibration" FontAttributes="Bold" />
@@ -54,23 +72,11 @@
                         SemanticProperties.Hint="Coming soon: a pattern on each bed, so beds can be told apart without color." />
             </Grid>
 
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                <VerticalStackLayout>
-                    <Label Text="Sound" FontAttributes="Bold" />
-                    <Label Style="{StaticResource Note}" Text="Coming soon." />
-                </VerticalStackLayout>
-                <Switch x:Name="SoundSwitch"
-                        Grid.Column="1"
-                        VerticalOptions="Center"
-                        IsEnabled="False"
-                        SemanticProperties.Description="Sound"
-                        SemanticProperties.Hint="Coming soon." />
-            </Grid>
-
-            <VerticalStackLayout>
-                <Label Text="Light" FontAttributes="Bold" />
-                <Label Style="{StaticResource Note}" Text="Coming soon: Morning, Dusk, or match your device." />
-            </VerticalStackLayout>
+            <!-- Apart from the switches, so it's hard to hit by accident. It asks first, too. -->
+            <Button Text="Reset all progress"
+                    HorizontalOptions="Start"
+                    BackgroundColor="{StaticResource Wilt}"
+                    Clicked="OnResetClicked" />
 
             <Label x:Name="VersionLabel" Style="{StaticResource Note}" />
             <Button Text="Done"

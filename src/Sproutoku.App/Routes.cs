@@ -4,6 +4,8 @@ namespace Sproutoku.App;
 /// The names Shell navigates by, registered in <see cref="AppShell"/>. Go to one with <c>Shell.Current.GoToAsync(Routes.Settings)</c>.
 /// </summary>
 public static class Routes {
+    public const string Garden = "garden";
+    public const string Journal = "journal";
     public const string Settings = "settings";
     public const string HowToPlay = "howToPlay";
 }

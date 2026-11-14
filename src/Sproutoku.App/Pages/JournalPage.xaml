@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:pages="clr-namespace:Sproutoku.App.Pages"
+             x:Class="Sproutoku.App.Pages.JournalPage"
+             x:DataType="pages:GardenPageViewModel"
+             BackgroundColor="{StaticResource Paper}"
+             Shell.PresentationMode="ModalAnimated">
+
+    <!-- Placeholder look: the cozy journal comes with M7. -->
+    <ScrollView>
+        <VerticalStackLayout Padding="24"
+                             Spacing="12"
+                             MaximumWidthRequest="400">
+            <Label Text="Garden journal"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource Ink}"
+                   SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="{Binding JournalFacts}"
+                   TextColor="{StaticResource InkSoft}" />
+
+            <Button Text="Keep gardening"
+                    Command="{Binding KeepGardeningCommand}"
+                    Margin="0,16,0,0" />
+            <Button Text="How to play"
+                    Command="{Binding OpenHowToPlayCommand}" />
+            <Button Text="Settings"
+                    Command="{Binding OpenSettingsCommand}" />
+            <Button Text="Back to home"
+                    Command="{Binding GoHomeCommand}" />
+
+            <!-- Developer options: added by the code-behind in debug builds only. -->
+            <VerticalStackLayout x:Name="DevOptions"
+                                 Spacing="8"
+                                 Margin="0,24,0,0" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

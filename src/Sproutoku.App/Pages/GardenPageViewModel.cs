@@ -8,7 +8,7 @@ using Sproutoku.Core.Game.Session;
 using System.Diagnostics;
 using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;
 
-namespace Sproutoku.App.ViewModels;
+namespace Sproutoku.App.Pages;
 
 /// <summary>
 /// The garden screen's state and actions: everything about the game the page shows, and none of how it looks.
@@ -16,13 +16,13 @@ namespace Sproutoku.App.ViewModels;
 /// The page binds to its properties and commands, and passes in the cells the player taps, drags and keys.
 /// Each region is one part of the screen, so it can move with that part when it becomes its own control.
 /// </summary>
-public sealed partial class GardenViewModel : ObservableObject {
+public sealed partial class GardenPageViewModel : ObservableObject {
     private readonly GameStorage _gameStorage;
     private readonly Haptics _haptics;
     private readonly LevelPreparer _levels;
     private readonly Dialogs _dialogs;
 
-    public GardenViewModel(GameStorage gameStorage, Haptics haptics, LevelPreparer levels, Dialogs dialogs) {
+    public GardenPageViewModel(GameStorage gameStorage, Haptics haptics, LevelPreparer levels, Dialogs dialogs) {
         _gameStorage = gameStorage;
         _haptics = haptics;
         _levels = levels;
@@ -49,17 +49,16 @@ public sealed partial class GardenViewModel : ObservableObject {
     /// </summary>
     public bool IsLoaded => _session is not null;
 
+    // The one load of the saved game, started by Home as soon as the app opens.
+    private Task? _loading;
+
     /// <summary>
     /// Picks up where the player left off, or starts at Garden 1. The saved level may need growing, so it loads off the main thread.
-    /// If the game is already loaded (a new page showing the same game), it just shows the garden again.
+    /// Safe to call from every screen: the game loads once, and later callers wait for that same load.
     /// </summary>
-    public async Task LoadAsync() {
-        if (_session is not null) {
-            GardenStarted?.Invoke(this, EventArgs.Empty);
-            Refresh();
-            return;
-        }
+    public Task LoadAsync() => _loading ??= LoadSavedGameAsync();
 
+    private async Task LoadSavedGameAsync() {
         Info = "Growing your garden…";
         var save = _gameStorage.Load();
         _session = await Task.Run(() => GameSession.Resume(save));
@@ -93,7 +92,7 @@ public sealed partial class GardenViewModel : ObservableObject {
 
     // Jumps to a level, fresh.
     // A level that isn't ready grows in the background with a gentle note meanwhile.
-    // With eraseProgress, the saved progress is erased once the level is ready (see ResetAsync).
+    // With eraseProgress, the saved progress is erased once the level is ready (see ResetProgressAsync).
     private async Task JumpToLevelAsync(int level, bool eraseProgress = false) {
         if (!_levels.IsReady(level)) {
             Info = $"Growing Garden {level}…";
@@ -133,17 +132,22 @@ public sealed partial class GardenViewModel : ObservableObject {
         }
     }
 
-    // A complete progress reset. Asks first, because it can't be undone.
-    private async Task ResetAsync() {
+    /// <summary>
+    /// Erases all progress and starts again at Garden 1, after asking. Settings are kept.
+    /// Returns true if the player went ahead.
+    /// </summary>
+    public async Task<bool> ResetProgressAsync() {
         bool erase = await _dialogs.ConfirmAsync(
             "Reset all progress?",
             "This erases every garden you've grown and everything you've earned, and starts you again at Garden 1. Your settings stay as they are. It can't be undone.",
             "Erase my progress",
             "Keep my progress");
 
-        if (!erase) return;
+        if (!erase) return false;
 
+        await LoadAsync(); // From Home, the game may still be loading.
         await JumpToLevelAsync(1, eraseProgress: true);
+        return true;
     }
     #endregion
 
@@ -203,6 +207,11 @@ public sealed partial class GardenViewModel : ObservableObject {
     /// </summary>
     public string GardenName => _session is null ? "" : Session.IsExtraGarden ? "Test garden" : $"Garden {Session.Level}";
 
+    /// <summary>
+    /// The level being played, or 1 while loading. A saved garden that was already finished resumes on the next level.
+    /// </summary>
+    public int Level => _session?.Level ?? 1;
+
     private string _info = "";
 
     /// <summary>
@@ -213,14 +222,22 @@ public sealed partial class GardenViewModel : ObservableObject {
         private set => SetProperty(ref _info, value);
     }
 
-    // The info line for a level: size, plus Hard, Super hard and One sun until the real tags exist. Debug adds the grade, style and seed.
+    // The garden's tags until the real ones exist (#91): Hard, Super hard, One sun. None for a test garden.
+    private List<string> Tags() {
+        if (Session.IsExtraGarden) return [];
+
+        var recipe = Session.LevelGarden.Recipe;
+        List<string> tags = [];
+        if (recipe.Tier == GardenTier.Hard) tags.Add("Hard");
+        if (recipe.Tier == GardenTier.SuperHard) tags.Add("Super hard");
+        if (recipe.IsOneSun) tags.Add("One sun");
+        return tags;
+    }
+
+    // The info line for a level: size and tags. Debug adds the grade, style and seed.
     private string GardenInfo() {
         var recipe = Session.LevelGarden.Recipe;
-        List<string> parts = [$"{recipe.Size} × {recipe.Size}"];
-
-        if (recipe.Tier == GardenTier.Hard) parts.Add("Hard");
-        if (recipe.Tier == GardenTier.SuperHard) parts.Add("Super hard");
-        if (recipe.IsOneSun) parts.Add("One sun");
+        List<string> parts = [$"{recipe.Size} × {recipe.Size}", .. Tags()];
 #if DEBUG
         parts.Add(Session.LevelGarden.Garden.Grade.ToString());
         parts.Add(Session.LevelGarden.Garden.Style.ToString());
@@ -443,53 +460,71 @@ public sealed partial class GardenViewModel : ObservableObject {
     #endregion
 
     #region Journal
-    // Rough Garden journal.
-    [RelayCommand]
-    private async Task OpenJournalAsync() {
-        if (_session is null) return; // Still loading.
+    /// <summary>
+    /// The Journal's garden facts, e.g. "Garden 42 · 7 beds · 2 of 3 suns left · Hard".
+    /// </summary>
+    public string JournalFacts {
+        get {
+            if (_session is null) return "";
 
-        List<string> options = ["How to play", "Settings"];
-#if DEBUG
-        options.Add("Go to level (dev)");
-        options.Add("Skip to next garden (dev)");
-        options.Add(Session.UnlimitedTools ? "Normal tools (dev)" : "Unlimited tools (dev)");
-        options.Add(ShowSolution ? "Hide solution (dev)" : "Show solution (dev)");
-#endif
-
-        string? choice = await _dialogs.ChooseAsync("Garden journal", "Keep gardening", "Reset all progress", [.. options]);
-
-        switch (choice) {
-            case "Reset all progress":
-                await ResetAsync();
-                break;
-            case "How to play":
-                await Shell.Current.GoToAsync(Routes.HowToPlay);
-                break;
-            case "Settings":
-                await Shell.Current.GoToAsync(Routes.Settings);
-                break;
-#if DEBUG
-            case "Go to level (dev)":
-                await GoToLevelAsync();
-                break;
-            case "Skip to next garden (dev)":
-                await JumpToLevelAsync(Session.Level + 1);
-                break;
-            case "Unlimited tools (dev)":
-            case "Normal tools (dev)":
-                Session.UnlimitedTools = !Session.UnlimitedTools;
-                Refresh();
-                break;
-            case "Show solution (dev)":
-            case "Hide solution (dev)":
-                ShowSolution = !ShowSolution;
-                Refresh();
-                break;
-#endif
+            var board = Session.Board;
+            List<string> parts = [
+                GardenName,
+                $"{board.Size} beds",
+                $"{board.SunsLeft} of {board.StartingSuns} suns left",
+                .. Tags(),
+            ];
+            return string.Join(" · ", parts);
         }
     }
 
+    // Opens the Journal sheet: from the Journal button, or the back gesture on the garden. Ignored while the game is loading.
+    [RelayCommand]
+    private Task OpenJournalAsync() => _session is null ? Task.CompletedTask : Shell.Current.GoToAsync(Routes.Journal);
+
+    [RelayCommand]
+    private Task KeepGardeningAsync() => CloseJournalAsync();
+
+    // How to play and Settings open over the Journal, so closing them comes back to it.
+    [RelayCommand]
+    private Task OpenHowToPlayAsync() => Shell.Current.GoToAsync(Routes.HowToPlay);
+
+    [RelayCommand]
+    private Task OpenSettingsAsync() => Shell.Current.GoToAsync(Routes.Settings);
+
+    // Closes the Journal and leaves the garden for Home. The garden's progress is already saved.
+    [RelayCommand]
+    private Task GoHomeAsync() => Shell.Current.GoToAsync("../..");
+
+    private static Task CloseJournalAsync() => Shell.Current.GoToAsync("..");
+
 #if DEBUG
+    [RelayCommand]
+    private async Task GoToLevelDevAsync() {
+        await CloseJournalAsync();
+        await GoToLevelAsync();
+    }
+
+    [RelayCommand]
+    private async Task SkipLevelDevAsync() {
+        await CloseJournalAsync();
+        await JumpToLevelAsync(Session.Level + 1);
+    }
+
+    [RelayCommand]
+    private async Task ToggleUnlimitedToolsDevAsync() {
+        Session.UnlimitedTools = !Session.UnlimitedTools;
+        Refresh();
+        await CloseJournalAsync();
+    }
+
+    [RelayCommand]
+    private async Task ToggleSolutionDevAsync() {
+        ShowSolution = !ShowSolution;
+        Refresh();
+        await CloseJournalAsync();
+    }
+
     // Dev: jumps straight to any level by number. The garden is grown off the main thread, since big or Super hard ones can take a moment.
     private async Task GoToLevelAsync() {
         string? answer = await _dialogs.PromptAsync(

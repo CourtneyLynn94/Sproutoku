@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:viewModels="clr-namespace:Sproutoku.App.ViewModels"
+             xmlns:local="clr-namespace:Sproutoku.App.Pages"
              xmlns:controls="clr-namespace:Sproutoku.App.Controls"
              xmlns:garden="clr-namespace:Sproutoku.App.Controls.Garden"
-             x:Class="Sproutoku.App.Pages.MainPage"
-             x:DataType="viewModels:GardenViewModel"
+             x:Class="Sproutoku.App.Pages.GardenPage"
+             x:DataType="local:GardenPageViewModel"
+             Shell.NavBarIsVisible="False"
              BackgroundColor="{StaticResource Paper}">
 
     <Grid RowDefinitions="Auto,*">

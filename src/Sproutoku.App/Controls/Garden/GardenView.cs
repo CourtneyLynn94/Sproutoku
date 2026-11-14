@@ -1,11 +1,11 @@
-using Sproutoku.App.ViewModels;
+using Sproutoku.App.Pages;
 using Sproutoku.Core.Game.Input;
 using Cell = Sproutoku.Core.Gardens.Puzzles.Cell;
 
 namespace Sproutoku.App.Controls.Garden;
 
 /// <summary>
-/// The garden board: draws the board and the worm's hint, and turns touches, drags, hover and keys into cells for <see cref="GardenViewModel"/>.
+/// The garden board: draws the board and the worm's hint, and turns touches, drags, hover and keys into cells for <see cref="GardenPageViewModel"/>.
 /// It finds the view model through its <c>BindingContext</c> (the page's).
 /// </summary>
 public sealed partial class GardenView : ContentView {
@@ -17,7 +17,7 @@ public sealed partial class GardenView : ContentView {
 
     private readonly GraphicsView _canvas = new();
     private readonly GardenDrawable _garden = new() { ShouldDrawRegionBorders = false };
-    private GardenViewModel? _viewModel;
+    private GardenPageViewModel? _viewModel;
 
     // The press in progress: the cell it started on (null if it started off the board), and its drag tracker.
     private Cell? _pressedCell;
@@ -31,6 +31,10 @@ public sealed partial class GardenView : ContentView {
         _canvas.DragInteraction += OnDrag;
         _canvas.EndInteraction += OnRelease;
         _canvas.CancelInteraction += (_, _) => FinishPress();
+
+        // Listens to the shared view model only while on screen, so old garden pages can be let go.
+        Loaded += (_, _) => Listen(BindingContext as GardenPageViewModel);
+        Unloaded += (_, _) => Listen(null);
 
 #if WINDOWS || MACCATALYST
         // Desktop hover. Touch screens don't send hover events, so this does nothing on a phone.
@@ -46,12 +50,19 @@ public sealed partial class GardenView : ContentView {
     protected override void OnBindingContextChanged() {
         base.OnBindingContextChanged();
 
+        if (IsLoaded) {
+            Listen(BindingContext as GardenPageViewModel);
+        }
+    }
+
+    // Stops listening to the old view model, and starts on the new one (null: none).
+    private void Listen(GardenPageViewModel? viewModel) {
         if (_viewModel is not null) {
             _viewModel.GardenStarted -= OnGardenStarted;
             _viewModel.BoardChanged -= OnBoardChanged;
         }
 
-        _viewModel = BindingContext as GardenViewModel;
+        _viewModel = viewModel;
 
         if (_viewModel is not null) {
             _viewModel.GardenStarted += OnGardenStarted;

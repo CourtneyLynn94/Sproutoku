@@ -10,8 +10,9 @@ plants never touch, not even diagonally. Gardens are N×N with N beds.
   `Game` (`Session`: `GameSession`; `Boards`: what the player sees, `Board` is immutable; `Levels`; `PowerUps`; `Input`; `Saving`).
   Tests mirror these folders.
 - `Sproutoku.App`: MAUI UI only, no game rules.
-  - `Pages/` lay out the screen; `Controls/` hold one control per part of the screen (`GardenView` with the drawing and touch, drag and keyboard input, `SunMeter`, `ToolShelf`, `PlantingList`, `WormNote`), which bind to the page's ViewModel.
-  - `ViewModels/` (CommunityToolkit.Mvvm) wrap `GameSession`, save, move between gardens and ask the player through the `Dialogs` service. `GardenViewModel` is a singleton: one game for the whole app. Each ViewModel is split into `#region`s by part of the screen, matching the controls.
+  - `Pages/` hold each screen as three files side by side, all in `Sproutoku.App.Pages`: the page (`GardenPage.xaml`), its code-behind (layout only) and its ViewModel (`GardenPageViewModel.cs`, CommunityToolkit.Mvvm). A control that later gets its own ViewModel keeps it next to the control the same way.
+  - `Controls/` hold one control per part of the screen (`GardenView` with the drawing and touch, drag and keyboard input, `SunMeter`, `ToolShelf`, `PlantingList`, `WormNote`), which bind to the page's ViewModel.
+  - ViewModels wrap `GameSession`, save, move between gardens and ask the player through the `Dialogs` service. `GardenPageViewModel` is a singleton: one game for the whole app, shared by Home, the Garden journal and Settings. Each ViewModel is split into `#region`s by part of the screen, matching the controls.
   - `Services/` (haptics, settings, storage, dialogs, preparing the next garden in the background) are registered in `MauiProgram` for dependency injection and arrive through constructors. Pages open by Shell route (`Routes`).
   - Android-only code lives in `Platforms/Android/`, Windows-only code in `Platforms/Windows/`, each as the other half of a partial class (for example `Haptics.Android.cs`, `GardenView.Keyboard.cs`), keeping the shared namespace.
 - `GameSession` (Core) owns the level, board, tap meaning, progression, restarting and saving.
@@ -41,6 +42,7 @@ plants never touch, not even diagonally. Gardens are N×N with N beds.
 - A drag starts after a third of a cell, and one that starts along a row or column stays in it until the finger is past the middle of the next line. A press that slides off the board without reaching another cell stays a press.
 - Settings live in the default Preferences container; Reset all progress never touches them.
 - When it's built, the Rake clears every ✕ on the board, including ones from the Worm and Water. Only plants and wilts stay.
+- Home, the garden, the Journal and the end screens don't scroll, by design; only Settings and How to play may. How large system text fits them is decided with the cozy UI (#131).
 
 ## Please do flag
 - Game rules or state changes in App code that belong in `Sproutoku.Core`.

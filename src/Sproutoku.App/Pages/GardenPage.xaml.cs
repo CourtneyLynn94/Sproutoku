@@ -1,14 +1,13 @@
-using Sproutoku.App.ViewModels;
 using static Sproutoku.App.Controls.GridLayout;
 
 namespace Sproutoku.App.Pages;
 
 /// <summary>
 /// The garden screen: lays out the sky band, the garden, the planting list or worm's note, and the tool shelf, for a phone or a desktop.
-/// Each part is its own control, and everything about the game lives in <see cref="GardenViewModel"/>.
+/// Each part is its own control, and everything about the game lives in <see cref="GardenPageViewModel"/>.
 /// </summary>
-public partial class MainPage : ContentPage {
-    public MainPage(GardenViewModel viewModel) {
+public partial class GardenPage : ContentPage {
+    public GardenPage(GardenPageViewModel viewModel) {
         BindingContext = viewModel;
         InitializeComponent();
 
@@ -16,6 +15,16 @@ public partial class MainPage : ContentPage {
         SizeChanged += (_, _) => ApplyLayout(Width >= WideLayoutMinWidth);
 
         _ = viewModel.LoadAsync();
+    }
+
+    // Android's back gesture opens the Journal instead of leaving the garden; Back to home is in the Journal.
+    protected override bool OnBackButtonPressed() {
+        var journal = ((GardenPageViewModel)BindingContext).OpenJournalCommand;
+        if (journal.CanExecute(null)) {
+            journal.Execute(null);
+        }
+
+        return true;
     }
 
     #region Layout
