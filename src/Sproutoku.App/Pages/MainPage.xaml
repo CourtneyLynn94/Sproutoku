@@ -51,23 +51,9 @@
             </Grid>
 
             <!-- Planting list placeholder. -->
-            <Border x:Name="PlantingList"
-                    IsVisible="{Binding IsPlantingListShown}"
-                    BackgroundColor="{StaticResource Cream}"
-                    Stroke="{StaticResource InkBrush}"
-                    StrokeThickness="2"
-                    Padding="12"
-                    VerticalOptions="Start">
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Planting list"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource Ink}" />
-                    <Label Text="{Binding PlantingCount}"
-                           TextColor="{StaticResource Ink}" />
-                    <Label Text="{Binding Info}"
-                           TextColor="{StaticResource InkSoft}" />
-                </VerticalStackLayout>
-            </Border>
+            <controls:PlantingList x:Name="PlantingList"
+                                   IsVisible="{Binding IsPlantingListShown}"
+                                   VerticalOptions="Start" />
 
             <!-- The worm's note: shown in the planting list's place while a hint is open. -->
             <Border x:Name="WormNote"
