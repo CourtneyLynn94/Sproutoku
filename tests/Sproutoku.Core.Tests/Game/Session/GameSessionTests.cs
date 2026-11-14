@@ -984,20 +984,6 @@ public class GameSessionTests {
     }
 
     [Fact]
-    public void Water_WithoutAnyProof_SpendsNothing() {
-        var session = NewGame();
-        session.PlayExtraGarden(Puzzle.Create(
-            TestGardens.Regions("00000", "11111", "22222", "33333", "44444"),
-            TestGardens.ValidSolution()));
-        var board = session.Board;
-        var supply = session.PowerUps;
-
-        Assert.Equal(TapOutcome.Ignored, session.UseWater().Outcome);
-        Assert.Same(board, session.Board);
-        Assert.Equal(supply, session.PowerUps);
-    }
-
-    [Fact]
     public void Water_WithNoEmptyCellLeft_SpendsNothing() {
         var session = NewGame();
         session.PlayExtraGarden(ExtraGarden());

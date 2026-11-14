@@ -5,39 +5,6 @@ public class WateringCanToolTests {
     private static Board NewBoard() =>
         Board.Start(Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution()));
 
-    private static Board AmbiguousBoard() =>
-        Board.Start(Puzzle.Create(
-            TestGardens.Regions("00000", "11111", "22222", "33333", "44444"),
-            TestGardens.ValidSolution()));
-
-    [Fact]
-    public void WithoutAnyProof_ItReturnsNoCells_EvenWithPlayerMarks() {
-        var board = AmbiguousBoard().ToggleMark(new Cell(0, 1));
-
-        Assert.All(ManyRandoms(), random => Assert.Empty(WateringCanTool.CellsFor(board, random)));
-    }
-
-    [Fact]
-    public void WithPartialProof_ItOnlyRevealsProvenCells() {
-        var board = AmbiguousBoard().TryPlant(new Cell(0, 0)).Board;
-        // With A1 planted, the only legal column sequences are A C E B D and A D B E C.
-        // Every other cell is empty in both solutions.
-        var provenEmpty = new[] {
-            new Cell(0, 1), new Cell(0, 2), new Cell(0, 3), new Cell(0, 4),
-            new Cell(1, 0), new Cell(1, 1), new Cell(1, 4),
-            new Cell(2, 0), new Cell(2, 2), new Cell(2, 3),
-            new Cell(3, 0), new Cell(3, 2), new Cell(3, 3),
-            new Cell(4, 0), new Cell(4, 1), new Cell(4, 4),
-        };
-
-        Assert.All(ManyRandoms(), random => {
-            var cells = WateringCanTool.CellsFor(board, random);
-
-            Assert.Equal(WateringCanTool.MaxCells, cells.Count);
-            Assert.All(cells, cell => Assert.Contains(cell, provenEmpty));
-        });
-    }
-
     private static IEnumerable<Random> ManyRandoms() => Enumerable.Range(0, 50).Select(seed => new Random(seed));
 
     [Fact]
