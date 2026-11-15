@@ -24,6 +24,11 @@ public static class GardenGenerator {
     /// </summary>
     public const int MaxAttempts = 1000;
 
+    /// <summary>
+    /// No limit on one-cell beds.
+    /// </summary>
+    public const int AnyOneCellBeds = int.MaxValue;
+
     public static GeneratedGarden Generate(int size, ulong seed, DifficultyGrade easiest = DifficultyGrade.Gentle, DifficultyGrade hardest = DifficultyGrade.Expert)
         => Generate(size, new SeededRandom(seed), easiest, hardest);
 
@@ -37,9 +42,11 @@ public static class GardenGenerator {
 
     /// <summary>
     /// Like <see cref="Generate(int, SeededRandom, DifficultyGrade, DifficultyGrade)"/>, but returns null instead of throwing, so a level can move on to a backup seed.
+    /// Gardens with more than <paramref name="maxOneCellBeds"/> one-cell beds are skipped.
     /// </summary>
-    public static GeneratedGarden? TryGenerate(int size, SeededRandom random, DifficultyGrade easiest = DifficultyGrade.Gentle, DifficultyGrade hardest = DifficultyGrade.Expert) {
+    public static GeneratedGarden? TryGenerate(int size, SeededRandom random, DifficultyGrade easiest = DifficultyGrade.Gentle, DifficultyGrade hardest = DifficultyGrade.Expert, int maxOneCellBeds = AnyOneCellBeds) {
         ArgumentNullException.ThrowIfNull(random);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxOneCellBeds);
         if (easiest > hardest) {
             throw new ArgumentException($"{easiest} is harder than {hardest}.", nameof(easiest));
         }
@@ -52,6 +59,10 @@ public static class GardenGenerator {
 
             if (!BedReshaper.TryMakeUnique(beds, plants, random, maxMoves: size * size)) continue;
 
+            // A one-cell bed gives its plant away, so later levels allow few or none. Checked before solving, which costs more.
+            var puzzle = Puzzle.Create(beds, plants);
+            if (puzzle.OneCellBeds() > maxOneCellBeds) continue;
+
             // One answer isn't enough; the player must be able to reach it without guessing.
             var solve = LogicSolver.Solve(GardenFacts.Blank(beds));
             if (!solve.IsSolved) continue;
@@ -59,7 +70,7 @@ public static class GardenGenerator {
             var grade = DifficultyGrader.Grade(solve);
             if (grade < easiest || grade > hardest) continue;
 
-            return new GeneratedGarden(Puzzle.Create(beds, plants), grade, solve.Steps.Count, attempt, style);
+            return new GeneratedGarden(puzzle, grade, solve.Steps.Count, attempt, style);
         }
 
         return null;

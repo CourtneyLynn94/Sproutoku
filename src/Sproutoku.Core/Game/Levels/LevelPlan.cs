@@ -23,7 +23,7 @@ public enum GardenTier {
 /// <summary>
 /// What a level's garden should be: its size, the grades it may have, its tier, and how many suns it starts with.
 /// </summary>
-public sealed record LevelRecipe(int Size, DifficultyGrade Easiest, DifficultyGrade Hardest, GardenTier Tier, int Suns) {
+public sealed record LevelRecipe(int Size, DifficultyGrade Easiest, DifficultyGrade Hardest, GardenTier Tier, int Suns, int MaxOneCellBeds = GardenGenerator.AnyOneCellBeds) {
     public bool IsOneSun => Suns == 1;
 }
 
