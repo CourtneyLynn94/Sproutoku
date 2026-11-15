@@ -19,12 +19,13 @@ public class GardenLevelsTests {
     }
 
     [Fact]
-    public void IntroLevels_FollowThePlan() {
-        for (int level = 1; level <= LevelPlan.IntroLevels; level++) {
+    public void TheFirst100Levels_FollowThePlan() {
+        for (int level = 1; level <= 100; level++) {
             var garden = GardenLevels.ForLevel(level);
 
             Assert.Equal(garden.Recipe.Size, garden.Puzzle.Size);
             Assert.InRange(garden.Garden.Grade, garden.Recipe.Easiest, garden.Recipe.Hardest);
+            Assert.True(garden.Puzzle.OneCellBeds() <= garden.Recipe.MaxOneCellBeds, $"Level {level} has {garden.Puzzle.OneCellBeds()} one-cell beds.");
             Assert.Equal(garden.Recipe.Suns, garden.Start().StartingSuns);
         }
     }

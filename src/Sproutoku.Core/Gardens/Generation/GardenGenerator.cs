@@ -16,8 +16,9 @@ public static class GardenGenerator {
     /// <summary>
     /// Part of every release level's seed. Bump it when a change to the generator or the level plan changes the gardens it makes.
     /// 2: bed styles (#51)
+    /// 3: the level plan's block mixes and one-cell bed limits (#134)
     /// </summary>
-    public const int Version = 2;
+    public const int Version = 3;
 
     /// <summary>
     /// Attempts before giving up. Real gardens need about 1 to 40, so this is never reached in practice.
