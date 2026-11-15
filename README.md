@@ -7,7 +7,7 @@ A cozy logic puzzle for Android phones and Windows desktops, built with .NET MAU
 ## The game
 
 - Tap a cell to mark it ✕, double-tap to grow a plant, drag to mark a row. One plant per bed, row and column, and plants never touch, not even diagonally.
-- Endless gardens, generated from each level's number, so level N is the same garden for everyone. Levels 1–30 teach one deduction at a time; every 10th level from 40 is Hard and every 50th is Super hard.
+- Levels 1–20 teach one deduction at a time. After that, each block of ten levels mixes grades that get harder as levels climb, with one lighter breather; every 10th level from 30 is Hard and every 50th is Super hard.
 - Every garden has exactly one answer, and it can be found by logic alone, with no guessing.
 - Most gardens have three suns, and a wrong plant wilts and costs one. Some gardens have only one sun, so the first mistake ends them: levels 18 and 27, every Super hard garden, and now and then a later level. The garden's info line says "One sun" when it is one.
 - The Worm shows the next logical step on the board and explains it in one line.

@@ -103,7 +103,7 @@ public static class GardenLevels {
             var random = new SeededRandom(gardenSeed);
             var recipe = LevelPlan.For(level, random);
 
-            if (GardenGenerator.TryGenerate(recipe.Size, random, recipe.Easiest, recipe.Hardest) is { } garden) {
+            if (GardenGenerator.TryGenerate(recipe.Size, random, recipe.Easiest, recipe.Hardest, recipe.MaxOneCellBeds) is { } garden) {
                 yield return new LevelGarden(level, seed, recipe, garden);
             }
         }

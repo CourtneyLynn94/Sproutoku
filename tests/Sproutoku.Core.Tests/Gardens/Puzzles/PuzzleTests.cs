@@ -35,4 +35,12 @@ public class PuzzleTests {
         Assert.Equal(0, puzzle.RegionAt(new Cell(0, 0)));
         Assert.Equal(new Cell(0, 0), puzzle.Solution[0]);
     }
+
+    [Fact]
+    public void OneCellBeds_CountsBedsWithOnlyOneCell() {
+        var withTwo = Puzzle.Create(TestGardens.Regions("01111", "11111", "33112", "33344", "33444"), TestGardens.ValidSolution());
+
+        Assert.Equal(2, withTwo.OneCellBeds());
+        Assert.Equal(0, Puzzle.Create(TestGardens.ValidRegions(), TestGardens.ValidSolution()).OneCellBeds());
+    }
 }

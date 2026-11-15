@@ -33,6 +33,18 @@ public sealed class Puzzle {
     public bool IsSolutionCell(Cell cell) => Solution[RegionAt(cell)] == cell;
 
     /// <summary>
+    /// How many beds have only one cell. Each one gives its plant away.
+    /// </summary>
+    public int OneCellBeds() {
+        var cellsPerBed = new int[Size];
+        foreach (int region in _regions) {
+            cellsPerBed[region]++;
+        }
+
+        return cellsPerBed.Count(cells => cells == 1);
+    }
+
+    /// <summary>
     /// Validates the data and builds a puzzle, or throws <see cref="InvalidPuzzleException"/>.
     /// </summary>
     public static Puzzle Create(int[][] regions, IReadOnlyList<Cell> solution) {

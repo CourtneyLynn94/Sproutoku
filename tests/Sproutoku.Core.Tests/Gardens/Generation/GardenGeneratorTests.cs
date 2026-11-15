@@ -85,4 +85,14 @@ public class GardenGeneratorTests {
         // Expert needs three beds sharing lines, with three more beds still open: impossible with only 5 beds.
         Assert.Null(GardenGenerator.TryGenerate(5, new SeededRandom(1), DifficultyGrade.Expert, DifficultyGrade.Expert));
     }
+
+    [Fact]
+    public void TryGenerate_SkipsGardens_WithTooManyOneCellBeds() {
+        for (ulong seed = 1; seed <= 10; seed++) {
+            var garden = GardenGenerator.TryGenerate(7, new SeededRandom(seed), maxOneCellBeds: 0);
+
+            Assert.NotNull(garden);
+            Assert.Equal(0, garden.Puzzle.OneCellBeds());
+        }
+    }
 }
