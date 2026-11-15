@@ -198,7 +198,7 @@ public class LevelPlanTests {
 
     [Fact]
     public void TheLevelBeforeASuperHardLevel_IsNeverOneSun() {
-        for (int level = 99; level <= 2000; level += 50) {
+        for (int level = 49; level <= 2000; level += 50) {
             Assert.False(Level(level).IsOneSun, $"Level {level} is One sun.");
         }
     }
