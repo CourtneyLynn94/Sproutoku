@@ -34,7 +34,7 @@ plants never touch, not even diagonally. Gardens are N×N with N beds.
 - "Reset all progress" clears only the `sproutoku.progress` Preferences container. Settings are kept on purpose.
 - Dialogs, buttons and colors are placeholder UI until the real design is built.
 - Starting over is only offered after losing ("Try again"). There is no last garden: levels are endless.
-- Levels are endless and generated from each level's seed; level N is the same garden for every player.
+- After the intro (levels 1–20) the level plan is deliberately demanding (#134): no Gentle gardens, Easy only as a block’s breather until level 50 and Medium after, one breather per block of ten, and few or no one-cell beds. Variety comes from size, One sun and Expert levels, not easier grades.
 - Power-ups: until the tool shed exists, every garden starts with 2 Seedlings, 2 Worms and 2 Water, refilled by a new garden or Try again. The Rake is an unlimited tool. The Unlimited tools developer option covers all of them.
 - The Worm uses the player's ✕ marks that are correct (proven without peeking at the answer); ✕ marks on proven plants are called out as mistakes. A hint never locks the board: the player can hide it, keep playing and show it again for free. An open hint isn't saved.
 - Hint messages and board labels use battleship names: columns A–J, rows 1–10, cells like B5.
